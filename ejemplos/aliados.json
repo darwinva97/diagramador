@@ -1,7 +1,7 @@
 {
   "app": "diagramador",
   "version": 1,
-  "exportedAt": "2026-09-14T21:21:54.157Z",
+  "exportedAt": "2026-09-14T22:02:29.595Z",
   "libraries": [
     {
       "id": "lib-aliados",
@@ -14,14 +14,41 @@
           "icon": "⇨",
           "fields": [
             {
-              "key": "descripcion",
-              "label": "Descripción",
+              "key": "objetivo",
+              "label": "Objetivo",
               "kind": "textarea"
             },
             {
               "key": "responsable",
-              "label": "Responsable",
+              "label": "Responsable / área",
               "kind": "text"
+            },
+            {
+              "key": "disparador",
+              "label": "Disparador",
+              "kind": "select",
+              "options": "Usuario, Aliado, Evento, Programado, Sistema"
+            },
+            {
+              "key": "entradas",
+              "label": "Entradas",
+              "kind": "list"
+            },
+            {
+              "key": "salidas",
+              "label": "Salidas",
+              "kind": "list"
+            },
+            {
+              "key": "sla",
+              "label": "SLA / tiempo objetivo",
+              "kind": "text"
+            },
+            {
+              "key": "estado",
+              "label": "Estado",
+              "kind": "select",
+              "options": "Existente, Nuevo, Modificado"
             }
           ]
         },
@@ -157,13 +184,46 @@
             },
             {
               "key": "tecnologia",
-              "label": "Tecnología",
+              "label": "Tecnología / runtime",
               "kind": "text"
             },
             {
               "key": "repositorio",
               "label": "Repositorio",
               "kind": "url"
+            },
+            {
+              "key": "equipo",
+              "label": "Equipo responsable",
+              "kind": "text"
+            },
+            {
+              "key": "despliegue",
+              "label": "Despliegue",
+              "kind": "select",
+              "options": "Kubernetes, Serverless, VM, On-premise"
+            },
+            {
+              "key": "dependencias",
+              "label": "Dependencias",
+              "kind": "list"
+            },
+            {
+              "key": "variables",
+              "label": "Configuración / variables",
+              "kind": "keyvalue",
+              "options": "Variable|Descripción"
+            },
+            {
+              "key": "observabilidad",
+              "label": "Observabilidad",
+              "kind": "keyvalue",
+              "options": "Señal|Herramienta / dashboard"
+            },
+            {
+              "key": "notas",
+              "label": "Notas",
+              "kind": "textarea"
             }
           ]
         },
@@ -179,10 +239,43 @@
               "kind": "text"
             },
             {
+              "key": "ubicacion",
+              "label": "Ubicación",
+              "kind": "select",
+              "options": "On-premise, Cloud, SaaS, Híbrido"
+            },
+            {
               "key": "estado",
               "label": "Estado",
               "kind": "select",
               "options": "Existente, Nuevo, Modificado"
+            },
+            {
+              "key": "protocolo",
+              "label": "Protocolo de integración",
+              "kind": "select",
+              "options": "REST, SOAP, JDBC, SFTP, Mensajería, Batch"
+            },
+            {
+              "key": "responsable",
+              "label": "Responsable / proveedor",
+              "kind": "text"
+            },
+            {
+              "key": "sla",
+              "label": "SLA / disponibilidad",
+              "kind": "text"
+            },
+            {
+              "key": "contacto",
+              "label": "Contactos",
+              "kind": "keyvalue",
+              "options": "Rol|Contacto"
+            },
+            {
+              "key": "notas",
+              "label": "Notas",
+              "kind": "textarea"
             }
           ]
         },
@@ -196,12 +289,33 @@
               "key": "tipo",
               "label": "Tipo",
               "kind": "select",
-              "options": "Base de datos, Storage, MFT, Tópico"
+              "options": "Base de datos, Storage, MFT, Tópico, Caché, Cola"
             },
             {
               "key": "motor",
               "label": "Motor / tecnología",
               "kind": "text"
+            },
+            {
+              "key": "datos",
+              "label": "Datos que guarda",
+              "kind": "list"
+            },
+            {
+              "key": "retencion",
+              "label": "Retención",
+              "kind": "text"
+            },
+            {
+              "key": "sensibilidad",
+              "label": "Sensibilidad",
+              "kind": "select",
+              "options": "Pública, Interna, Confidencial, Datos personales"
+            },
+            {
+              "key": "notas",
+              "label": "Notas",
+              "kind": "textarea"
             }
           ]
         }
@@ -212,56 +326,144 @@
           "name": "Registro de Prospectos",
           "typeId": "ty-subproceso",
           "description": "",
-          "fields": {}
+          "fields": {
+            "objetivo": "El aliado registra los datos del prospecto para iniciar la evaluación.",
+            "disparador": "Aliado",
+            "entradas": [
+              "Documento",
+              "Datos de contacto",
+              "Aliado de origen"
+            ],
+            "salidas": [
+              "prospectoId"
+            ],
+            "sla": "< 2 s",
+            "estado": "Existente"
+          }
         },
         {
           "id": "sp-consentimiento",
           "name": "Consentimiento PDP",
           "typeId": "ty-subproceso",
           "description": "",
-          "fields": {}
+          "fields": {
+            "objetivo": "Registrar la aceptación de la política de protección de datos personales.",
+            "disparador": "Usuario",
+            "entradas": [
+              "prospectoId",
+              "Texto de consentimiento"
+            ],
+            "salidas": [
+              "consentimientoId"
+            ],
+            "estado": "Existente"
+          }
         },
         {
           "id": "sp-consulta",
           "name": "Consulta de Campaña",
           "typeId": "ty-subproceso",
           "description": "",
-          "fields": {}
+          "fields": {
+            "objetivo": "Consultar las campañas / ofertas disponibles para el prospecto.",
+            "disparador": "Aliado",
+            "entradas": [
+              "Documento"
+            ],
+            "salidas": [
+              "Lista de campañas"
+            ],
+            "estado": "Nuevo"
+          }
         },
         {
           "id": "sp-validacion",
           "name": "Validación Base Negativa",
           "typeId": "ty-subproceso",
           "description": "",
-          "fields": {}
+          "fields": {
+            "objetivo": "Verificar que el prospecto no esté en listas negativas.",
+            "disparador": "Sistema",
+            "entradas": [
+              "Documento"
+            ],
+            "salidas": [
+              "Resultado de validación"
+            ],
+            "estado": "Nuevo"
+          }
         },
         {
           "id": "sp-reglas",
           "name": "Aplicar Reglas de Riesgo",
           "typeId": "ty-subproceso",
           "description": "",
-          "fields": {}
+          "fields": {
+            "objetivo": "Evaluar el prospecto con el motor de reglas de riesgo.",
+            "disparador": "Sistema",
+            "entradas": [
+              "prospectoId",
+              "campaniaId"
+            ],
+            "salidas": [
+              "Decisión",
+              "Score"
+            ],
+            "estado": "Nuevo"
+          }
         },
         {
           "id": "sp-simular",
           "name": "Simular condiciones",
           "typeId": "ty-subproceso",
           "description": "",
-          "fields": {}
+          "fields": {
+            "objetivo": "Calcular cuota y cronograma para un monto y plazo.",
+            "disparador": "Usuario",
+            "entradas": [
+              "Monto",
+              "Plazo"
+            ],
+            "salidas": [
+              "Cronograma"
+            ],
+            "estado": "Nuevo"
+          }
         },
         {
           "id": "sp-derivar",
           "name": "Derivar lead",
           "typeId": "ty-subproceso",
           "description": "",
-          "fields": {}
+          "fields": {
+            "objetivo": "Enviar el lead calificado al CRM para gestión comercial.",
+            "disparador": "Usuario",
+            "entradas": [
+              "prospectoId",
+              "simulacionId"
+            ],
+            "salidas": [
+              "leadId"
+            ],
+            "estado": "Nuevo"
+          }
         },
         {
           "id": "sp-lectura",
           "name": "Lectura de estado",
           "typeId": "ty-subproceso",
           "description": "",
-          "fields": {}
+          "fields": {
+            "objetivo": "Consultar el estado de gestión del lead.",
+            "disparador": "Aliado",
+            "entradas": [
+              "leadId"
+            ],
+            "salidas": [
+              "Estado del lead"
+            ],
+            "estado": "Nuevo"
+          }
         },
         {
           "id": "aexp-registro",
@@ -335,7 +537,22 @@
           "description": "",
           "fields": {
             "capa": "EXP",
-            "estado": "Existente"
+            "estado": "Existente",
+            "tecnologia": "Node.js 20",
+            "despliegue": "Kubernetes",
+            "dependencias": [
+              "[API SD] Party Reference Data Directory"
+            ],
+            "observabilidad": [
+              {
+                "key": "Logs",
+                "value": "ELK"
+              },
+              {
+                "key": "Trazas",
+                "value": "OpenTelemetry"
+              }
+            ]
           }
         },
         {
@@ -1638,7 +1855,13 @@
           "typeId": "ty-almacenamiento",
           "description": "",
           "fields": {
-            "tipo": "Base de datos"
+            "tipo": "Base de datos",
+            "motor": "PostgreSQL",
+            "datos": [
+              "Prospectos",
+              "Aliados"
+            ],
+            "sensibilidad": "Datos personales"
           }
         },
         {
@@ -1647,7 +1870,10 @@
           "typeId": "ty-almacenamiento",
           "description": "",
           "fields": {
-            "tipo": "MFT"
+            "tipo": "MFT",
+            "datos": [
+              "Archivos de direcciones"
+            ]
           }
         },
         {
@@ -1655,56 +1881,76 @@
           "name": "CRM / Analítica",
           "typeId": "ty-backend",
           "description": "",
-          "fields": {}
+          "fields": {
+            "ubicacion": "Cloud",
+            "protocolo": "REST"
+          }
         },
         {
           "id": "be-clientes",
           "name": "Clientes",
           "typeId": "ty-backend",
           "description": "",
-          "fields": {}
+          "fields": {
+            "ubicacion": "On-premise",
+            "protocolo": "JDBC"
+          }
         },
         {
           "id": "be-distribuidor",
           "name": "Distribuidor Leads",
           "typeId": "ty-backend",
           "description": "",
-          "fields": {}
+          "fields": {
+            "protocolo": "REST"
+          }
         },
         {
           "id": "be-riesgos",
           "name": "RIESGOS",
           "typeId": "ty-backend",
           "description": "",
-          "fields": {}
+          "fields": {
+            "ubicacion": "On-premise",
+            "protocolo": "SOAP"
+          }
         },
         {
           "id": "be-activos",
           "name": "Activos",
           "typeId": "ty-backend",
           "description": "",
-          "fields": {}
+          "fields": {
+            "ubicacion": "On-premise"
+          }
         },
         {
           "id": "be-crm",
           "name": "CRM",
           "typeId": "ty-backend",
           "description": "",
-          "fields": {}
+          "fields": {
+            "ubicacion": "SaaS",
+            "protocolo": "REST"
+          }
         },
         {
           "id": "be-analitica",
           "name": "Plataforma Analítica",
           "typeId": "ty-backend",
           "description": "",
-          "fields": {}
+          "fields": {
+            "ubicacion": "Cloud"
+          }
         },
         {
           "id": "be-eventos",
           "name": "Plataforma Eventos",
           "typeId": "ty-backend",
           "description": "",
-          "fields": {}
+          "fields": {
+            "protocolo": "Mensajería"
+          }
         },
         {
           "id": "be-topico",
@@ -1712,7 +1958,11 @@
           "typeId": "ty-almacenamiento",
           "description": "",
           "fields": {
-            "tipo": "Tópico"
+            "tipo": "Tópico",
+            "motor": "Kafka",
+            "datos": [
+              "Cambios de estado del lead"
+            ]
           }
         }
       ]

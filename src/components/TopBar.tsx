@@ -2,9 +2,11 @@ import { useStore } from '../store';
 import { actions } from '../actions';
 import { openPopout, toggleFullscreen } from '../sync';
 import aliados from '../../ejemplos/aliados.json';
+import { pedidoExample } from '../seed';
 
 const EXAMPLES: { key: string; name: string; data: unknown }[] = [
-  { key: 'aliados', name: 'Arquitectura Aliados (APIs y microservicios por capas)', data: aliados },
+  { key: 'aliados', name: 'Plantilla Aliados (APIs y microservicios por capas)', data: aliados },
+  { key: 'pedido', name: 'Ejemplo básico: flujo de pedido', data: pedidoExample() },
 ];
 
 export function TopBar() {

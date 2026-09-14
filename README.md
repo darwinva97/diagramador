@@ -53,6 +53,8 @@ La app se publica como **Cloudflare Worker de archivos estáticos** (`wrangler.j
 
 ## Ejemplos
 
+Al abrir la app por primera vez se carga la **plantilla Aliados** (librería con tipos Subproceso, API con contrato, Microservicio, Sistema backend y Almacenamiento). Los diagramas nuevos usan sus capas por defecto: Sub Procesos, APIs Experiencia, APIs Proceso, APIs Negocio, APIs Sistema (SYS) y BACKEND.
+
 En `ejemplos/` hay diagramas listos para importar (menú **Ejemplos…** de la barra superior o **Importar JSON**).
 `ejemplos/aliados.json` se genera con `node scripts/gen-aliados.mjs` y reproduce una arquitectura por capas
 (subprocesos → APIs/microservicios de experiencia, proceso, negocio y sistema → backend) con 5 etapas.

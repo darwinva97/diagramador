@@ -2,6 +2,7 @@ import { useStore } from './store';
 import { API_CONTRACT_FIELDS, type AppData, type Component, type ComponentType, type Diagram, type FieldDef, type Placement, type Relation } from './types';
 import { LAYER_COLORS, PALETTE, cloneDiagram, curDiagram, descendantIds, findComp, findLib, findType, libOfComp, libOfType, nextStackPos, setCell, snap, tidyCell, uid } from './lib/model';
 import { exportAll, exportDiagram, mergeImport, pickFile } from './lib/io';
+import { DEFAULT_LAYERS, DEFAULT_STAGES } from './seed';
 
 const S = () => useStore.getState();
 const mutate = (fn: (d: AppData) => void, snap = true) => S().mutate(fn, snap);
@@ -10,8 +11,8 @@ const select = (sel: Parameters<ReturnType<typeof useStore.getState>['select']>[
 function newDiagramData(name: string): Diagram {
   return {
     id: uid(), name, description: '',
-    layers: ['Presentación', 'Lógica', 'Datos'].map((n, i) => ({ id: uid(), name: n, color: LAYER_COLORS[i] })),
-    stages: ['Etapa 1', 'Etapa 2', 'Etapa 3'].map(n => ({ id: uid(), name: n })),
+    layers: DEFAULT_LAYERS.map(l => ({ id: uid(), name: l.name, color: l.color })),
+    stages: DEFAULT_STAGES.map(n => ({ id: uid(), name: n })),
     placements: [], relations: [],
   };
 }

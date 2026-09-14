@@ -5,7 +5,13 @@ import { writeFileSync } from 'node:fs';
 const LIB = 'lib-aliados';
 const types = {
   sub:  { id: 'ty-subproceso', name: 'Subproceso', color: '#ca8a04', icon: '⇨', fields: [
-    { key: 'descripcion', label: 'Descripción', kind: 'textarea' }, { key: 'responsable', label: 'Responsable', kind: 'text' } ] },
+    { key: 'objetivo', label: 'Objetivo', kind: 'textarea' },
+    { key: 'responsable', label: 'Responsable / área', kind: 'text' },
+    { key: 'disparador', label: 'Disparador', kind: 'select', options: 'Usuario, Aliado, Evento, Programado, Sistema' },
+    { key: 'entradas', label: 'Entradas', kind: 'list' },
+    { key: 'salidas', label: 'Salidas', kind: 'list' },
+    { key: 'sla', label: 'SLA / tiempo objetivo', kind: 'text' },
+    { key: 'estado', label: 'Estado', kind: 'select', options: 'Existente, Nuevo, Modificado' } ] },
   api:  { id: 'ty-api', name: 'API', color: '#2563eb', icon: '🔌', fields: [
     { key: 'capa', label: 'Capa', kind: 'select', options: 'EXP, PROC, SD, SYS' },
     { key: 'estado', label: 'Estado', kind: 'select', options: 'Existente, Nuevo, Modificado' },
@@ -29,13 +35,30 @@ const types = {
   ms:   { id: 'ty-microservicio', name: 'Microservicio', color: '#0f766e', icon: '⚙️', fields: [
     { key: 'capa', label: 'Capa', kind: 'select', options: 'EXP, PROC, SD, SYS' },
     { key: 'estado', label: 'Estado', kind: 'select', options: 'Existente, Nuevo, Modificado' },
-    { key: 'tecnologia', label: 'Tecnología', kind: 'text' }, { key: 'repositorio', label: 'Repositorio', kind: 'url' } ] },
+    { key: 'tecnologia', label: 'Tecnología / runtime', kind: 'text' },
+    { key: 'repositorio', label: 'Repositorio', kind: 'url' },
+    { key: 'equipo', label: 'Equipo responsable', kind: 'text' },
+    { key: 'despliegue', label: 'Despliegue', kind: 'select', options: 'Kubernetes, Serverless, VM, On-premise' },
+    { key: 'dependencias', label: 'Dependencias', kind: 'list' },
+    { key: 'variables', label: 'Configuración / variables', kind: 'keyvalue', options: 'Variable|Descripción' },
+    { key: 'observabilidad', label: 'Observabilidad', kind: 'keyvalue', options: 'Señal|Herramienta / dashboard' },
+    { key: 'notas', label: 'Notas', kind: 'textarea' } ] },
   sys:  { id: 'ty-backend', name: 'Sistema backend', color: '#7c3aed', icon: '🖥️', fields: [
     { key: 'proveedor', label: 'Proveedor / plataforma', kind: 'text' },
-    { key: 'estado', label: 'Estado', kind: 'select', options: 'Existente, Nuevo, Modificado' } ] },
+    { key: 'ubicacion', label: 'Ubicación', kind: 'select', options: 'On-premise, Cloud, SaaS, Híbrido' },
+    { key: 'estado', label: 'Estado', kind: 'select', options: 'Existente, Nuevo, Modificado' },
+    { key: 'protocolo', label: 'Protocolo de integración', kind: 'select', options: 'REST, SOAP, JDBC, SFTP, Mensajería, Batch' },
+    { key: 'responsable', label: 'Responsable / proveedor', kind: 'text' },
+    { key: 'sla', label: 'SLA / disponibilidad', kind: 'text' },
+    { key: 'contacto', label: 'Contactos', kind: 'keyvalue', options: 'Rol|Contacto' },
+    { key: 'notas', label: 'Notas', kind: 'textarea' } ] },
   sto:  { id: 'ty-almacenamiento', name: 'Almacenamiento', color: '#059669', icon: '🗄️', fields: [
-    { key: 'tipo', label: 'Tipo', kind: 'select', options: 'Base de datos, Storage, MFT, Tópico' },
-    { key: 'motor', label: 'Motor / tecnología', kind: 'text' } ] },
+    { key: 'tipo', label: 'Tipo', kind: 'select', options: 'Base de datos, Storage, MFT, Tópico, Caché, Cola' },
+    { key: 'motor', label: 'Motor / tecnología', kind: 'text' },
+    { key: 'datos', label: 'Datos que guarda', kind: 'list' },
+    { key: 'retencion', label: 'Retención', kind: 'text' },
+    { key: 'sensibilidad', label: 'Sensibilidad', kind: 'select', options: 'Pública, Interna, Confidencial, Datos personales' },
+    { key: 'notas', label: 'Notas', kind: 'textarea' } ] },
 };
 
 const components = [];
@@ -61,11 +84,16 @@ const API = (capa, estado, method, path, extra = {}) => {
 const EXI = 'Existente', NUE = 'Nuevo', MOD = 'Modificado';
 
 // Subprocesos
-C('sp-registro', 'Registro de Prospectos', 'sub'); C('sp-consentimiento', 'Consentimiento PDP', 'sub');
-C('sp-consulta', 'Consulta de Campaña', 'sub'); C('sp-validacion', 'Validación Base Negativa', 'sub'); C('sp-reglas', 'Aplicar Reglas de Riesgo', 'sub');
-C('sp-simular', 'Simular condiciones', 'sub'); C('sp-derivar', 'Derivar lead', 'sub'); C('sp-lectura', 'Lectura de estado', 'sub');
+C('sp-registro', 'Registro de Prospectos', 'sub', { objetivo: 'El aliado registra los datos del prospecto para iniciar la evaluación.', disparador: 'Aliado', entradas: ['Documento', 'Datos de contacto', 'Aliado de origen'], salidas: ['prospectoId'], sla: '< 2 s', estado: EXI });
+C('sp-consentimiento', 'Consentimiento PDP', 'sub', { objetivo: 'Registrar la aceptación de la política de protección de datos personales.', disparador: 'Usuario', entradas: ['prospectoId', 'Texto de consentimiento'], salidas: ['consentimientoId'], estado: EXI });
+C('sp-consulta', 'Consulta de Campaña', 'sub', { objetivo: 'Consultar las campañas / ofertas disponibles para el prospecto.', disparador: 'Aliado', entradas: ['Documento'], salidas: ['Lista de campañas'], estado: NUE });
+C('sp-validacion', 'Validación Base Negativa', 'sub', { objetivo: 'Verificar que el prospecto no esté en listas negativas.', disparador: 'Sistema', entradas: ['Documento'], salidas: ['Resultado de validación'], estado: NUE });
+C('sp-reglas', 'Aplicar Reglas de Riesgo', 'sub', { objetivo: 'Evaluar el prospecto con el motor de reglas de riesgo.', disparador: 'Sistema', entradas: ['prospectoId', 'campaniaId'], salidas: ['Decisión', 'Score'], estado: NUE });
+C('sp-simular', 'Simular condiciones', 'sub', { objetivo: 'Calcular cuota y cronograma para un monto y plazo.', disparador: 'Usuario', entradas: ['Monto', 'Plazo'], salidas: ['Cronograma'], estado: NUE });
+C('sp-derivar', 'Derivar lead', 'sub', { objetivo: 'Enviar el lead calificado al CRM para gestión comercial.', disparador: 'Usuario', entradas: ['prospectoId', 'simulacionId'], salidas: ['leadId'], estado: NUE });
+C('sp-lectura', 'Lectura de estado', 'sub', { objetivo: 'Consultar el estado de gestión del lead.', disparador: 'Aliado', entradas: ['leadId'], salidas: ['Estado del lead'], estado: NUE });
 // APIs / microservicios de experiencia
-C('aexp-registro', '[API EXP] Registro de Prospecto', 'api', API('EXP', EXI, 'POST', '/prospectos', { request_body: J({ documento: 'string', nombres: 'string', apellidos: 'string', telefono: 'string', email: 'string', aliado: 'string' }), response_body: J({ prospectoId: 'uuid', estado: 'REGISTRADO' }), response_codes: [ { key: '201', value: 'Prospecto creado' }, { key: '400', value: 'Datos inválidos' }, { key: '409', value: 'Prospecto ya existe' } ] })); C('mexp-registro', '[MIC EXP] Registro de Prospecto', 'ms', { capa: 'EXP', estado: EXI });
+C('aexp-registro', '[API EXP] Registro de Prospecto', 'api', API('EXP', EXI, 'POST', '/prospectos', { request_body: J({ documento: 'string', nombres: 'string', apellidos: 'string', telefono: 'string', email: 'string', aliado: 'string' }), response_body: J({ prospectoId: 'uuid', estado: 'REGISTRADO' }), response_codes: [ { key: '201', value: 'Prospecto creado' }, { key: '400', value: 'Datos inválidos' }, { key: '409', value: 'Prospecto ya existe' } ] })); C('mexp-registro', '[MIC EXP] Registro de Prospecto', 'ms', { capa: 'EXP', estado: EXI, tecnologia: 'Node.js 20', despliegue: 'Kubernetes', dependencias: ['[API SD] Party Reference Data Directory'], observabilidad: [ { key: 'Logs', value: 'ELK' }, { key: 'Trazas', value: 'OpenTelemetry' } ] });
 C('aexp-consentimiento', '[API EXP] Consentimiento PDP', 'api', API('EXP', EXI, 'POST', '/prospectos/{prospectoId}/consentimiento', { path_params: [ { key: 'prospectoId', value: 'uuid' } ], request_body: J({ acepta: true, canal: 'WEB', versionTexto: 'string' }), response_body: J({ consentimientoId: 'uuid', fecha: 'date-time' }) })); C('mexp-consentimiento', '[MIC EXP] Consentimiento PDP', 'ms', { capa: 'EXP', estado: EXI });
 C('aexp-consulta', '[API EXP] Consulta campaña', 'api', API('EXP', NUE, 'GET', '/campanias', { query_params: [ { key: 'documento', value: 'string (requerido)' }, { key: 'aliado', value: 'string' } ], response_body: J({ campanias: [ { campaniaId: 'string', producto: 'string', montoMaximo: 0, tasa: 0 } ] }) })); C('mexp-consulta', '[MIC EXP] Consulta campaña', 'ms', { capa: 'EXP', estado: NUE });
 C('aexp-validacion', '[API EXP] Validación Base Negativa', 'api', API('EXP', NUE, 'POST', '/riesgos/base-negativa', { request_body: J({ documento: 'string', tipoDocumento: 'DNI|CE' }), response_body: J({ enBaseNegativa: false, motivo: 'string|null' }) })); C('mexp-validacion', '[MIC EXP] Validación Base Negativa', 'ms', { capa: 'EXP', estado: NUE });
@@ -88,9 +116,9 @@ C('msys-alta-persona', '[MS SYS] Alta Persona', 'ms', { capa: 'SYS', estado: EXI
 C('msys-geo', '[MS SYS] Geolocalización', 'ms', { capa: 'SYS', estado: EXI }); C('msys-leypdp', '[MS SYS] Ley PDP', 'ms', { capa: 'SYS', estado: EXI });
 C('msys-lead', '[MS SYS] Lead & Opportunity Management', 'ms', { capa: 'SYS', estado: NUE }); C('msys-lectura', '[MS SYS] Lectura estado', 'ms', { capa: 'SYS', estado: NUE });
 // Backend
-C('be-bd-aliados', 'BD Aliados', 'sto', { tipo: 'Base de datos' }); C('be-mft', 'MFT', 'sto', { tipo: 'MFT' }); C('be-crm-analitica', 'CRM / Analítica', 'sys');
-C('be-clientes', 'Clientes', 'sys'); C('be-distribuidor', 'Distribuidor Leads', 'sys'); C('be-riesgos', 'RIESGOS', 'sys'); C('be-activos', 'Activos', 'sys');
-C('be-crm', 'CRM', 'sys'); C('be-analitica', 'Plataforma Analítica', 'sys'); C('be-eventos', 'Plataforma Eventos', 'sys'); C('be-topico', 'Tópico estado', 'sto', { tipo: 'Tópico' });
+C('be-bd-aliados', 'BD Aliados', 'sto', { tipo: 'Base de datos', motor: 'PostgreSQL', datos: ['Prospectos', 'Aliados'], sensibilidad: 'Datos personales' }); C('be-mft', 'MFT', 'sto', { tipo: 'MFT', datos: ['Archivos de direcciones'] }); C('be-crm-analitica', 'CRM / Analítica', 'sys', { ubicacion: 'Cloud', protocolo: 'REST' });
+C('be-clientes', 'Clientes', 'sys', { ubicacion: 'On-premise', protocolo: 'JDBC' }); C('be-distribuidor', 'Distribuidor Leads', 'sys', { protocolo: 'REST' }); C('be-riesgos', 'RIESGOS', 'sys', { ubicacion: 'On-premise', protocolo: 'SOAP' }); C('be-activos', 'Activos', 'sys', { ubicacion: 'On-premise' });
+C('be-crm', 'CRM', 'sys', { ubicacion: 'SaaS', protocolo: 'REST' }); C('be-analitica', 'Plataforma Analítica', 'sys', { ubicacion: 'Cloud' }); C('be-eventos', 'Plataforma Eventos', 'sys', { protocolo: 'Mensajería' }); C('be-topico', 'Tópico estado', 'sto', { tipo: 'Tópico', motor: 'Kafka', datos: ['Cambios de estado del lead'] });
 
 // ---- Diagrama
 const stages = [
