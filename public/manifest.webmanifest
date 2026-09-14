@@ -1,0 +1,23 @@
+{
+  "name": "Diagramador",
+  "short_name": "Diagramador",
+  "description": "Editor de diagramas por capas y etapas: componentes, subcomponentes, relaciones y librerías. Funciona sin conexión.",
+  "id": "/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#f1f5f9",
+  "theme_color": "#2563eb",
+  "lang": "es",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "./icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Librería en ventana aparte", "url": "./?view=sidebar", "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }] },
+    { "name": "Inspector en ventana aparte", "url": "./?view=inspector", "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }] }
+  ]
+}

@@ -21,6 +21,11 @@ npm run build      # genera dist/index.html (un único archivo, se abre directam
   - Un tipo define icono, color y **campos específicos** (texto, número, lista, casilla, URL, fecha…).
   - Un componente puede moverse de librería y usar tipos de cualquier librería.
 - Drag & drop: librería → celda, celda → celda, Ctrl+arrastrar = clonar, soltar en la librería = quitar.
+- **PWA**: instalable desde el navegador (icono, `manifest.webmanifest`) y funciona sin conexión gracias a un service worker (`public/sw.js`).
+- **Tema** claro / oscuro / sistema (botón ☀ ☾ ◐ de la barra superior).
+- **Modo zen** (botón Zen o Ctrl+Shift+F): sólo el tablero; Esc para salir. Botón ⤢ de pantalla completa.
+- **Ventanas separadas**: botones ⧉ abren la librería, el inspector o el tablero en otra ventana del navegador (`?view=sidebar|inspector|board`). Todas las ventanas comparten datos y selección en tiempo real (localStorage + BroadcastChannel) y se puede arrastrar de una ventana a otra.
+- Paneles laterales plegables: botones ◧ ◨ en la barra superior, Ctrl+B (librería) y Ctrl+J (inspector); doble clic en un componente reabre el inspector.
 - Paneles laterales redimensionables: arrastra la barra entre paneles (mínimo 200 px la librería, 260 px el inspector; doble clic = ancho por defecto).
 - Tipos de campo: texto, texto largo, número, lista desplegable, casilla, URL, fecha, **lista de textos**, **clave → valor** y **JSON** (con validación y formateo).
 - Plantilla **Tipo API** (pestaña Tipos): capa, estado, versión, método HTTP, path, base URL por entorno, autenticación, content-type, cabeceras, parámetros de path y query, request/response body en JSON, códigos de respuesta, contrato de error, timeout, etiquetas, documentación y notas. El chip muestra `MÉTODO /path` bajo el nombre. “+ Campos de contrato API” añade esos campos a un tipo existente.

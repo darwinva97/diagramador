@@ -13,6 +13,12 @@ export interface UIState {
   /** Anchos de los paneles laterales (px). */
   sidebarW: number;
   inspectorW: number;
+  /** Paneles visibles */
+  sidebarOpen: boolean;
+  inspectorOpen: boolean;
+  theme: 'light' | 'dark' | 'system';
+  /** Modo zen: sólo el tablero, sin barras ni paneles. */
+  zen: boolean;
 }
 export const PANEL_MIN = { sidebar: 200, inspector: 260 };
 export const PANEL_MAX = 720;
@@ -38,7 +44,7 @@ export const useStore = create<Store>()(
       data: seed(),
       sel: null,
       past: [],
-      ui: { libFilter: 'all', tab: 'comps', search: '', link: { style: 'solid', dir: 'fwd', color: '#475569', width: 2 }, sidebarW: 280, inspectorW: 320 },
+      ui: { libFilter: 'all', tab: 'comps', search: '', link: { style: 'solid', dir: 'fwd', color: '#475569', width: 2 }, sidebarW: 280, inspectorW: 320, sidebarOpen: true, inspectorOpen: true, theme: 'system', zen: false },
       mutate(fn, snap = true) {
         const snapStr = snap ? JSON.stringify(get().data) : null;
         set(s => {

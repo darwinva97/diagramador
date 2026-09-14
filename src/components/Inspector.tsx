@@ -53,6 +53,9 @@ function DiagramPanel({ d }: { d: Diagram }) {
         <li>Arrastra desde el punto <b>●</b> de un componente hasta otro para crear una relación (puede saltar capas y etapas).</li>
         <li>Haz clic en una flecha para cambiar estilo (directa, troceada, punteada), dirección, color y etiqueta.</li>
         <li>Ctrl+arrastrar una instancia = clonarla. Suelta una instancia en la librería para quitarla. <b>Supr</b> borra lo seleccionado. <b>Ctrl+Z</b> deshace.</li>
+        <li><b>Más espacio:</b> los botones ◧ ◨ de la barra superior (o Ctrl+B / Ctrl+J) ocultan la librería y el inspector; la pestaña del borde o un doble clic en un componente los vuelven a mostrar. <b>Zen</b> (Ctrl+Shift+F) deja sólo el tablero; ⤢ pone pantalla completa.</li>
+        <li><b>Ventanas separadas:</b> con ⧉ abres la librería, el inspector o el tablero en otra ventana del navegador. Comparten datos y selección al instante, y puedes arrastrar componentes de una ventana a otra.</li>
+        <li><b>Instalable:</b> el navegador ofrece “Instalar Diagramador” como aplicación; funciona sin conexión. Tema claro/oscuro con ☀ ☾ ◐.</li>
         <li>Todo se guarda automáticamente en este navegador. Usa Exportar/Importar JSON para respaldar o compartir.</li>
       </ul>
     </>

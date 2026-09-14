@@ -1,5 +1,6 @@
 import { useStore } from '../store';
 import { actions } from '../actions';
+import { openPopout, toggleFullscreen } from '../sync';
 import aliados from '../../ejemplos/aliados.json';
 
 const EXAMPLES: { key: string; name: string; data: unknown }[] = [
@@ -10,6 +11,11 @@ export function TopBar() {
   const diagrams = useStore(s => s.data.diagrams);
   const current = useStore(s => s.data.currentDiagramId);
   const canUndo = useStore(s => s.past.length > 0);
+  const ui = useStore(s => s.ui);
+  const setUI = useStore(s => s.setUI);
+  const themeNext = { system: 'light', light: 'dark', dark: 'system' } as const;
+  const themeIcon = { system: '◐', light: '☀', dark: '☾' }[ui.theme];
+  const themeLabel = { system: 'Tema: sistema', light: 'Tema: claro', dark: 'Tema: oscuro' }[ui.theme];
   return (
     <header id="topbar">
       <div className="brand">◫ Diagramador</div>
@@ -20,17 +26,31 @@ export function TopBar() {
       <button className="btn" onClick={actions.newDiagram}>+ Nuevo</button>
       <button className="btn" onClick={actions.duplicateDiagram} disabled={!current}>Duplicar</button>
       <button className="btn danger" onClick={actions.deleteDiagram} disabled={!current}>Eliminar</button>
-      <select value="" onChange={e => { const ex = EXAMPLES.find(x => x.key === e.target.value); if (ex) actions.loadExample(ex.data); }} title="Cargar un ejemplo incluido">
+      <select className="examples" value="" onChange={e => { const ex = EXAMPLES.find(x => x.key === e.target.value); if (ex) actions.loadExample(ex.data); }} title="Cargar un ejemplo incluido">
         <option value="">Ejemplos…</option>
         {EXAMPLES.map(x => <option key={x.key} value={x.key}>{x.name}</option>)}
       </select>
       <span className="spacer" />
-      <button className="btn" onClick={actions.undo} disabled={!canUndo} title="Ctrl+Z">↶ Deshacer</button>
+      <button className="btn" onClick={actions.undo} disabled={!canUndo} title="Ctrl+Z">↶</button>
       <span className="sep" />
-      <button className="btn" onClick={actions.importJson}>⤓ Importar JSON</button>
-      <button className="btn" onClick={actions.exportCurrent} disabled={!current}>⤒ Exportar diagrama</button>
-      <button className="btn" onClick={actions.exportAll}>⤒ Exportar todo</button>
-      <button className="btn" onClick={() => window.print()} disabled={!current}>🖨 Imprimir</button>
+      <button className="btn" onClick={actions.importJson} title="Importar JSON">⤓ Importar</button>
+      <button className="btn" onClick={actions.exportCurrent} disabled={!current} title="Exportar el diagrama actual a JSON">⤒ Diagrama</button>
+      <button className="btn" onClick={actions.exportAll} title="Exportar todo (librerías y diagramas) a JSON">⤒ Todo</button>
+      <button className="btn" onClick={() => window.print()} disabled={!current} title="Imprimir el tablero">🖨</button>
+      <span className="sep" />
+      {/* vista */}
+      <span className="btn-group" title="Librería: mostrar/ocultar (Ctrl+B) · abrir en otra ventana">
+        <button className={'btn icon toggle' + (ui.sidebarOpen ? ' on' : '')} onClick={() => setUI({ sidebarOpen: !ui.sidebarOpen })} title={(ui.sidebarOpen ? 'Ocultar' : 'Mostrar') + ' librería (Ctrl+B)'}>◧</button>
+        <button className="btn icon" onClick={() => openPopout('sidebar')} title="Abrir la librería en otra ventana">⧉</button>
+      </span>
+      <span className="btn-group" title="Inspector: mostrar/ocultar (Ctrl+J) · abrir en otra ventana">
+        <button className={'btn icon toggle' + (ui.inspectorOpen ? ' on' : '')} onClick={() => setUI({ inspectorOpen: !ui.inspectorOpen })} title={(ui.inspectorOpen ? 'Ocultar' : 'Mostrar') + ' inspector (Ctrl+J)'}>◨</button>
+        <button className="btn icon" onClick={() => openPopout('inspector')} title="Abrir el inspector en otra ventana">⧉</button>
+      </span>
+      <button className="btn icon" onClick={() => openPopout('board')} title="Abrir el tablero en otra ventana">▣⧉</button>
+      <button className="btn icon" onClick={() => setUI({ zen: true })} title="Modo zen: sólo el tablero (Ctrl+Shift+F, Esc para salir)">◻ Zen</button>
+      <button className="btn icon" onClick={toggleFullscreen} title="Pantalla completa">⤢</button>
+      <button className="btn icon" onClick={() => setUI({ theme: themeNext[ui.theme] })} title={themeLabel + ' · clic para cambiar'}>{themeIcon}</button>
     </header>
   );
 }

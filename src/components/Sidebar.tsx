@@ -1,7 +1,7 @@
 import { useStore, useHover } from '../store';
 import { actions } from '../actions';
 import { curDiagram, findType } from '../lib/model';
-import { setDragData } from './dnd';
+import { setDragData, startDrag } from './dnd';
 
 export function Sidebar() {
   const data = useStore(s => s.data);
@@ -49,7 +49,7 @@ export function Sidebar() {
                     className={'item comp-item' + (isSel ? ' selected' : '') + (hoverCid === c.id ? ' glow' : '')}
                     draggable
                     style={{ ['--c' as string]: t?.color ?? '#94a3b8' }}
-                    onDragStart={e => { setDragData({ t: 'comp', id: c.id }); e.dataTransfer.effectAllowed = 'copy'; e.dataTransfer.setData('text/plain', c.name); }}
+                    onDragStart={e => startDrag(e, { t: 'comp', id: c.id }, 'copy')}
                     onDragEnd={() => setDragData(null)}
                     onClick={() => select({ kind: 'component', id: c.id })}
                     onMouseEnter={() => setHover(c.id)}

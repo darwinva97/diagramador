@@ -3,7 +3,7 @@ import { useStore, useValidSel, useHover } from '../store';
 import { actions } from '../actions';
 import { CELL_DEFAULT_W, CELL_MIN_H, CELL_MIN_W, CHIP_ROW, childrenOf, curDiagram, descendantIds, findComp, findType, rootOf } from '../lib/model';
 import { rectsEqual, type Rect } from '../lib/geometry';
-import { dragData, setDragData } from './dnd';
+import { dragKind, readDrag, setDragData, startDrag } from './dnd';
 import { Links, type LinkingState } from './Links';
 import type { Diagram, Layer, Placement, Stage } from '../types';
 
@@ -59,28 +59,26 @@ export function Board() {
 
   // ---- Drag & drop HTML5: componentes desde la librería, asas de capas/etapas
   const clearOver = () => { overRef.current?.classList.remove('over'); overRef.current = null; };
-  const dropTarget = (el: HTMLElement): HTMLElement | null => {
-    const dd = dragData.current; if (!dd) return null;
-    if (dd.t === 'comp') return el.closest<HTMLElement>('.comp') ?? el.closest<HTMLElement>('.cell');
-    if (dd.t === 'stage') return el.closest<HTMLElement>('.stage-h');
-    if (dd.t === 'layer') return el.closest<HTMLElement>('.layer-h');
+  const dropTarget = (el: HTMLElement, kind: string | null): HTMLElement | null => {
+    if (kind === 'comp') return el.closest<HTMLElement>('.comp') ?? el.closest<HTMLElement>('.cell');
+    if (kind === 'stage') return el.closest<HTMLElement>('.stage-h');
+    if (kind === 'layer') return el.closest<HTMLElement>('.layer-h');
     return null;
   };
   const onDragStart = (e: React.DragEvent) => {
     const handle = (e.target as HTMLElement).closest<HTMLElement>('.handle');
     if (!handle || linking || drag) { e.preventDefault(); return; }
-    setDragData({ t: handle.dataset.drag as 'stage' | 'layer', id: handle.dataset.id! });
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', handle.dataset.id!);
+    startDrag(e, { t: handle.dataset.drag as 'stage' | 'layer', id: handle.dataset.id! });
   };
   const onDragOver = (e: React.DragEvent) => {
-    const tgt = dropTarget(e.target as HTMLElement); if (!tgt) { clearOver(); return; }
+    const kind = dragKind(e);
+    const tgt = dropTarget(e.target as HTMLElement, kind); if (!tgt) { clearOver(); return; }
     e.preventDefault();
-    e.dataTransfer.dropEffect = dragData.current?.t === 'comp' ? 'copy' : 'move';
+    e.dataTransfer.dropEffect = kind === 'comp' ? 'copy' : 'move';
     if (overRef.current !== tgt) { clearOver(); tgt.classList.add('over'); overRef.current = tgt; }
   };
   const onDrop = (e: React.DragEvent) => {
-    const dd = dragData.current; const tgt = dropTarget(e.target as HTMLElement);
+    const dd = readDrag(e); const tgt = dropTarget(e.target as HTMLElement, dd?.t ?? null);
     clearOver(); setDragData(null);
     if (!dd || !tgt) return;
     e.preventDefault();
@@ -189,6 +187,8 @@ export function Board() {
   };
 
   const onGridDoubleClick = (e: React.MouseEvent) => {
+    const comp = (e.target as HTMLElement).closest<HTMLElement>('.comp');
+    if (comp) { select({ kind: 'placement', id: comp.dataset.pid! }); useStore.getState().setUI({ inspectorOpen: true }); return; }
     const rs = (e.target as HTMLElement).closest<HTMLElement>('.rs-x, .rs-y'); if (!rs) return;
     const owner = rs.parentElement!;
     if (rs.classList.contains('rs-x')) { useStore.getState().snapshot(); actions.setStageWidth(owner.dataset.sid!, undefined); }
