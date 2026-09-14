@@ -30,6 +30,19 @@ npm run build      # genera dist/index.html (un único archivo, se abre directam
 - Exportar todo, exportar sólo el diagrama actual (con los componentes/tipos que usa) e importar JSON (fusiona).
 - Deshacer (Ctrl+Z), Supr borra la instancia o relación seleccionada, Esc deselecciona, impresión sólo del tablero.
 
+## Despliegue (draw.bezenti.com)
+
+La app se publica como **Cloudflare Worker de archivos estáticos** (`wrangler.jsonc`) con dominio propio
+`draw.bezenti.com`; wrangler crea el DNS y el certificado en la zona `bezenti.com` al desplegar.
+
+- **CI/CD:** `.github/workflows/deploy.yml`. En cada push a `main` compila y despliega; en pull requests sólo compila.
+- **Secretos del repositorio** (Settings → Secrets and variables → Actions):
+  - `CLOUDFLARE_ACCOUNT_ID`: id de la cuenta que tiene la zona bezenti.com.
+  - `CLOUDFLARE_API_TOKEN`: token de API creado en <https://dash.cloudflare.com/profile/api-tokens>
+    con la plantilla **“Edit Cloudflare Workers”** (incluye Workers Scripts, Workers Routes, Account Settings y Zone/DNS de la zona).
+    Si falta, el job de deploy se omite con un aviso.
+- **Despliegue manual:** `npm run deploy` (requiere `npx wrangler login`).
+
 ## Ejemplos
 
 En `ejemplos/` hay diagramas listos para importar (menú **Ejemplos…** de la barra superior o **Importar JSON**).

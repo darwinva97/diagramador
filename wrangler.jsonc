@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "draw-bezenti",
+  "account_id": "39f3db3a2ce79188fddf0cb83e72f8be",
   "compatibility_date": "2025-09-01",
   // Worker sólo de archivos estáticos: sirve el build de Vite (dist/)
   "assets": {

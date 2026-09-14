@@ -40,7 +40,13 @@ jobs:
         with:
           name: dist
           path: dist
+      - name: Comprobar secretos de Cloudflare
+        id: cf
+        run: |
+          if [ -n "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
+          else echo "ok=false" >> "$GITHUB_OUTPUT"; echo "::warning::Falta el secreto CLOUDFLARE_API_TOKEN: se omite el despliegue (ver README)"; fi
       - name: Deploy to Cloudflare Workers (draw.bezenti.com)
+        if: steps.cf.outputs.ok == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
