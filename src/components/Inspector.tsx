@@ -49,6 +49,7 @@ function DiagramPanel({ d }: { d: Diagram }) {
         <li>Arrastra el <b>borde derecho</b> de una celda o cabecera para cambiar el ancho de la etapa, y el <b>borde inferior</b> para el alto de la capa. Doble clic en el borde = tamaño automático.</li>
         <li>Dentro de la celda colócalo <b>donde quieras</b> arrastrándolo (se ajusta a una rejilla de 8 px). Con el componente seleccionado, las flechas del teclado lo mueven; ⊞ apila los de una celda.</li>
         <li><b>Subcomponentes:</b> suelta un componente encima de otro para meterlo dentro (p. ej. un microservicio dentro de su API). Arrástralo fuera, a la celda, para sacarlo. Las relaciones pueden salir de o llegar a un subcomponente.</li>
+        <li><b>Componentes compartidos:</b> un mismo componente puede estar en varios diagramas y al editarlo cambia en todos. Al <b>duplicar un diagrama</b> puedes pedir copias independientes; y en el inspector tienes “Duplicar componente” y “Desvincular” para separar uno cuando quieras.</li>
         <li><b>Contrato de API:</b> crea un tipo con “+ Tipo API” en la pestaña Tipos. Trae método, path, base URL por entorno, cabeceras, parámetros, request/response en JSON y códigos de respuesta. Los campos se editan al seleccionar el componente.</li>
         <li>Arrastra desde el punto <b>●</b> de un componente hasta otro para crear una relación (puede saltar capas y etapas).</li>
         <li>Haz clic en una flecha para cambiar estilo (directa, troceada, punteada), dirección, color y etiqueta.</li>
@@ -69,6 +70,7 @@ function ComponentPanel({ comp, placement, d }: { comp: Component; placement: Pl
   const t = findType(data, comp.typeId);
   const lib = libOfComp(data, comp.id);
   const inst = placementsOf(d, comp.id);
+  const usedIn = data.diagrams.filter(g => g.placements.some(p => p.componentId === comp.id));
   const rels = placement ? d.relations.filter(r => r.from === placement.id || r.to === placement.id) : [];
   const [addL, setAddL] = useState(d.layers[0]?.id ?? '');
   const [addS, setAddS] = useState(d.stages[0]?.id ?? '');
@@ -108,6 +110,19 @@ function ComponentPanel({ comp, placement, d }: { comp: Component; placement: Pl
       )}
       {t && t.fields.length === 0 && <div className="muted">El tipo “{t.name}” no define campos. <button className="link" onClick={() => select({ kind: 'type', id: t.id })}>Editar tipo</button></div>}
 
+      <h4>Uso en diagramas ({usedIn.length})</h4>
+      <div className="inst-list">
+        {usedIn.length === 0 && <span className="muted">No está colocado en ningún diagrama.</span>}
+        {usedIn.map(g => <button key={g.id} className={'chip-btn' + (g.id === d.id ? ' on' : '')} onClick={() => actions.setCurrent(g.id)} title="Ir al diagrama">{g.name}</button>)}
+      </div>
+      {usedIn.length > 1 && <div className="notice">Este componente es <b>compartido</b>: editarlo aquí cambia también los otros {usedIn.length - 1} diagrama(s). Si no lo quieres, desvincúlalo.</div>}
+      <div className="row" style={{ marginTop: 6 }}>
+        <button className="btn" onClick={() => actions.duplicateComponent(comp.id)} title="Crea una copia independiente en la librería">⧉ Duplicar componente</button>
+        <button className="btn" onClick={() => actions.detachComponent(comp.id, undefined)} title="Las instancias de este diagrama pasan a una copia independiente; los demás diagramas conservan el original">⛓ Desvincular en este diagrama</button>
+      </div>
+      {placement && inst.length > 1 && <div className="row" style={{ marginTop: 6 }}>
+        <button className="btn" onClick={() => actions.detachComponent(comp.id, placement.id)} title="Sólo esta instancia pasa a una copia independiente">⛓ Desvincular sólo esta instancia</button>
+      </div>}
       <h4>Instancias en este diagrama ({inst.length})</h4>
       <div className="inst-list">
         {inst.length === 0 && <span className="muted">Ninguna todavía.</span>}

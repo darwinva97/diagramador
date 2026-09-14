@@ -1,5 +1,6 @@
 import { useStore } from './store';
 import { API_CONTRACT_FIELDS, type AppData, type Component, type ComponentType, type Diagram, type FieldDef, type Placement, type Relation } from './types';
+import type { Library } from './types';
 import { LAYER_COLORS, PALETTE, cloneDiagram, curDiagram, descendantIds, findComp, findLib, findType, libOfComp, libOfType, nextStackPos, setCell, snap, tidyCell, uid } from './lib/model';
 import { exportAll, exportDiagram, mergeImport, pickFile } from './lib/io';
 import { DEFAULT_LAYERS, DEFAULT_STAGES } from './seed';
@@ -41,7 +42,31 @@ export const actions = {
     select(null);
   },
   duplicateDiagram() {
-    mutate(d => { const g = curDiagram(d); if (!g) return; const c = cloneDiagram(g); d.diagrams.push(c); d.currentDiagramId = c.id; });
+    const g0 = curDiagram(S().data); if (!g0) return;
+    const independent = confirm(
+      `Duplicar "${g0.name}".\n\n¿Crear copias independientes de sus componentes?\n` +
+      'Aceptar = copias independientes en una librería nueva (editar uno NO cambia el otro).\n' +
+      'Cancelar = compartir los mismos componentes (editar uno cambia ambos diagramas).');
+    mutate(d => {
+      const g = curDiagram(d); if (!g) return;
+      const c = cloneDiagram(g);
+      if (independent) {
+        const lib: Library = { id: uid(), name: c.name, types: [], components: [] };
+        const map = new Map<string, string>();
+        for (const p of c.placements) {
+          let nid = map.get(p.componentId);
+          if (!nid) {
+            const src = findComp(d, p.componentId);
+            if (!src) continue;
+            nid = uid(); map.set(p.componentId, nid);
+            lib.components.push({ ...JSON.parse(JSON.stringify(src)), id: nid });
+          }
+          p.componentId = nid;
+        }
+        if (lib.components.length) d.libraries.push(lib);
+      }
+      d.diagrams.push(c); d.currentDiagramId = c.id;
+    });
     select(null);
   },
   deleteDiagram() {
@@ -257,6 +282,33 @@ export const actions = {
   },
   setField(id: string, key: string, value: unknown) {
     mutate(d => { const c = findComp(d, id); if (c) c.fields[key] = value; }, false);
+  },
+  /** Copia un componente en su librería (independiente del original). Devuelve el id de la copia. */
+  duplicateComponent(id: string, suffix = ' (copia)'): string | null {
+    const src = findComp(S().data, id); if (!src) return null;
+    const nid = uid();
+    mutate(d => {
+      const lib = libOfComp(d, id); const s = findComp(d, id); if (!lib || !s) return;
+      const i = lib.components.indexOf(s);
+      lib.components.splice(i + 1, 0, { ...JSON.parse(JSON.stringify(s)), id: nid, name: s.name + suffix });
+    });
+    select({ kind: 'component', id: nid });
+    return nid;
+  },
+  /**
+   * Desvincula: las instancias de este componente en el diagrama actual (o sólo la instancia `pid`)
+   * pasan a apuntar a una copia independiente, así los cambios no afectan a otros diagramas.
+   */
+  detachComponent(id: string, pid?: string) {
+    const src = findComp(S().data, id); if (!src) return;
+    const nid = uid();
+    mutate(d => {
+      const lib = libOfComp(d, id); const s = findComp(d, id); const g = curDiagram(d); if (!lib || !s || !g) return;
+      const i = lib.components.indexOf(s);
+      lib.components.splice(i + 1, 0, { ...JSON.parse(JSON.stringify(s)), id: nid, name: s.name + ' (copia)' });
+      for (const p of g.placements) if (p.componentId === id && (!pid || p.id === pid)) p.componentId = nid;
+    });
+    select(pid ? { kind: 'placement', id: pid } : { kind: 'component', id: nid });
   },
   moveComponentToLib(id: string, libId: string) {
     mutate(d => {

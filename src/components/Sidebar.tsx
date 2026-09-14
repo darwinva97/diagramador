@@ -14,6 +14,16 @@ export function Sidebar() {
   const d = curDiagram(data);
   const libs = ui.libFilter === 'all' ? data.libraries : data.libraries.filter(l => l.id === ui.libFilter);
   const q = ui.search.trim().toLowerCase();
+  const norm = (s: unknown) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const qn = norm(q);
+  /** Coincide por nombre, tipo, descripción o cualquier valor de campo (sin tildes). */
+  const matchComp = (c: (typeof data.libraries)[number]['components'][number]) => {
+    if (!qn) return true;
+    const t = findType(data, c.typeId);
+    if (norm(c.name).includes(qn) || norm(t?.name).includes(qn) || norm(c.description).includes(qn)) return true;
+    return Object.values(c.fields).some(v => norm(typeof v === 'object' ? JSON.stringify(v) : v).includes(qn));
+  };
+  const total = ui.tab === 'comps' ? libs.reduce((n, l) => n + l.components.filter(matchComp).length, 0) : libs.reduce((n, l) => n + l.types.filter(t => !qn || norm(t.name).includes(qn)).length, 0);
 
   return (
     <aside id="sidebar">
@@ -30,12 +40,18 @@ export function Sidebar() {
         <button className={'tab' + (ui.tab === 'comps' ? ' on' : '')} onClick={() => setUI({ tab: 'comps' })}>Componentes</button>
         <button className={'tab' + (ui.tab === 'types' ? ' on' : '')} onClick={() => setUI({ tab: 'types' })}>Tipos</button>
       </div>
-      <input className="search" placeholder="Buscar…" value={ui.search} onChange={e => setUI({ search: e.target.value })} />
+      <div className="search-wrap">
+        <span className="search-icon">🔍</span>
+        <input className="search" placeholder={ui.tab === 'comps' ? 'Buscar componente, tipo, campo…' : 'Buscar tipo…'} value={ui.search}
+          onChange={e => setUI({ search: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') setUI({ search: '' }); }} />
+        {ui.search && <button className="search-clear" onClick={() => setUI({ search: '' })} title="Limpiar">×</button>}
+      </div>
+      {q && <div className="search-count">{total} resultado{total === 1 ? '' : 's'}</div>}
 
       <div className="list">
         {libs.length === 0 && <div className="empty-sm">No hay librerías. Crea una con “+”.</div>}
         {ui.tab === 'comps' && libs.map(l => {
-          const comps = l.components.filter(c => !q || c.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name));
+          const comps = l.components.filter(matchComp).sort((a, b) => a.name.localeCompare(b.name));
           return (
             <div key={l.id}>
               {libs.length > 1 && <div className="group">{l.name} <small>{comps.length}</small></div>}
@@ -66,7 +82,7 @@ export function Sidebar() {
           );
         })}
         {ui.tab === 'types' && libs.map(l => {
-          const types = l.types.filter(t => !q || t.name.toLowerCase().includes(q));
+          const types = l.types.filter(t => !qn || norm(t.name).includes(qn));
           return (
             <div key={l.id}>
               {libs.length > 1 && <div className="group">{l.name} <small>{types.length}</small></div>}

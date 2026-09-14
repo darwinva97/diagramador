@@ -75,7 +75,12 @@ button.link { background: none; border: 0; color: var(--accent); cursor: pointer
 .tabs { display: flex; margin: 0 10px; border-bottom: 1px solid var(--border); }
 .tab { flex: 1; font: inherit; background: none; border: 0; border-bottom: 2px solid transparent; padding: 7px; cursor: pointer; color: var(--muted); }
 .tab.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
-.search { margin: 8px 10px; width: calc(100% - 20px); }
+.search-wrap { position: relative; margin: 8px 10px; }
+.search-wrap .search { width: 100%; padding-left: 28px; padding-right: 26px; margin: 0; }
+.search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 12px; opacity: .7; pointer-events: none; }
+.search-clear { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 6px; }
+.search-clear:hover { color: var(--text); }
+.search-count { margin: -4px 10px 4px; font-size: 11px; color: var(--muted); }
 .list { flex: 1; overflow: auto; padding: 0 10px 10px; }
 .group { font-weight: 600; margin: 10px 0 4px; color: var(--muted); font-size: 12px; }
 .group small { font-weight: 400; }
@@ -212,6 +217,7 @@ body.linking #links .rel .hit { pointer-events: none; }
 .insp-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-left: 8px; border-left: 4px solid var(--c); }
 .insp-head h3 { margin: 0; }
 .icon.big { font-size: 22px; }
+.notice { font-size: 12px; padding: 6px 8px; border-radius: 6px; margin-top: 6px; background: color-mix(in srgb, #d97706 14%, var(--panel)); border: 1px solid color-mix(in srgb, #d97706 45%, var(--border)); color: var(--text); }
 .stats { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
 .help { padding-left: 16px; margin: 0; color: var(--text-2); font-size: 12px; }
 .help li { margin-bottom: 6px; }
