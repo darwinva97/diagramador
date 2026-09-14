@@ -21,6 +21,9 @@ npm run build      # genera dist/index.html (un único archivo, se abre directam
   - Un tipo define icono, color y **campos específicos** (texto, número, lista, casilla, URL, fecha…).
   - Un componente puede moverse de librería y usar tipos de cualquier librería.
 - Drag & drop: librería → celda, celda → celda, Ctrl+arrastrar = clonar, soltar en la librería = quitar.
+- Paneles laterales redimensionables: arrastra la barra entre paneles (mínimo 200 px la librería, 260 px el inspector; doble clic = ancho por defecto).
+- Tipos de campo: texto, texto largo, número, lista desplegable, casilla, URL, fecha, **lista de textos**, **clave → valor** y **JSON** (con validación y formateo).
+- Plantilla **Tipo API** (pestaña Tipos): capa, estado, versión, método HTTP, path, base URL por entorno, autenticación, content-type, cabeceras, parámetros de path y query, request/response body en JSON, códigos de respuesta, contrato de error, timeout, etiquetas, documentación y notas. El chip muestra `MÉTODO /path` bajo el nombre. “+ Campos de contrato API” añade esos campos a un tipo existente.
 - Subcomponentes: un componente puede contener otros (p. ej. microservicios dentro de su API). Suelta un chip encima de otro para anidarlo; arrástralo a la celda para sacarlo.
 - Redimensionar: arrastra el borde derecho de una celda (ancho de la etapa) o el inferior (alto de la capa); doble clic = automático.
 - Posición libre dentro de la celda (rejilla de 8 px). Flechas del teclado mueven la instancia seleccionada (Shift = 1 px); ⊞ apila los componentes de una celda.

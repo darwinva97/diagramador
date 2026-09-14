@@ -10,7 +10,12 @@ export interface UIState {
   tab: 'comps' | 'types';
   search: string;
   link: LinkDefaults;
+  /** Anchos de los paneles laterales (px). */
+  sidebarW: number;
+  inspectorW: number;
 }
+export const PANEL_MIN = { sidebar: 200, inspector: 260 };
+export const PANEL_MAX = 720;
 
 interface Store {
   data: AppData;
@@ -33,7 +38,7 @@ export const useStore = create<Store>()(
       data: seed(),
       sel: null,
       past: [],
-      ui: { libFilter: 'all', tab: 'comps', search: '', link: { style: 'solid', dir: 'fwd', color: '#475569', width: 2 } },
+      ui: { libFilter: 'all', tab: 'comps', search: '', link: { style: 'solid', dir: 'fwd', color: '#475569', width: 2 }, sidebarW: 280, inspectorW: 320 },
       mutate(fn, snap = true) {
         const snapStr = snap ? JSON.stringify(get().data) : null;
         set(s => {

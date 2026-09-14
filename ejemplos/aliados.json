@@ -1,7 +1,7 @@
 {
   "app": "diagramador",
   "version": 1,
-  "exportedAt": "2026-09-14T20:04:44.732Z",
+  "exportedAt": "2026-09-14T21:21:54.157Z",
   "libraries": [
     {
       "id": "lib-aliados",
@@ -44,14 +44,96 @@
               "options": "Existente, Nuevo, Modificado"
             },
             {
-              "key": "endpoint",
-              "label": "Endpoint",
-              "kind": "text"
-            },
-            {
               "key": "version",
               "label": "Versión",
               "kind": "text"
+            },
+            {
+              "key": "method",
+              "label": "Método HTTP",
+              "kind": "select",
+              "options": "GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS"
+            },
+            {
+              "key": "path",
+              "label": "Path",
+              "kind": "text"
+            },
+            {
+              "key": "base_url_entornos",
+              "label": "Base URL por entorno",
+              "kind": "keyvalue",
+              "options": "Entorno|Base URL"
+            },
+            {
+              "key": "auth",
+              "label": "Autenticación",
+              "kind": "select",
+              "options": "Ninguna, API Key, Basic, Bearer JWT, OAuth2 client credentials, mTLS"
+            },
+            {
+              "key": "content_type",
+              "label": "Content-Type",
+              "kind": "text"
+            },
+            {
+              "key": "headers",
+              "label": "Cabeceras de request",
+              "kind": "keyvalue",
+              "options": "Cabecera|Valor / descripción"
+            },
+            {
+              "key": "path_params",
+              "label": "Parámetros de path",
+              "kind": "keyvalue",
+              "options": "Parámetro|Tipo / descripción"
+            },
+            {
+              "key": "query_params",
+              "label": "Parámetros de query",
+              "kind": "keyvalue",
+              "options": "Parámetro|Tipo / descripción"
+            },
+            {
+              "key": "request_body",
+              "label": "Request body (JSON)",
+              "kind": "json"
+            },
+            {
+              "key": "response_body",
+              "label": "Response body (JSON)",
+              "kind": "json"
+            },
+            {
+              "key": "response_codes",
+              "label": "Códigos de respuesta",
+              "kind": "keyvalue",
+              "options": "Código|Significado"
+            },
+            {
+              "key": "errores",
+              "label": "Errores / contrato de error (JSON)",
+              "kind": "json"
+            },
+            {
+              "key": "timeout_ms",
+              "label": "Timeout (ms)",
+              "kind": "number"
+            },
+            {
+              "key": "tags",
+              "label": "Etiquetas",
+              "kind": "list"
+            },
+            {
+              "key": "documentacion",
+              "label": "Documentación (URL)",
+              "kind": "url"
+            },
+            {
+              "key": "notas",
+              "label": "Notas",
+              "kind": "textarea"
             }
           ]
         },
@@ -188,7 +270,62 @@
           "description": "",
           "fields": {
             "capa": "EXP",
-            "estado": "Existente"
+            "estado": "Existente",
+            "version": "v1",
+            "method": "POST",
+            "path": "/prospectos",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/exp"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/exp"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/exp"
+              }
+            ],
+            "auth": "OAuth2 client credentials",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "201",
+                "value": "Prospecto creado"
+              },
+              {
+                "key": "400",
+                "value": "Datos inválidos"
+              },
+              {
+                "key": "409",
+                "value": "Prospecto ya existe"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "EXP",
+              "POST"
+            ],
+            "request_body": "{\n  \"documento\": \"string\",\n  \"nombres\": \"string\",\n  \"apellidos\": \"string\",\n  \"telefono\": \"string\",\n  \"email\": \"string\",\n  \"aliado\": \"string\"\n}",
+            "response_body": "{\n  \"prospectoId\": \"uuid\",\n  \"estado\": \"REGISTRADO\"\n}"
           }
         },
         {
@@ -208,7 +345,72 @@
           "description": "",
           "fields": {
             "capa": "EXP",
-            "estado": "Existente"
+            "estado": "Existente",
+            "version": "v1",
+            "method": "POST",
+            "path": "/prospectos/{prospectoId}/consentimiento",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/exp"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/exp"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/exp"
+              }
+            ],
+            "auth": "OAuth2 client credentials",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "EXP",
+              "POST"
+            ],
+            "path_params": [
+              {
+                "key": "prospectoId",
+                "value": "uuid"
+              }
+            ],
+            "request_body": "{\n  \"acepta\": true,\n  \"canal\": \"WEB\",\n  \"versionTexto\": \"string\"\n}",
+            "response_body": "{\n  \"consentimientoId\": \"uuid\",\n  \"fecha\": \"date-time\"\n}"
           }
         },
         {
@@ -228,7 +430,75 @@
           "description": "",
           "fields": {
             "capa": "EXP",
-            "estado": "Nuevo"
+            "estado": "Nuevo",
+            "version": "v1",
+            "method": "GET",
+            "path": "/campanias",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/exp"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/exp"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/exp"
+              }
+            ],
+            "auth": "OAuth2 client credentials",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "EXP",
+              "GET"
+            ],
+            "query_params": [
+              {
+                "key": "documento",
+                "value": "string (requerido)"
+              },
+              {
+                "key": "aliado",
+                "value": "string"
+              }
+            ],
+            "response_body": "{\n  \"campanias\": [\n    {\n      \"campaniaId\": \"string\",\n      \"producto\": \"string\",\n      \"montoMaximo\": 0,\n      \"tasa\": 0\n    }\n  ]\n}"
           }
         },
         {
@@ -248,7 +518,66 @@
           "description": "",
           "fields": {
             "capa": "EXP",
-            "estado": "Nuevo"
+            "estado": "Nuevo",
+            "version": "v1",
+            "method": "POST",
+            "path": "/riesgos/base-negativa",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/exp"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/exp"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/exp"
+              }
+            ],
+            "auth": "OAuth2 client credentials",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "EXP",
+              "POST"
+            ],
+            "request_body": "{\n  \"documento\": \"string\",\n  \"tipoDocumento\": \"DNI|CE\"\n}",
+            "response_body": "{\n  \"enBaseNegativa\": false,\n  \"motivo\": \"string|null\"\n}"
           }
         },
         {
@@ -268,7 +597,66 @@
           "description": "",
           "fields": {
             "capa": "EXP",
-            "estado": "Nuevo"
+            "estado": "Nuevo",
+            "version": "v1",
+            "method": "POST",
+            "path": "/riesgos/evaluacion",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/exp"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/exp"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/exp"
+              }
+            ],
+            "auth": "OAuth2 client credentials",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "EXP",
+              "POST"
+            ],
+            "request_body": "{\n  \"prospectoId\": \"uuid\",\n  \"campaniaId\": \"string\",\n  \"ingresos\": 0\n}",
+            "response_body": "{\n  \"resultado\": \"APROBADO|RECHAZADO|REVISION\",\n  \"score\": 0,\n  \"reglasAplicadas\": [\n    \"string\"\n  ]\n}"
           }
         },
         {
@@ -288,7 +676,66 @@
           "description": "",
           "fields": {
             "capa": "EXP",
-            "estado": "Nuevo"
+            "estado": "Nuevo",
+            "version": "v1",
+            "method": "POST",
+            "path": "/simulaciones",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/exp"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/exp"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/exp"
+              }
+            ],
+            "auth": "OAuth2 client credentials",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "EXP",
+              "POST"
+            ],
+            "request_body": "{\n  \"prospectoId\": \"uuid\",\n  \"monto\": 0,\n  \"plazoMeses\": 0\n}",
+            "response_body": "{\n  \"cuota\": 0,\n  \"tcea\": 0,\n  \"cronograma\": [\n    {\n      \"nro\": 1,\n      \"fecha\": \"date\",\n      \"cuota\": 0\n    }\n  ]\n}"
           }
         },
         {
@@ -308,7 +755,58 @@
           "description": "",
           "fields": {
             "capa": "EXP",
-            "estado": "Nuevo"
+            "estado": "Nuevo",
+            "version": "v1",
+            "method": "POST",
+            "path": "/leads",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/exp"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/exp"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/exp"
+              }
+            ],
+            "auth": "OAuth2 client credentials",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "202",
+                "value": "Lead aceptado (asíncrono)"
+              },
+              {
+                "key": "400",
+                "value": "Datos inválidos"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "EXP",
+              "POST"
+            ],
+            "request_body": "{\n  \"prospectoId\": \"uuid\",\n  \"simulacionId\": \"uuid\",\n  \"canalContacto\": \"string\"\n}",
+            "response_body": "{\n  \"leadId\": \"uuid\",\n  \"estado\": \"DERIVADO\"\n}"
           }
         },
         {
@@ -328,7 +826,71 @@
           "description": "",
           "fields": {
             "capa": "EXP",
-            "estado": "Nuevo"
+            "estado": "Nuevo",
+            "version": "v1",
+            "method": "GET",
+            "path": "/leads/{leadId}/estado",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/exp"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/exp"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/exp"
+              }
+            ],
+            "auth": "OAuth2 client credentials",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "EXP",
+              "GET"
+            ],
+            "path_params": [
+              {
+                "key": "leadId",
+                "value": "uuid"
+              }
+            ],
+            "response_body": "{\n  \"leadId\": \"uuid\",\n  \"estado\": \"string\",\n  \"actualizado\": \"date-time\"\n}"
           }
         },
         {
@@ -348,7 +910,66 @@
           "description": "",
           "fields": {
             "capa": "PROC",
-            "estado": "Modificado"
+            "estado": "Modificado",
+            "version": "v1",
+            "method": "POST",
+            "path": "/evaluacion-riesgos",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/proc"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/proc"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/proc"
+              }
+            ],
+            "auth": "OAuth2 client credentials",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "PROC",
+              "POST"
+            ],
+            "request_body": "{\n  \"documento\": \"string\",\n  \"campaniaId\": \"string\",\n  \"variables\": {}\n}",
+            "response_body": "{\n  \"decision\": \"string\",\n  \"score\": 0,\n  \"motivos\": [\n    \"string\"\n  ]\n}"
           }
         },
         {
@@ -368,7 +989,66 @@
           "description": "",
           "fields": {
             "capa": "PROC",
-            "estado": "Modificado"
+            "estado": "Modificado",
+            "version": "v1",
+            "method": "POST",
+            "path": "/simulador/cronograma",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/proc"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/proc"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/proc"
+              }
+            ],
+            "auth": "OAuth2 client credentials",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "PROC",
+              "POST"
+            ],
+            "request_body": "{\n  \"monto\": 0,\n  \"plazoMeses\": 0,\n  \"tasa\": 0\n}",
+            "response_body": "{\n  \"cuota\": 0,\n  \"cronograma\": []\n}"
           }
         },
         {
@@ -388,7 +1068,66 @@
           "description": "",
           "fields": {
             "capa": "SD",
-            "estado": "Existente"
+            "estado": "Existente",
+            "version": "v1",
+            "method": "POST",
+            "path": "/party-reference/v1/parties",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/sd"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/sd"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/sd"
+              }
+            ],
+            "auth": "OAuth2 client credentials",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "SD",
+              "POST"
+            ],
+            "request_body": "{\n  \"persona\": {\n    \"documento\": \"string\",\n    \"nombres\": \"string\"\n  },\n  \"direcciones\": [],\n  \"geolocalizacion\": {\n    \"lat\": 0,\n    \"lng\": 0\n  }\n}",
+            "response_body": "{\n  \"partyId\": \"string\"\n}"
           }
         },
         {
@@ -408,7 +1147,66 @@
           "description": "",
           "fields": {
             "capa": "SD",
-            "estado": "Existente"
+            "estado": "Existente",
+            "version": "v1",
+            "method": "POST",
+            "path": "/customer-agreement/v1/agreements",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/sd"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/sd"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/sd"
+              }
+            ],
+            "auth": "OAuth2 client credentials",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "SD",
+              "POST"
+            ],
+            "request_body": "{\n  \"partyId\": \"string\",\n  \"tipo\": \"PDP\",\n  \"acepta\": true\n}",
+            "response_body": "{\n  \"agreementId\": \"string\"\n}"
           }
         },
         {
@@ -428,7 +1226,66 @@
           "description": "Se usa en Evaluación y en Derivación (misma API).",
           "fields": {
             "capa": "SD",
-            "estado": "Modificado"
+            "estado": "Modificado",
+            "version": "v1",
+            "method": "POST",
+            "path": "/lead-opportunity/v1/leads",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/sd"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/sd"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/sd"
+              }
+            ],
+            "auth": "OAuth2 client credentials",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "SD",
+              "POST"
+            ],
+            "request_body": "{\n  \"partyId\": \"string\",\n  \"campaniaId\": \"string\",\n  \"origen\": \"ALIADO\"\n}",
+            "response_body": "{\n  \"leadId\": \"string\",\n  \"estado\": \"string\"\n}"
           }
         },
         {
@@ -448,7 +1305,64 @@
           "description": "",
           "fields": {
             "capa": "SYS",
-            "estado": "Existente"
+            "estado": "Existente",
+            "version": "v1",
+            "method": "POST",
+            "path": "/sys/personas",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/sys"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/sys"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/sys"
+              }
+            ],
+            "auth": "mTLS",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "SYS",
+              "POST"
+            ]
           }
         },
         {
@@ -458,7 +1372,64 @@
           "description": "",
           "fields": {
             "capa": "SYS",
-            "estado": "Existente"
+            "estado": "Existente",
+            "version": "v1",
+            "method": "POST",
+            "path": "/sys/consentimientos",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/sys"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/sys"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/sys"
+              }
+            ],
+            "auth": "mTLS",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "SYS",
+              "POST"
+            ]
           }
         },
         {
@@ -468,7 +1439,64 @@
           "description": "",
           "fields": {
             "capa": "SYS",
-            "estado": "Nuevo"
+            "estado": "Nuevo",
+            "version": "v1",
+            "method": "POST",
+            "path": "/sys/crm/leads",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/sys"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/sys"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/sys"
+              }
+            ],
+            "auth": "API Key",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "SYS",
+              "POST"
+            ]
           }
         },
         {
@@ -478,7 +1506,70 @@
           "description": "",
           "fields": {
             "capa": "SYS",
-            "estado": "Nuevo"
+            "estado": "Nuevo",
+            "version": "v1",
+            "method": "GET",
+            "path": "/sys/leads/{leadId}",
+            "base_url_entornos": [
+              {
+                "key": "dev",
+                "value": "https://api-dev.ejemplo.com/sys"
+              },
+              {
+                "key": "qa",
+                "value": "https://api-qa.ejemplo.com/sys"
+              },
+              {
+                "key": "prod",
+                "value": "https://api.ejemplo.com/sys"
+              }
+            ],
+            "auth": "API Key",
+            "content_type": "application/json",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "UUID de trazabilidad"
+              },
+              {
+                "key": "X-Channel",
+                "value": "Canal de origen (aliado)"
+              }
+            ],
+            "response_codes": [
+              {
+                "key": "200",
+                "value": "OK"
+              },
+              {
+                "key": "400",
+                "value": "Petición inválida"
+              },
+              {
+                "key": "401",
+                "value": "No autorizado"
+              },
+              {
+                "key": "500",
+                "value": "Error interno"
+              }
+            ],
+            "errores": "{\n  \"code\": \"string\",\n  \"message\": \"string\",\n  \"traceId\": \"uuid\"\n}",
+            "timeout_ms": 5000,
+            "tags": [
+              "SYS",
+              "GET"
+            ],
+            "path_params": [
+              {
+                "key": "leadId",
+                "value": "string"
+              }
+            ]
           }
         },
         {
@@ -640,22 +1731,22 @@
         },
         {
           "id": "ly-api-exp",
-          "name": "APIs Experiencia (+ microservicios)",
+          "name": "APIs Experiencia",
           "color": "#e0f2fe"
         },
         {
           "id": "ly-api-proc",
-          "name": "APIs Proceso (+ microservicios)",
+          "name": "APIs Proceso",
           "color": "#ccfbf1"
         },
         {
           "id": "ly-api-sd",
-          "name": "APIs Negocio (+ microservicios)",
+          "name": "APIs Negocio",
           "color": "#e0f2fe"
         },
         {
           "id": "ly-api-sys",
-          "name": "APIs Sistema SYS (+ microservicios)",
+          "name": "APIs Sistema (SYS)",
           "color": "#ccfbf1"
         },
         {

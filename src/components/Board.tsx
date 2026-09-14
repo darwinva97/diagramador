@@ -312,7 +312,10 @@ function Chip(props: ChipProps) {
       title={c.description || c.name}>
       <div className="comp-head">
         <span className="icon">{t?.icon ?? '▫️'}</span>
-        <span className="label">{c.name}</span>
+        <span className="txt">
+          <span className="label">{c.name}</span>
+          {(c.fields.method || c.fields.path) ? <span className="sub">{[c.fields.method, c.fields.path].filter(Boolean).join(' ')}</span> : null}
+        </span>
         {clones > 1 && <span className="clone-badge" title={`${clones} instancias en este diagrama`}>×{clones}</span>}
         <span className="port" title="Arrastra hasta otro componente para relacionarlos" />
       </div>

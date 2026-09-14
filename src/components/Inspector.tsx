@@ -1,7 +1,7 @@
 import { useStore, useValidSel } from '../store';
 import { actions } from '../actions';
 import { childrenOf, curDiagram, findComp, findType, libOfComp, libOfType, placementsOf } from '../lib/model';
-import { DIRS, KINDS, STYLES, type Component, type ComponentType, type Diagram, type Dir, type FieldDef, type FieldKind, type LineStyle, type Placement, type Relation } from '../types';
+import { DIRS, KINDS, STYLES, type Component, type ComponentType, type Diagram, type Dir, type FieldDef, type FieldKind, type KeyValue, type LineStyle, type Placement, type Relation } from '../types';
 import { useState } from 'react';
 
 export function Inspector() {
@@ -49,6 +49,7 @@ function DiagramPanel({ d }: { d: Diagram }) {
         <li>Arrastra el <b>borde derecho</b> de una celda o cabecera para cambiar el ancho de la etapa, y el <b>borde inferior</b> para el alto de la capa. Doble clic en el borde = tamaño automático.</li>
         <li>Dentro de la celda colócalo <b>donde quieras</b> arrastrándolo (se ajusta a una rejilla de 8 px). Con el componente seleccionado, las flechas del teclado lo mueven; ⊞ apila los de una celda.</li>
         <li><b>Subcomponentes:</b> suelta un componente encima de otro para meterlo dentro (p. ej. un microservicio dentro de su API). Arrástralo fuera, a la celda, para sacarlo. Las relaciones pueden salir de o llegar a un subcomponente.</li>
+        <li><b>Contrato de API:</b> crea un tipo con “+ Tipo API” en la pestaña Tipos. Trae método, path, base URL por entorno, cabeceras, parámetros, request/response en JSON y códigos de respuesta. Los campos se editan al seleccionar el componente.</li>
         <li>Arrastra desde el punto <b>●</b> de un componente hasta otro para crear una relación (puede saltar capas y etapas).</li>
         <li>Haz clic en una flecha para cambiar estilo (directa, troceada, punteada), dirección, color y etiqueta.</li>
         <li>Ctrl+arrastrar una instancia = clonarla. Suelta una instancia en la librería para quitarla. <b>Supr</b> borra lo seleccionado. <b>Ctrl+Z</b> deshace.</li>
@@ -164,6 +165,52 @@ function FieldInput({ def, value, onChange, onFocus }: { def: FieldDef; value: u
       return <label>{def.label}<select value={String(v)} onFocus={onFocus} onChange={e => onChange(e.target.value)}><option value="">—</option>{opts.map(o => <option key={o}>{o}</option>)}</select></label>;
     }
     case 'checkbox': return <label className="chk"><input type="checkbox" checked={Boolean(value)} onFocus={onFocus} onChange={e => onChange(e.target.checked)} /> {def.label}</label>;
+    case 'list': {
+      const items = Array.isArray(value) ? (value as unknown[]).map(String) : [];
+      const set = (arr: string[]) => onChange(arr);
+      return (
+        <div className="fld">
+          <span className="fld-label">{def.label} <small>({items.length})</small></span>
+          {items.map((it, idx) => (
+            <div key={idx} className="kv-row">
+              <input value={it} onFocus={onFocus} onChange={e => set(items.map((x, j) => j === idx ? e.target.value : x))} />
+              <button className="btn icon danger" title="Quitar" onClick={() => set(items.filter((_, j) => j !== idx))}>×</button>
+            </div>
+          ))}
+          <button className="btn small" onClick={() => { onFocus(); set([...items, '']); }}>+ Añadir</button>
+        </div>
+      );
+    }
+    case 'keyvalue': {
+      const items: KeyValue[] = Array.isArray(value) ? (value as KeyValue[]).map(x => ({ key: String(x?.key ?? ''), value: String(x?.value ?? '') })) : [];
+      const [kl, vl] = (def.options ?? 'Clave|Valor').split('|');
+      const set = (arr: KeyValue[]) => onChange(arr);
+      return (
+        <div className="fld">
+          <span className="fld-label">{def.label} <small>({items.length})</small></span>
+          {items.length > 0 && <div className="kv-head"><span>{kl}</span><span>{vl ?? 'Valor'}</span></div>}
+          {items.map((it, idx) => (
+            <div key={idx} className="kv-row two">
+              <input value={it.key} placeholder={kl} onFocus={onFocus} onChange={e => set(items.map((x, j) => j === idx ? { ...x, key: e.target.value } : x))} />
+              <input value={it.value} placeholder={vl ?? 'Valor'} onFocus={onFocus} onChange={e => set(items.map((x, j) => j === idx ? { ...x, value: e.target.value } : x))} />
+              <button className="btn icon danger" title="Quitar" onClick={() => set(items.filter((_, j) => j !== idx))}>×</button>
+            </div>
+          ))}
+          <button className="btn small" onClick={() => { onFocus(); set([...items, { key: '', value: '' }]); }}>+ Añadir</button>
+        </div>
+      );
+    }
+    case 'json': {
+      const txt = String(v);
+      let bad = false;
+      if (txt.trim()) { try { JSON.parse(txt); } catch { bad = true; } }
+      return (
+        <label>{def.label}{bad && <span className="warn"> · JSON no válido</span>}
+          <textarea className={'code' + (bad ? ' invalid' : '')} rows={6} spellCheck={false} value={txt} onFocus={onFocus} onChange={e => onChange(e.target.value)} placeholder='{ "campo": "valor" }' />
+          <span className="fld-hint"><button className="link" type="button" onClick={() => { if (!bad && txt.trim()) onChange(JSON.stringify(JSON.parse(txt), null, 2)); }}>Formatear</button></span>
+        </label>
+      );
+    }
     case 'number': return <label>{def.label}<input type="number" value={String(v)} onFocus={onFocus} onChange={e => onChange(e.target.value === '' ? '' : Number(e.target.value))} /></label>;
     default: return <label>{def.label}<input type={def.kind === 'url' ? 'url' : def.kind === 'date' ? 'date' : 'text'} value={String(v)} onFocus={onFocus} onChange={e => onChange(e.target.value)} /></label>;
   }
@@ -222,11 +269,16 @@ function TypePanel({ t }: { t: ComponentType }) {
               {Object.entries(KINDS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
             {f.kind === 'select' && <input className="wide" value={f.options ?? ''} placeholder="opción 1, opción 2, …" onFocus={snapshot} onChange={e => actions.updateField(t.id, i, { options: e.target.value })} />}
+            {f.kind === 'keyvalue' && <input className="wide" value={f.options ?? ''} placeholder="Etiqueta clave|Etiqueta valor (p. ej. Entorno|URL)" onFocus={snapshot} onChange={e => actions.updateField(t.id, i, { options: e.target.value })} />}
             <button className="btn icon danger" onClick={() => actions.deleteField(t.id, i)} title="Quitar campo">×</button>
           </div>
         ))}
       </div>
-      <button className="btn" onClick={() => actions.addField(t.id)}>+ Añadir campo</button>
+      <div className="row">
+        <button className="btn" onClick={() => actions.addField(t.id)}>+ Añadir campo</button>
+        <button className="btn" title="Añade los campos del contrato de una API que falten (método, path, URLs por entorno, request/response…)"
+          onClick={() => actions.addContractFields(t.id)}>+ Campos de contrato API</button>
+      </div>
       <div className="muted" style={{ marginTop: 12 }}>{n} componente(s) usan este tipo · Librería: {lib?.name}</div>
       <div className="actions"><button className="btn danger" onClick={() => actions.deleteType(t.id)}>Eliminar tipo</button></div>
     </>

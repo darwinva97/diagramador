@@ -1,5 +1,5 @@
 import { useStore } from './store';
-import type { AppData, Component, ComponentType, Diagram, FieldDef, Placement, Relation } from './types';
+import { API_CONTRACT_FIELDS, type AppData, type Component, type ComponentType, type Diagram, type FieldDef, type Placement, type Relation } from './types';
 import { LAYER_COLORS, PALETTE, cloneDiagram, curDiagram, descendantIds, findComp, findLib, findType, libOfComp, libOfType, nextStackPos, setCell, snap, tidyCell, uid } from './lib/model';
 import { exportAll, exportDiagram, mergeImport, pickFile } from './lib/io';
 
@@ -280,6 +280,17 @@ export const actions = {
     const t: ComponentType = { id: uid(), name, color: PALETTE[Math.floor(Math.random() * PALETTE.length)], icon: '▫️', fields: [] };
     mutate(d => { targetLib(d).types.push(t); });
     S().setUI({ tab: 'types' }); select({ kind: 'type', id: t.id });
+  },
+  /** Tipo "API" con todos los campos del contrato (método, path, URLs por entorno, request/response…). */
+  addApiType() {
+    const name = prompt('Nombre del tipo', 'API'); if (!name) return;
+    const t: ComponentType = { id: uid(), name, color: '#2563eb', icon: '🔌', fields: API_CONTRACT_FIELDS.map(f => ({ ...f })) };
+    mutate(d => { targetLib(d).types.push(t); });
+    S().setUI({ tab: 'types' }); select({ kind: 'type', id: t.id });
+  },
+  /** Añade a un tipo existente los campos de contrato API que aún no tenga. */
+  addContractFields(typeId: string) {
+    mutate(d => { const t = findType(d, typeId); if (!t) return; for (const f of API_CONTRACT_FIELDS) if (!t.fields.some(x => x.key === f.key)) t.fields.push({ ...f }); });
   },
   updateType(id: string, patch: Partial<ComponentType>, snap = false) {
     mutate(d => { const t = findType(d, id); if (t) Object.assign(t, patch); }, snap);

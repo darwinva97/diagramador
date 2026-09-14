@@ -89,7 +89,7 @@ export function Sidebar() {
       <div className="side-foot">
         {ui.tab === 'comps'
           ? <><button className="btn primary" onClick={actions.addComponent}>+ Componente</button><small>Arrastra al tablero. Suelta aquí una instancia para quitarla. Ctrl+arrastrar en el tablero = clonar.</small></>
-          : <><button className="btn primary" onClick={actions.addType}>+ Tipo</button><small>Un tipo define color, icono y campos propios.</small></>}
+          : <><div className="row"><button className="btn primary" onClick={actions.addType}>+ Tipo</button><button className="btn" onClick={actions.addApiType} title="Tipo con el contrato completo de una API">+ Tipo API</button></div><small>Un tipo define color, icono y campos propios. “Tipo API” trae método, path, URLs por entorno, request/response…</small></>}
       </div>
     </aside>
   );

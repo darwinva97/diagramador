@@ -1,10 +1,15 @@
-export type FieldKind = 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'url' | 'date';
+export type FieldKind = 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'url' | 'date'
+  | 'list'      // array de textos
+  | 'keyvalue'  // array de pares { key, value } (p. ej. entorno → URL, cabecera → valor)
+  | 'json';     // texto JSON (esquema / ejemplo de request o response)
+export interface KeyValue { key: string; value: string }
 
 export interface FieldDef {
   key: string;
   label: string;
   kind: FieldKind;
-  options?: string; // para 'select': opciones separadas por coma
+  /** 'select': opciones separadas por coma. 'keyvalue': "Etiqueta clave|Etiqueta valor". */
+  options?: string;
 }
 
 export interface ComponentType {
@@ -89,7 +94,31 @@ export interface LinkDefaults { style: LineStyle; dir: Dir; color: string; width
 export const KINDS: Record<FieldKind, string> = {
   text: 'Texto', textarea: 'Texto largo', number: 'Número', select: 'Lista',
   checkbox: 'Casilla', url: 'URL', date: 'Fecha',
+  list: 'Lista de textos', keyvalue: 'Clave → valor', json: 'JSON',
 };
+
+/** Campos de un tipo "API" con su contrato de request/response. */
+export const API_CONTRACT_FIELDS: FieldDef[] = [
+  { key: 'capa', label: 'Capa', kind: 'select', options: 'EXP, PROC, SD, SYS' },
+  { key: 'estado', label: 'Estado', kind: 'select', options: 'Existente, Nuevo, Modificado' },
+  { key: 'version', label: 'Versión', kind: 'text' },
+  { key: 'method', label: 'Método HTTP', kind: 'select', options: 'GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS' },
+  { key: 'path', label: 'Path', kind: 'text' },
+  { key: 'base_url_entornos', label: 'Base URL por entorno', kind: 'keyvalue', options: 'Entorno|Base URL' },
+  { key: 'auth', label: 'Autenticación', kind: 'select', options: 'Ninguna, API Key, Basic, Bearer JWT, OAuth2 client credentials, mTLS' },
+  { key: 'content_type', label: 'Content-Type', kind: 'text' },
+  { key: 'headers', label: 'Cabeceras de request', kind: 'keyvalue', options: 'Cabecera|Valor / descripción' },
+  { key: 'path_params', label: 'Parámetros de path', kind: 'keyvalue', options: 'Parámetro|Tipo / descripción' },
+  { key: 'query_params', label: 'Parámetros de query', kind: 'keyvalue', options: 'Parámetro|Tipo / descripción' },
+  { key: 'request_body', label: 'Request body (JSON)', kind: 'json' },
+  { key: 'response_body', label: 'Response body (JSON)', kind: 'json' },
+  { key: 'response_codes', label: 'Códigos de respuesta', kind: 'keyvalue', options: 'Código|Significado' },
+  { key: 'errores', label: 'Errores / contrato de error (JSON)', kind: 'json' },
+  { key: 'timeout_ms', label: 'Timeout (ms)', kind: 'number' },
+  { key: 'tags', label: 'Etiquetas', kind: 'list' },
+  { key: 'documentacion', label: 'Documentación (URL)', kind: 'url' },
+  { key: 'notas', label: 'Notas', kind: 'textarea' },
+];
 export const STYLES: Record<LineStyle, string> = {
   solid: 'Directa (continua)', dashed: 'Troceada', dotted: 'Punteada',
 };

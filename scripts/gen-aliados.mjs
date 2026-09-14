@@ -9,7 +9,23 @@ const types = {
   api:  { id: 'ty-api', name: 'API', color: '#2563eb', icon: '🔌', fields: [
     { key: 'capa', label: 'Capa', kind: 'select', options: 'EXP, PROC, SD, SYS' },
     { key: 'estado', label: 'Estado', kind: 'select', options: 'Existente, Nuevo, Modificado' },
-    { key: 'endpoint', label: 'Endpoint', kind: 'text' }, { key: 'version', label: 'Versión', kind: 'text' } ] },
+    { key: 'version', label: 'Versión', kind: 'text' },
+    { key: 'method', label: 'Método HTTP', kind: 'select', options: 'GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS' },
+    { key: 'path', label: 'Path', kind: 'text' },
+    { key: 'base_url_entornos', label: 'Base URL por entorno', kind: 'keyvalue', options: 'Entorno|Base URL' },
+    { key: 'auth', label: 'Autenticación', kind: 'select', options: 'Ninguna, API Key, Basic, Bearer JWT, OAuth2 client credentials, mTLS' },
+    { key: 'content_type', label: 'Content-Type', kind: 'text' },
+    { key: 'headers', label: 'Cabeceras de request', kind: 'keyvalue', options: 'Cabecera|Valor / descripción' },
+    { key: 'path_params', label: 'Parámetros de path', kind: 'keyvalue', options: 'Parámetro|Tipo / descripción' },
+    { key: 'query_params', label: 'Parámetros de query', kind: 'keyvalue', options: 'Parámetro|Tipo / descripción' },
+    { key: 'request_body', label: 'Request body (JSON)', kind: 'json' },
+    { key: 'response_body', label: 'Response body (JSON)', kind: 'json' },
+    { key: 'response_codes', label: 'Códigos de respuesta', kind: 'keyvalue', options: 'Código|Significado' },
+    { key: 'errores', label: 'Errores / contrato de error (JSON)', kind: 'json' },
+    { key: 'timeout_ms', label: 'Timeout (ms)', kind: 'number' },
+    { key: 'tags', label: 'Etiquetas', kind: 'list' },
+    { key: 'documentacion', label: 'Documentación (URL)', kind: 'url' },
+    { key: 'notas', label: 'Notas', kind: 'textarea' } ] },
   ms:   { id: 'ty-microservicio', name: 'Microservicio', color: '#0f766e', icon: '⚙️', fields: [
     { key: 'capa', label: 'Capa', kind: 'select', options: 'EXP, PROC, SD, SYS' },
     { key: 'estado', label: 'Estado', kind: 'select', options: 'Existente, Nuevo, Modificado' },
@@ -24,6 +40,23 @@ const types = {
 
 const components = [];
 const C = (id, name, t, fields = {}, description = '') => { components.push({ id, name, typeId: types[t].id, description, fields }); return id; };
+// Contrato de ejemplo para una API (valores ilustrativos; edítalos en el inspector)
+const J = o => JSON.stringify(o, null, 2);
+const API = (capa, estado, method, path, extra = {}) => {
+  const seg = capa.toLowerCase();
+  return {
+    capa, estado, version: 'v1', method, path,
+    base_url_entornos: [
+      { key: 'dev', value: `https://api-dev.ejemplo.com/${seg}` },
+      { key: 'qa', value: `https://api-qa.ejemplo.com/${seg}` },
+      { key: 'prod', value: `https://api.ejemplo.com/${seg}` } ],
+    auth: 'OAuth2 client credentials', content_type: 'application/json',
+    headers: [ { key: 'Authorization', value: 'Bearer <token>' }, { key: 'X-Request-Id', value: 'UUID de trazabilidad' }, { key: 'X-Channel', value: 'Canal de origen (aliado)' } ],
+    response_codes: [ { key: '200', value: 'OK' }, { key: '400', value: 'Petición inválida' }, { key: '401', value: 'No autorizado' }, { key: '500', value: 'Error interno' } ],
+    errores: J({ code: 'string', message: 'string', traceId: 'uuid' }),
+    timeout_ms: 5000, tags: [capa, method], ...extra,
+  };
+};
 // Color en la imagen -> estado (supuesto): gris = Existente, amarillo = Nuevo, celeste = Modificado
 const EXI = 'Existente', NUE = 'Nuevo', MOD = 'Modificado';
 
@@ -32,25 +65,25 @@ C('sp-registro', 'Registro de Prospectos', 'sub'); C('sp-consentimiento', 'Conse
 C('sp-consulta', 'Consulta de Campaña', 'sub'); C('sp-validacion', 'Validación Base Negativa', 'sub'); C('sp-reglas', 'Aplicar Reglas de Riesgo', 'sub');
 C('sp-simular', 'Simular condiciones', 'sub'); C('sp-derivar', 'Derivar lead', 'sub'); C('sp-lectura', 'Lectura de estado', 'sub');
 // APIs / microservicios de experiencia
-C('aexp-registro', '[API EXP] Registro de Prospecto', 'api', { capa: 'EXP', estado: EXI }); C('mexp-registro', '[MIC EXP] Registro de Prospecto', 'ms', { capa: 'EXP', estado: EXI });
-C('aexp-consentimiento', '[API EXP] Consentimiento PDP', 'api', { capa: 'EXP', estado: EXI }); C('mexp-consentimiento', '[MIC EXP] Consentimiento PDP', 'ms', { capa: 'EXP', estado: EXI });
-C('aexp-consulta', '[API EXP] Consulta campaña', 'api', { capa: 'EXP', estado: NUE }); C('mexp-consulta', '[MIC EXP] Consulta campaña', 'ms', { capa: 'EXP', estado: NUE });
-C('aexp-validacion', '[API EXP] Validación Base Negativa', 'api', { capa: 'EXP', estado: NUE }); C('mexp-validacion', '[MIC EXP] Validación Base Negativa', 'ms', { capa: 'EXP', estado: NUE });
-C('aexp-reglas', '[API EXP] Aplicar Reglas de Riesgo', 'api', { capa: 'EXP', estado: NUE }); C('mexp-reglas', '[MIC EXP] Aplicar Reglas de Riesgo', 'ms', { capa: 'EXP', estado: NUE });
-C('aexp-simular', '[API EXP] Simular condiciones', 'api', { capa: 'EXP', estado: NUE }); C('mexp-simular', '[MIC EXP] Simular condiciones', 'ms', { capa: 'EXP', estado: NUE });
-C('aexp-derivar', '[API EXP] Derivar a CRM', 'api', { capa: 'EXP', estado: NUE }); C('mexp-derivar', '[MIC EXP] Derivar a CRM', 'ms', { capa: 'EXP', estado: NUE });
-C('aexp-lectura', '[API EXP] Lectura de Estado', 'api', { capa: 'EXP', estado: NUE }); C('mexp-lectura', '[MIC EXP] Lectura de Estado', 'ms', { capa: 'EXP', estado: NUE });
+C('aexp-registro', '[API EXP] Registro de Prospecto', 'api', API('EXP', EXI, 'POST', '/prospectos', { request_body: J({ documento: 'string', nombres: 'string', apellidos: 'string', telefono: 'string', email: 'string', aliado: 'string' }), response_body: J({ prospectoId: 'uuid', estado: 'REGISTRADO' }), response_codes: [ { key: '201', value: 'Prospecto creado' }, { key: '400', value: 'Datos inválidos' }, { key: '409', value: 'Prospecto ya existe' } ] })); C('mexp-registro', '[MIC EXP] Registro de Prospecto', 'ms', { capa: 'EXP', estado: EXI });
+C('aexp-consentimiento', '[API EXP] Consentimiento PDP', 'api', API('EXP', EXI, 'POST', '/prospectos/{prospectoId}/consentimiento', { path_params: [ { key: 'prospectoId', value: 'uuid' } ], request_body: J({ acepta: true, canal: 'WEB', versionTexto: 'string' }), response_body: J({ consentimientoId: 'uuid', fecha: 'date-time' }) })); C('mexp-consentimiento', '[MIC EXP] Consentimiento PDP', 'ms', { capa: 'EXP', estado: EXI });
+C('aexp-consulta', '[API EXP] Consulta campaña', 'api', API('EXP', NUE, 'GET', '/campanias', { query_params: [ { key: 'documento', value: 'string (requerido)' }, { key: 'aliado', value: 'string' } ], response_body: J({ campanias: [ { campaniaId: 'string', producto: 'string', montoMaximo: 0, tasa: 0 } ] }) })); C('mexp-consulta', '[MIC EXP] Consulta campaña', 'ms', { capa: 'EXP', estado: NUE });
+C('aexp-validacion', '[API EXP] Validación Base Negativa', 'api', API('EXP', NUE, 'POST', '/riesgos/base-negativa', { request_body: J({ documento: 'string', tipoDocumento: 'DNI|CE' }), response_body: J({ enBaseNegativa: false, motivo: 'string|null' }) })); C('mexp-validacion', '[MIC EXP] Validación Base Negativa', 'ms', { capa: 'EXP', estado: NUE });
+C('aexp-reglas', '[API EXP] Aplicar Reglas de Riesgo', 'api', API('EXP', NUE, 'POST', '/riesgos/evaluacion', { request_body: J({ prospectoId: 'uuid', campaniaId: 'string', ingresos: 0 }), response_body: J({ resultado: 'APROBADO|RECHAZADO|REVISION', score: 0, reglasAplicadas: ['string'] }) })); C('mexp-reglas', '[MIC EXP] Aplicar Reglas de Riesgo', 'ms', { capa: 'EXP', estado: NUE });
+C('aexp-simular', '[API EXP] Simular condiciones', 'api', API('EXP', NUE, 'POST', '/simulaciones', { request_body: J({ prospectoId: 'uuid', monto: 0, plazoMeses: 0 }), response_body: J({ cuota: 0, tcea: 0, cronograma: [ { nro: 1, fecha: 'date', cuota: 0 } ] }) })); C('mexp-simular', '[MIC EXP] Simular condiciones', 'ms', { capa: 'EXP', estado: NUE });
+C('aexp-derivar', '[API EXP] Derivar a CRM', 'api', API('EXP', NUE, 'POST', '/leads', { request_body: J({ prospectoId: 'uuid', simulacionId: 'uuid', canalContacto: 'string' }), response_body: J({ leadId: 'uuid', estado: 'DERIVADO' }), response_codes: [ { key: '202', value: 'Lead aceptado (asíncrono)' }, { key: '400', value: 'Datos inválidos' } ] })); C('mexp-derivar', '[MIC EXP] Derivar a CRM', 'ms', { capa: 'EXP', estado: NUE });
+C('aexp-lectura', '[API EXP] Lectura de Estado', 'api', API('EXP', NUE, 'GET', '/leads/{leadId}/estado', { path_params: [ { key: 'leadId', value: 'uuid' } ], response_body: J({ leadId: 'uuid', estado: 'string', actualizado: 'date-time' }) })); C('mexp-lectura', '[MIC EXP] Lectura de Estado', 'ms', { capa: 'EXP', estado: NUE });
 // Proceso
-C('aproc-riesgos', '[API PROC] Evaluación de Riesgos', 'api', { capa: 'PROC', estado: MOD }); C('mproc-riesgos', '[MSI PROC] Evaluación de Riesgos', 'ms', { capa: 'PROC', estado: MOD });
-C('aproc-simulador', '[API PROC] Simulador', 'api', { capa: 'PROC', estado: MOD }); C('mproc-simulador', '[MSI PROC] Simulador', 'ms', { capa: 'PROC', estado: MOD });
+C('aproc-riesgos', '[API PROC] Evaluación de Riesgos', 'api', API('PROC', MOD, 'POST', '/evaluacion-riesgos', { request_body: J({ documento: 'string', campaniaId: 'string', variables: {} }), response_body: J({ decision: 'string', score: 0, motivos: ['string'] }) })); C('mproc-riesgos', '[MSI PROC] Evaluación de Riesgos', 'ms', { capa: 'PROC', estado: MOD });
+C('aproc-simulador', '[API PROC] Simulador', 'api', API('PROC', MOD, 'POST', '/simulador/cronograma', { request_body: J({ monto: 0, plazoMeses: 0, tasa: 0 }), response_body: J({ cuota: 0, cronograma: [] }) })); C('mproc-simulador', '[MSI PROC] Simulador', 'ms', { capa: 'PROC', estado: MOD });
 // Negocio (SD)
-C('asd-party', '[API SD] Party Reference Data Directory', 'api', { capa: 'SD', estado: EXI }); C('msd-party', '[MS SD] Party Reference Data Directory', 'ms', { capa: 'SD', estado: EXI });
-C('asd-customer', '[API SD] Customer Agreement', 'api', { capa: 'SD', estado: EXI }); C('msd-customer', '[MS SD] Customer Agreement', 'ms', { capa: 'SD', estado: EXI });
-C('asd-lead', '[API SD] Lead & Opportunity Management', 'api', { capa: 'SD', estado: MOD }, 'Se usa en Evaluación y en Derivación (misma API).');
+C('asd-party', '[API SD] Party Reference Data Directory', 'api', API('SD', EXI, 'POST', '/party-reference/v1/parties', { request_body: J({ persona: { documento: 'string', nombres: 'string' }, direcciones: [], geolocalizacion: { lat: 0, lng: 0 } }), response_body: J({ partyId: 'string' }) })); C('msd-party', '[MS SD] Party Reference Data Directory', 'ms', { capa: 'SD', estado: EXI });
+C('asd-customer', '[API SD] Customer Agreement', 'api', API('SD', EXI, 'POST', '/customer-agreement/v1/agreements', { request_body: J({ partyId: 'string', tipo: 'PDP', acepta: true }), response_body: J({ agreementId: 'string' }) })); C('msd-customer', '[MS SD] Customer Agreement', 'ms', { capa: 'SD', estado: EXI });
+C('asd-lead', '[API SD] Lead & Opportunity Management', 'api', API('SD', MOD, 'POST', '/lead-opportunity/v1/leads', { request_body: J({ partyId: 'string', campaniaId: 'string', origen: 'ALIADO' }), response_body: J({ leadId: 'string', estado: 'string' }) }), 'Se usa en Evaluación y en Derivación (misma API).');
 C('msd-lead', '[MS SD] Lead & Opportunity Management', 'ms', { capa: 'SD', estado: MOD });
 // Sistema (SYS)
-C('asys-party', '[API SYS] Party Reference Data Directory', 'api', { capa: 'SYS', estado: EXI }); C('asys-customer', '[API SYS] Customer Agreement', 'api', { capa: 'SYS', estado: EXI });
-C('asys-lead', '[API SYS] Lead & Opportunity Management', 'api', { capa: 'SYS', estado: NUE }); C('asys-lectura', '[API SYS] Lectura de estado', 'api', { capa: 'SYS', estado: NUE });
+C('asys-party', '[API SYS] Party Reference Data Directory', 'api', API('SYS', EXI, 'POST', '/sys/personas', { auth: 'mTLS' })); C('asys-customer', '[API SYS] Customer Agreement', 'api', API('SYS', EXI, 'POST', '/sys/consentimientos', { auth: 'mTLS' }));
+C('asys-lead', '[API SYS] Lead & Opportunity Management', 'api', API('SYS', NUE, 'POST', '/sys/crm/leads', { auth: 'API Key' })); C('asys-lectura', '[API SYS] Lectura de estado', 'api', API('SYS', NUE, 'GET', '/sys/leads/{leadId}', { auth: 'API Key', path_params: [ { key: 'leadId', value: 'string' } ] }));
 C('msys-alta-persona', '[MS SYS] Alta Persona', 'ms', { capa: 'SYS', estado: EXI }); C('msys-alta-direcciones', '[MS SYS] Alta Direcciones - Referencias', 'ms', { capa: 'SYS', estado: EXI });
 C('msys-geo', '[MS SYS] Geolocalización', 'ms', { capa: 'SYS', estado: EXI }); C('msys-leypdp', '[MS SYS] Ley PDP', 'ms', { capa: 'SYS', estado: EXI });
 C('msys-lead', '[MS SYS] Lead & Opportunity Management', 'ms', { capa: 'SYS', estado: NUE }); C('msys-lectura', '[MS SYS] Lectura estado', 'ms', { capa: 'SYS', estado: NUE });
@@ -67,10 +100,10 @@ const stages = [
 ];
 const layers = [
   { id: 'ly-sub', name: 'Sub Procesos', color: '#fef9c3' },
-  { id: 'ly-api-exp', name: 'APIs Experiencia (+ microservicios)', color: '#e0f2fe' },
-  { id: 'ly-api-proc', name: 'APIs Proceso (+ microservicios)', color: '#ccfbf1' },
-  { id: 'ly-api-sd', name: 'APIs Negocio (+ microservicios)', color: '#e0f2fe' },
-  { id: 'ly-api-sys', name: 'APIs Sistema SYS (+ microservicios)', color: '#ccfbf1' },
+  { id: 'ly-api-exp', name: 'APIs Experiencia', color: '#e0f2fe' },
+  { id: 'ly-api-proc', name: 'APIs Proceso', color: '#ccfbf1' },
+  { id: 'ly-api-sd', name: 'APIs Negocio', color: '#e0f2fe' },
+  { id: 'ly-api-sys', name: 'APIs Sistema (SYS)', color: '#ccfbf1' },
   { id: 'ly-backend', name: 'BACKEND', color: '#ede9fe' },
 ];
 const S = Object.fromEntries(stages.map(s => [s.name.split(' ')[0].normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(), s.id]));
