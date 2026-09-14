@@ -1,0 +1,54 @@
+import type { Relation, Selection } from '../types';
+import { curveFrom, layoutAnchors, type Pt, type Rect } from '../lib/geometry';
+
+export interface LinkingState { from: string; start: Pt; cur: Pt; target: string | null }
+
+interface Props {
+  rects: Record<string, Rect>;
+  size: { w: number; h: number };
+  relations: Relation[];
+  sel: Selection | null;
+  hoverPid: string | null;
+  linking: LinkingState | null;
+  onSelect(id: string): void;
+}
+
+const DASH: Record<Relation['style'], string | undefined> = { solid: undefined, dashed: '9 6', dotted: '2 6' };
+const mid = (c: string) => 'm-' + c.replace('#', '');
+
+export function Links({ rects, size, relations, sel, hoverPid, linking, onSelect }: Props) {
+  const colors = new Set(relations.map(r => r.color));
+  const anchors = layoutAnchors(relations, rects);
+  return (
+    <svg id="links" width={size.w} height={size.h}>
+      <defs>
+        {[...colors].map(c => (
+          <marker key={c} id={mid(c)} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0L10 5L0 10z" fill={c} />
+          </marker>
+        ))}
+      </defs>
+      {relations.map(r => {
+        const an = anchors[r.id];
+        if (!an) return null;
+        const { d, mid: m } = curveFrom(an.A, an.B);
+        const isSel = sel?.kind === 'relation' && sel.id === r.id;
+        const hot = hoverPid !== null && (r.from === hoverPid || r.to === hoverPid);
+        return (
+          <g key={r.id} className={'rel' + (isSel ? ' selected' : '') + (hot ? ' hot' : '')}
+            onClick={e => { e.stopPropagation(); onSelect(r.id); }}>
+            <path className="hit" d={d} />
+            <path className="line" d={d} stroke={r.color} strokeWidth={r.width}
+              strokeDasharray={DASH[r.style]}
+              markerEnd={r.dir !== 'none' ? `url(#${mid(r.color)})` : undefined}
+              markerStart={r.dir === 'both' ? `url(#${mid(r.color)})` : undefined} />
+            {r.label && <text x={m.x} y={m.y - 4}>{r.label}</text>}
+          </g>
+        );
+      })}
+      {linking && (
+        <path className="temp" d={`M${linking.start.x} ${linking.start.y} L${linking.cur.x} ${linking.cur.y}`} />
+      )}
+    </svg>
+  );
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "draw-bezenti",
+  "compatibility_date": "2025-09-01",
+  // Worker sólo de archivos estáticos: sirve el build de Vite (dist/)
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  // Dominio propio: wrangler crea/actualiza el DNS en la zona bezenti.com al desplegar
+  "routes": [{ "pattern": "draw.bezenti.com", "custom_domain": true }],
+  "observability": { "enabled": true }
+}
