@@ -33,6 +33,28 @@ function DiagramPanel({ d }: { d: Diagram }) {
       <label>Descripción<textarea rows={3} value={d.description} onFocus={snapshot} onChange={e => upd({ description: e.target.value })} /></label>
       <div className="stats">{d.layers.length} capas · {d.stages.length} etapas · {d.placements.length} instancias · {d.relations.length} relaciones</div>
 
+      <h4>Grupos de etapas ({(d.stageGroups ?? []).length})</h4>
+      <div className="muted small">Una banda por encima de las columnas. Marca las etapas que entran en cada grupo; si quedan separadas, el grupo se dibuja en varios tramos.</div>
+      {(d.stageGroups ?? []).map(gr => (
+        <div key={gr.id} className="sg-edit">
+          <div className="row">
+            <input value={gr.name} onFocus={snapshot} onChange={e => actions.renameStageGroup(gr.id, e.target.value)} />
+            <input type="color" value={gr.color ?? '#94a3b8'} onFocus={snapshot} onChange={e => actions.colorStageGroup(gr.id, e.target.value)} title="Color del grupo" />
+            <button className="btn icon danger" onClick={() => actions.deleteStageGroup(gr.id)} title="Deshacer el grupo">×</button>
+          </div>
+          <div className="sg-chips">
+            {d.stages.map(s => (
+              <label key={s.id} className={'chk-chip' + (s.groupId === gr.id ? ' on' : '') + (s.groupId && s.groupId !== gr.id ? ' taken' : '')}>
+                <input type="checkbox" checked={s.groupId === gr.id}
+                  onChange={e => actions.setStageGroup(s.id, e.target.checked ? gr.id : null)} />
+                {s.name}
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button className="btn" onClick={() => actions.addStageGroup()}>+ Nuevo grupo de etapas</button>
+
       <h4>Flecha por defecto (para las nuevas relaciones)</h4>
       <label>Estilo<select value={ui.link.style} onChange={e => setUI({ link: { ...ui.link, style: e.target.value as LineStyle } })}>
         {Object.entries(STYLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
@@ -120,7 +142,10 @@ function ComponentPanel({ comp, placement, d }: { comp: Component; placement: Pl
       {usedIn.length > 1 && <div className="notice">Este componente es <b>compartido</b>: editarlo aquí cambia también los otros {usedIn.length - 1} diagrama(s). Si no lo quieres, desvincúlalo.</div>}
       <div className="row" style={{ marginTop: 6 }}>
         <button className="btn" onClick={() => actions.duplicateComponent(comp.id)} title="Crea una copia independiente en la librería">⧉ Duplicar componente</button>
-        <button className="btn" onClick={() => actions.detachComponent(comp.id, undefined)} title="Las instancias de este diagrama pasan a una copia independiente; los demás diagramas conservan el original">⛓ Desvincular en este diagrama</button>
+        <button className="btn" onClick={() => actions.splitInstances(comp.id)} disabled={inst.length < 2}
+          title="Cada instancia de este diagrama pasa a tener su propia copia y dejan de ser clones entre sí">⧉ Separar sus {inst.length} instancias</button>
+        <button className="btn" onClick={() => actions.detachComponent(comp.id, undefined)} disabled={usedIn.length < 2}
+          title={usedIn.length < 2 ? 'Sólo se usa en este diagrama: no hay de qué desvincularlo' : 'Las instancias de este diagrama pasan a una copia independiente; los demás diagramas conservan el original'}>⛓ Desvincular en este diagrama</button>
       </div>
       {placement && inst.length > 1 && <div className="row" style={{ marginTop: 6 }}>
         <button className="btn" onClick={() => actions.detachComponent(comp.id, placement.id)} title="Sólo esta instancia pasa a una copia independiente">⛓ Desvincular sólo esta instancia</button>

@@ -37,7 +37,10 @@ export interface Library {
 
 /** `height` / `width` opcionales: tamaño fijado por el usuario (px); si faltan, automático. */
 export interface Layer { id: string; name: string; color: string; height?: number }
-export interface Stage { id: string; name: string; width?: number }
+/** `groupId`: etapa incluida en un grupo, que se dibuja como cabecera por encima de las etapas. */
+export interface Stage { id: string; name: string; width?: number; groupId?: string | null }
+/** Agrupación de etapas contiguas (una banda sobre las columnas), p. ej. "Evaluación rápida". */
+export interface StageGroup { id: string; name: string; color?: string }
 
 /** Instancia de un componente en una celda (capa × etapa). Un componente puede tener varias. */
 export interface Placement {
@@ -75,6 +78,8 @@ export interface Diagram {
   description: string;
   layers: Layer[];
   stages: Stage[];
+  /** Grupos de etapas (opcional; si está vacío no se dibuja la banda superior). */
+  stageGroups?: StageGroup[];
   placements: Placement[];
   relations: Relation[];
 }

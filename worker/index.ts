@@ -156,7 +156,7 @@ app.delete('/api-keys/:id', async c => {
 type Kind = 'library' | 'diagram';
 type DocRow = { id: string; name: string; data: string; updated_at: string };
 interface Library { id: string; name: string; types: Record<string, unknown>[]; components: Record<string, unknown>[] }
-interface Diagram { id: string; name: string; description: string; layers: Record<string, unknown>[]; stages: Record<string, unknown>[]; placements: Record<string, unknown>[]; relations: Record<string, unknown>[]; stageWidths?: unknown }
+interface Diagram { id: string; name: string; description: string; layers: Record<string, unknown>[]; stages: Record<string, unknown>[]; stageGroups: Record<string, unknown>[]; placements: Record<string, unknown>[]; relations: Record<string, unknown>[]; stageWidths?: unknown }
 
 const DEFAULT_LAYERS = [
   { name: 'Sub Procesos', color: '#fef9c3' }, { name: 'APIs Experiencia', color: '#e0f2fe' }, { name: 'APIs Proceso', color: '#ccfbf1' },
@@ -187,14 +187,17 @@ const normLib = (l: Partial<Library>, id?: string): Library => ({
 });
 const normDiag = (d: Partial<Diagram>, id?: string): Diagram => {
   const layers = ((d.layers?.length ? d.layers : DEFAULT_LAYERS) as Record<string, unknown>[]).map(l => ({ ...l, id: (l.id as string) ?? uid() }));
-  const stages = (d.stages?.length ? d.stages : [{ name: 'Etapa 1' }, { name: 'Etapa 2' }, { name: 'Etapa 3' }]).map(s => ({ ...s, id: (s.id as string) ?? uid() }));
+  const stageGroups = (d.stageGroups ?? []).map((g: Record<string, unknown>) => ({ ...g, id: (g.id as string) ?? uid() }));
+  const gids = new Set(stageGroups.map(g => g.id as string));
+  const stages = (d.stages?.length ? d.stages : [{ name: 'Etapa 1' }, { name: 'Etapa 2' }, { name: 'Etapa 3' }])
+    .map(s => ({ ...s, id: (s.id as string) ?? uid(), groupId: gids.has(s.groupId as string) ? (s.groupId as string) : null }));
   const cellCount = new Map<string, number>();
   const placements = (d.placements ?? []).map(p => {
     const k = `${p.layerId}|${p.stageId}`; const n = cellCount.get(k) ?? 0; cellCount.set(k, n + 1);
     return { x: 8, y: 8 + n * 40, parentId: null, ...p, id: (p.id as string) ?? uid() };
   });
   const relations = (d.relations ?? []).map(r => ({ style: 'solid', dir: 'fwd', color: '#475569', width: 2, label: '', ...r, id: (r.id as string) ?? uid() }));
-  return { id: id ?? d.id ?? uid(), name: String(d.name ?? 'Diagrama'), description: String(d.description ?? ''), layers, stages, placements, relations };
+  return { id: id ?? d.id ?? uid(), name: String(d.name ?? 'Diagrama'), description: String(d.description ?? ''), layers, stages, stageGroups, placements, relations };
 };
 const summary = (d: Diagram & { updatedAt: string }) => ({
   id: d.id, name: d.name, description: d.description, updatedAt: d.updatedAt,
@@ -305,8 +308,9 @@ app.patch('/diagrams/:id', async c => {
 app.delete('/diagrams/:id', async c => (await delDoc(c.get('store'), c.get('user').id, 'diagram', c.req.param('id'))) ? c.json({ ok: true }) : c.json({ error: 'Diagrama no encontrado' }, 404));
 
 /** Sub-recursos de un diagrama: capas, etapas, instancias (placements) y relaciones. */
-const SUBS: Record<string, { key: 'layers' | 'stages' | 'placements' | 'relations'; required: string[] }> = {
+const SUBS: Record<string, { key: 'layers' | 'stages' | 'stageGroups' | 'placements' | 'relations'; required: string[] }> = {
   layers: { key: 'layers', required: ['name'] }, stages: { key: 'stages', required: ['name'] },
+  stageGroups: { key: 'stageGroups', required: ['name'] },
   placements: { key: 'placements', required: ['componentId', 'layerId', 'stageId'] }, relations: { key: 'relations', required: ['from', 'to'] },
 };
 for (const [path, { key, required }] of Object.entries(SUBS)) {

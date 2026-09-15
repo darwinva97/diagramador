@@ -1,4 +1,4 @@
-import type { AppData, Component, ComponentType, Diagram, Library, Placement } from '../types';
+import type { AppData, Component, ComponentType, Diagram, Library, Placement, StageGroup } from '../types';
 
 export const uid = () =>
   Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
@@ -94,7 +94,10 @@ export function normalize(raw: Partial<AppData> | null | undefined): AppData {
   }
   for (const g of d.diagrams) {
     g.id ||= uid(); g.name ||= 'Diagrama'; g.description ||= '';
-    g.layers ||= []; g.stages ||= []; g.placements ||= []; g.relations ||= [];
+    g.layers ||= []; g.stages ||= []; g.placements ||= []; g.relations ||= []; g.stageGroups ||= [];
+    // etapas que apuntan a un grupo inexistente quedan sueltas
+    const gids = new Set(g.stageGroups.map(x => x.id));
+    for (const s of g.stages) if (s.groupId && !gids.has(s.groupId)) s.groupId = null;
     g.layers.forEach((l, i) => { l.color ||= LAYER_COLORS[i % LAYER_COLORS.length]; });
     // instancias sin posición (datos antiguos): apilarlas en su celda
     const counts = new Map<string, number>();
@@ -120,9 +123,26 @@ export function cloneDiagram(src: Diagram, name?: string): Diagram {
   const map = new Map<string, string>();
   const nid = (old: string) => { const n = uid(); map.set(old, n); return n; };
   const layers = src.layers.map(l => ({ ...l, id: nid(l.id) }));
-  const stages = src.stages.map(s => ({ ...s, id: nid(s.id) }));
+  const stageGroups = (src.stageGroups ?? []).map(x => ({ ...x, id: nid(x.id) }));
+  const stages = src.stages.map(s => ({ ...s, id: nid(s.id), groupId: s.groupId ? map.get(s.groupId) ?? null : null }));
   src.placements.forEach(p => nid(p.id));
   const placements = src.placements.map(p => ({ ...p, id: map.get(p.id)!, layerId: map.get(p.layerId)!, stageId: map.get(p.stageId)!, parentId: p.parentId ? map.get(p.parentId) ?? null : null }));
   const relations = src.relations.map(r => ({ ...r, id: uid(), from: map.get(r.from)!, to: map.get(r.to)! }));
-  return { id: uid(), name: name ?? src.name + ' (copia)', description: src.description, layers, stages, placements, relations };
+  return { id: uid(), name: name ?? src.name + ' (copia)', description: src.description, layers, stages, stageGroups, placements, relations };
+}
+
+/**
+ * Tramos de la banda superior: etapas consecutivas del mismo grupo se funden en un tramo;
+ * las que no tienen grupo quedan como hueco de una columna.
+ */
+export function stageSpans(g: Diagram): { group: StageGroup | null; count: number; key: string }[] {
+  const groups = g.stageGroups ?? [];
+  const out: { group: StageGroup | null; count: number; key: string }[] = [];
+  g.stages.forEach(s => {
+    const grp = s.groupId ? groups.find(x => x.id === s.groupId) ?? null : null;
+    const last = out[out.length - 1];
+    if (grp && last && last.group?.id === grp.id) { last.count++; return; }
+    out.push({ group: grp, count: 1, key: grp ? `${grp.id}-${s.id}` : `s-${s.id}` });
+  });
+  return out;
 }

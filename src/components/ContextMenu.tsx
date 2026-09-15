@@ -7,7 +7,7 @@ import { create } from 'zustand';
 
 export type MenuItem =
   | { sep: true }
-  | { label: string; hint?: string; danger?: boolean; disabled?: boolean; onClick(): void };
+  | { label: string; hint?: string; title?: string; danger?: boolean; disabled?: boolean; onClick(): void };
 
 interface MenuState { x: number; y: number; title?: string; items: MenuItem[] }
 const useMenu = create<{ menu: MenuState | null }>(() => ({ menu: null }));
@@ -64,7 +64,7 @@ export function ContextMenu() {
       {menu.items.map((it, i) => 'sep' in it
         ? <div key={i} className="ctx-sep" />
         : (
-          <button key={i} role="menuitem" className={'ctx-item' + (it.danger ? ' danger' : '')} disabled={it.disabled}
+          <button key={i} role="menuitem" className={'ctx-item' + (it.danger ? ' danger' : '')} disabled={it.disabled} title={it.title}
             onClick={() => { closeMenu(); it.onClick(); }}>
             <span>{it.label}</span>{it.hint && <kbd>{it.hint}</kbd>}
           </button>

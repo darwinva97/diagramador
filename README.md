@@ -46,6 +46,7 @@ npm run build      # genera dist/index.html (un único archivo; necesita un serv
 - Deshacer (Ctrl+Z) y rehacer (Ctrl+Shift+Z), Supr borra la instancia o relación seleccionada, Esc deselecciona, impresión sólo del tablero.
 - **Copiar y pegar**: Ctrl+C / Ctrl+X sobre una instancia o un componente de la librería, clic en la celda destino y Ctrl+V. Ctrl+D duplica en la misma celda, Ctrl+Shift+D desvincula (copia independiente) y Ctrl+Shift+V pega ya desvinculado.
 - **Menú contextual** con clic derecho sobre un componente, una celda, una capa, una etapa, una flecha, un tipo o el título de una librería.
+- **Grupos de etapas**: una banda por encima de las columnas (p. ej. “Evaluación rápida” sobre varias etapas). Se crean desde el menú contextual de una etapa y se editan con casillas en el inspector del diagrama.
 - **Atajos de teclado** para casi todo; pulsa `?` (o el botón ⌨) para ver la lista completa.
 - **Librerías plegables** en el panel lateral: clic en el título para plegar o desplegar.
 - **Contratos de API**: los campos JSON muestran la estructura reconocida (campo, tipo y ejemplo) y una relación puede conectar un campo concreto del origen con uno del destino.

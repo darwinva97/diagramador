@@ -9,7 +9,7 @@ como plataforma con sincronización y API REST.
 - **Biblioteca (Library)**: contenedor global de *tipos* y *componentes*. Compartida por todos los diagramas del usuario.
 - **Tipo de componente (ComponentType)**: nombre, color, icono y **campos** (`FieldDef`: text, textarea, number, select, checkbox, url, date, list, keyvalue, json). Plantilla especial "API" con el contrato completo (método, path, base URL por entorno, cabeceras, parámetros, request/response JSON, códigos…).
 - **Componente (Component)**: pertenece a una biblioteca, tiene un tipo (opcional) y valores para sus campos.
-- **Diagrama (Diagram)**: capas, etapas, **instancias** (`Placement`) y **relaciones** (`Relation`).
+- **Diagrama (Diagram)**: capas, etapas, **grupos de etapas** (`StageGroup`: banda sobre las columnas; `Stage.groupId` indica a cuál pertenece y sólo se funden las contiguas), **instancias** (`Placement`) y **relaciones** (`Relation`).
 - **Instancia (Placement)**: un componente colocado en una celda con posición libre (x, y). Varias instancias del mismo componente = clones (se iluminan juntas). `parentId` anida una instancia dentro de otra (subcomponente).
 - **Relación (Relation)**: flecha entre dos instancias (`from`/`to` son ids de placement), estilo solid/dashed/dotted, dirección fwd/both/none, color, grosor, etiqueta. `fromField`/`toField` (opcional) conectan un **campo** concreto de cada extremo; para campos JSON la ruta llega hasta la hoja (`response_body.datos.id`). Puede saltar capas y etapas.
 - Un componente editado cambia en todos los diagramas donde esté; "Duplicar" y "Desvincular" crean copias independientes.

@@ -1,5 +1,5 @@
 import { useStore } from './store';
-import { API_CONTRACT_FIELDS, type AppData, type Component, type ComponentType, type Diagram, type FieldDef, type Placement, type Relation } from './types';
+import { API_CONTRACT_FIELDS, type AppData, type Component, type ComponentType, type Diagram, type FieldDef, type Placement, type Relation, type StageGroup } from './types';
 import type { Library } from './types';
 import { LAYER_COLORS, PALETTE, cloneDiagram, curDiagram, descendantIds, findComp, findLib, findType, instanceCount, libOfComp, libOfType, nextStackPos, setCell, snap, tidyCell, uid } from './lib/model';
 import { exportAll, exportDiagram, mergeImport, pickFile } from './lib/io';
@@ -112,6 +112,39 @@ export const actions = {
   },
   setLayerHeight(id: string, height: number | undefined) {
     mutate(d => { const l = curDiagram(d)?.layers.find(l => l.id === id); if (l) l.height = height; }, false);
+  },
+  // ---------- Grupos de etapas (banda por encima de las columnas)
+  /** Crea un grupo, opcionalmente con las etapas indicadas dentro. Devuelve su id. */
+  addStageGroup(stageIds: string[] = [], name?: string): string | null {
+    const n = name ?? prompt('Nombre del grupo de etapas', 'Nuevo grupo');
+    if (!n) return null;
+    const id = uid();
+    mutate(d => {
+      const g = curDiagram(d); if (!g) return;
+      g.stageGroups ??= [];
+      const color = PALETTE[g.stageGroups.length % PALETTE.length];
+      g.stageGroups.push({ id, name: n, color } as StageGroup);
+      for (const s of g.stages) if (stageIds.includes(s.id)) s.groupId = id;
+    });
+    return id;
+  },
+  renameStageGroup(id: string, name: string) {
+    mutate(d => { const x = curDiagram(d)?.stageGroups?.find(y => y.id === id); if (x) x.name = name; }, false);
+  },
+  colorStageGroup(id: string, color: string) {
+    mutate(d => { const x = curDiagram(d)?.stageGroups?.find(y => y.id === id); if (x) x.color = color; }, false);
+  },
+  /** Mete o saca una etapa de un grupo (`groupId` null = fuera de cualquier grupo). */
+  setStageGroup(stageId: string, groupId: string | null) {
+    mutate(d => { const s = curDiagram(d)?.stages.find(x => x.id === stageId); if (s) s.groupId = groupId; });
+  },
+  /** Elimina el grupo; sus etapas siguen ahí, sólo dejan de estar agrupadas. */
+  deleteStageGroup(id: string) {
+    mutate(d => {
+      const g = curDiagram(d); if (!g) return;
+      g.stageGroups = (g.stageGroups ?? []).filter(x => x.id !== id);
+      for (const s of g.stages) if (s.groupId === id) s.groupId = null;
+    });
   },
   colorLayer(id: string, color: string) { mutate(d => { const l = curDiagram(d)?.layers.find(l => l.id === id); if (l) l.color = color; }, false); },
 
@@ -321,8 +354,37 @@ export const actions = {
     });
     select(pid ? { kind: 'placement', id: pid } : { kind: 'component', id: nid });
   },
-  /** ¿Merece la pena desvincular? Sólo si el componente tiene más de una instancia en algún diagrama. */
+  /** ¿Merece la pena desvincular una instancia suelta? Sólo si el componente tiene más de una. */
   canDetach(componentId: string) { return instanceCount(S().data, componentId) > 1; },
+  /** Número de diagramas en los que aparece el componente. */
+  usedInDiagrams(componentId: string) {
+    return S().data.diagrams.filter(g => g.placements.some(p => p.componentId === componentId)).length;
+  },
+  /** Instancias del componente en el diagrama actual. */
+  instancesHere(componentId: string) {
+    return curDiagram(S().data)?.placements.filter(p => p.componentId === componentId).length ?? 0;
+  },
+  /**
+   * Separa las instancias de un componente en el diagrama actual: la primera conserva el
+   * original y cada una de las demás pasa a su propia copia, así dejan de ser clones entre sí.
+   * Es lo que suele querer quien ha copiado y pegado el mismo componente varias veces.
+   * Devuelve cuántas se separaron.
+   */
+  splitInstances(componentId: string): number {
+    let n = 0;
+    mutate(d => {
+      const g = curDiagram(d); const lib = libOfComp(d, componentId); const src = findComp(d, componentId);
+      if (!g || !lib || !src) return;
+      const pids = g.placements.filter(p => p.componentId === componentId).map(p => p.id);
+      let i = lib.components.indexOf(src);
+      pids.slice(1).forEach((pid, k) => {
+        const copy: Component = { ...JSON.parse(JSON.stringify(src)), id: uid(), name: `${src.name} (${k + 2})` };
+        lib.components.splice(++i, 0, copy);
+        const p = g.placements.find(x => x.id === pid); if (p) { p.componentId = copy.id; n++; }
+      });
+    });
+    return n;
+  },
   /**
    * Desvincula lo seleccionado sin preguntar: si hay una instancia seleccionada, sólo esa;
    * si hay un componente, todas sus instancias del diagrama actual. Devuelve el nombre o null.

@@ -320,3 +320,22 @@ kbd { font: inherit; font-size: 11.5px; font-family: ui-monospace, Menlo, monosp
 .ctx-item.danger:hover:not(:disabled) { background: var(--danger); color: #fff; }
 .ctx-item kbd { font-size: 10.5px; padding: 0 5px; border-bottom-width: 1px; color: var(--muted); }
 .ctx-sep { height: 1px; background: var(--border); margin: 4px 2px; }
+
+/* ---------- Grupos de etapas (banda sobre las columnas) */
+.group-gap { min-height: 4px; }
+.stage-group { display: flex; align-items: center; justify-content: flex-start; margin: 0 1px -1px; padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--gc) 45%, var(--border)); border-bottom: 0; border-radius: 8px 8px 0 0;
+  background: color-mix(in srgb, var(--gc) 16%, var(--panel)); }
+.stage-group input.name { width: fit-content; max-width: calc(100% - 16px); min-width: 80px; margin: 0; padding: 1px 6px;
+  border: 0; background: none; font-weight: 600; font-size: 12.5px;
+  color: color-mix(in srgb, var(--gc) 65%, var(--text));
+  /* con muchas columnas la banda es más ancha que la pantalla: el nombre se mantiene a la vista */
+  position: sticky; left: 12px; }
+.stage-group input.name:focus { background: var(--field); border-radius: 4px; }
+.sg-edit { border: 1px solid var(--border); border-radius: 8px; padding: 6px; margin: 6px 0; }
+.sg-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.chk-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; margin: 0; padding: 2px 8px 2px 5px;
+  border: 1px solid var(--border); border-radius: 12px; background: var(--chip); cursor: pointer; }
+.chk-chip input { margin: 0; width: auto; }
+.chk-chip.on { background: color-mix(in srgb, var(--accent) 18%, var(--panel)); border-color: var(--accent); }
+.chk-chip.taken { opacity: .55; }

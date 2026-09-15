@@ -1,13 +1,13 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useStore, useValidSel, useHover } from '../store';
 import { actions } from '../actions';
-import { CELL_DEFAULT_W, CELL_MIN_H, CELL_MIN_W, CHIP_ROW, childrenOf, curDiagram, descendantIds, findComp, findType, rootOf } from '../lib/model';
+import { CELL_DEFAULT_W, CELL_MIN_H, CELL_MIN_W, CHIP_ROW, childrenOf, curDiagram, descendantIds, findComp, findType, rootOf, stageSpans } from '../lib/model';
 import { rectsEqual, type Rect } from '../lib/geometry';
 import { dragKind, readDrag, setDragData, startDrag } from './dnd';
 import { Links, type LinkingState } from './Links';
 import { openMenu, type MenuItem } from './ContextMenu';
 import { copySelection, cutSelection, hasClip, paste } from '../clipboard';
-import type { Diagram, Layer, Placement, Stage } from '../types';
+import type { Diagram, Layer, Placement, Stage, StageGroup } from '../types';
 
 /** Arrastre libre de una instancia (posición en vivo, relativa a su celda de origen). */
 interface ChipDrag { pid: string; x: number; y: number }
@@ -209,7 +209,11 @@ export function Board() {
         { label: 'Pegar en esta celda', hint: 'Ctrl+V', disabled: !hasClip(), onClick: () => paste() },
         { sep: true },
         { label: 'Desvincular esta instancia', hint: 'Ctrl+Shift+D', disabled: !actions.canDetach(p.componentId),
+          title: actions.canDetach(p.componentId) ? 'Esta instancia pasa a tener su propia copia del componente.' : 'El componente sólo tiene esta instancia: ya es independiente.',
           onClick: () => actions.detachSelected() },
+        { label: 'Separar todas las instancias de este componente', disabled: actions.instancesHere(p.componentId) < 2,
+          title: 'Cada instancia de este diagrama pasa a tener su propia copia.',
+          onClick: () => actions.splitInstances(p.componentId) },
         { label: 'Editar en el inspector', hint: 'F2', onClick: () => st.setUI({ inspectorOpen: true }) },
         { label: '+ Subcomponente', onClick: () => actions.quickAddChild(pid) },
         ...(p.parentId ? [{ label: 'Sacar del contenedor', onClick: () => actions.unnest(pid) }] : []),
@@ -255,13 +259,36 @@ export function Board() {
     const stageEl = el.closest<HTMLElement>('.stage-h');
     if (stageEl?.dataset.sid) {
       const sid = stageEl.dataset.sid;
+      const st2 = d.stages.find(s => s.id === sid);
+      const groups = d.stageGroups ?? [];
       openMenu(e, [
         { label: 'Renombrar', onClick: () => stageEl.querySelector<HTMLInputElement>('input.name')?.select() },
         { label: 'Añadir etapa', onClick: actions.addStage },
         { label: 'Ancho automático', onClick: () => { snapshot(); actions.setStageWidth(sid, undefined); } },
         { sep: true },
+        ...groups.filter(g => g.id !== st2?.groupId).map(g => ({ label: `Poner en «${g.name}»`, onClick: () => actions.setStageGroup(sid, g.id) })),
+        { label: 'Nuevo grupo con esta etapa…', onClick: () => actions.addStageGroup([sid]) },
+        ...(st2?.groupId ? [{ label: 'Sacar del grupo', onClick: () => actions.setStageGroup(sid, null) }] : []),
+        { sep: true },
         { label: 'Eliminar etapa', danger: true, onClick: () => actions.deleteStage(sid) },
-      ], d.stages.find(s => s.id === sid)?.name);
+      ], st2?.name);
+      return;
+    }
+
+    const groupEl = el.closest<HTMLElement>('.stage-group');
+    if (groupEl?.dataset.gid) {
+      const gid = groupEl.dataset.gid;
+      const grp = (d.stageGroups ?? []).find(x => x.id === gid);
+      const idx = d.stages.map((s, i) => ({ s, i })).filter(x => x.s.groupId === gid).map(x => x.i);
+      const izq = d.stages[Math.min(...idx) - 1], der = d.stages[Math.max(...idx) + 1];
+      openMenu(e, [
+        { label: 'Renombrar', onClick: () => groupEl.querySelector<HTMLInputElement>('input.name')?.select() },
+        ...(izq ? [{ label: `Añadir «${izq.name}» por la izquierda`, onClick: () => actions.setStageGroup(izq.id, gid) }] : []),
+        ...(der ? [{ label: `Añadir «${der.name}» por la derecha`, onClick: () => actions.setStageGroup(der.id, gid) }] : []),
+        { label: 'Editar grupos en el inspector', onClick: () => { select(null); useStore.getState().setUI({ inspectorOpen: true }); } },
+        { sep: true },
+        { label: 'Deshacer el grupo', danger: true, onClick: () => actions.deleteStageGroup(gid) },
+      ], grp?.name);
     }
   };
 
@@ -300,12 +327,20 @@ export function Board() {
   };
 
   const cols = `210px ${d.stages.map(s => s.width ? `${s.width}px` : `minmax(${CELL_DEFAULT_W}px, 1fr)`).join(' ')} 44px`;
+  const spans = stageSpans(d);
   return (
     <section id="canvasWrap" onClick={e => { if (e.target === e.currentTarget) { select(null); setCell(null); } }}>
       <div id="board" ref={boardRef}>
         <div id="grid" ref={gridRef} style={{ gridTemplateColumns: cols }}
           onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}
           onPointerDown={onPointerDown} onClick={onGridClick} onDoubleClick={onGridDoubleClick} onContextMenu={onGridContextMenu}>
+          {spans.some(sp => sp.group) && <>
+            <div className="group-gap" />
+            {spans.map(sp => sp.group
+              ? <StageGroupHeader key={sp.key} g={sp.group} count={sp.count} snapshot={snapshot} />
+              : <div key={sp.key} className="group-gap" style={{ gridColumn: `span ${sp.count}` }} />)}
+            <div className="group-gap" />
+          </>}
           <div className="corner"><span>Capas ╲ Etapas</span></div>
           {d.stages.map(s => <StageHeader key={s.id} s={s} snapshot={snapshot} />)}
           <div className="add-col"><button className="btn icon" onClick={actions.addStage} title="Añadir etapa">+</button></div>
@@ -325,6 +360,16 @@ export function Board() {
           onSelect={id => select({ kind: 'relation', id })} onContext={onRelationContextMenu} />
       </div>
     </section>
+  );
+}
+
+/** Cabecera de un grupo de etapas: abarca las columnas de sus etapas. */
+function StageGroupHeader({ g, count, snapshot }: { g: StageGroup; count: number; snapshot(): void }) {
+  return (
+    <div className="stage-group" data-gid={g.id} style={{ gridColumn: `span ${count}`, ['--gc' as string]: g.color ?? '#94a3b8' }}
+      title="Grupo de etapas · clic derecho para más acciones">
+      <input className="name" value={g.name} onFocus={snapshot} onChange={e => actions.renameStageGroup(g.id, e.target.value)} />
+    </div>
   );
 }
 

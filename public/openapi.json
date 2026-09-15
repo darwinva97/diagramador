@@ -209,6 +209,11 @@
           },
           "width": {
             "type": "number"
+          },
+          "groupId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Id del StageGroup al que pertenece la etapa; null si no está agrupada."
           }
         },
         "required": [
@@ -341,6 +346,13 @@
           },
           "updatedAt": {
             "type": "string"
+          },
+          "stageGroups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageGroup"
+            },
+            "description": "Bandas por encima de las columnas. Sólo se dibujan las etapas contiguas del mismo grupo."
           }
         },
         "required": [
@@ -429,6 +441,24 @@
             ]
           }
         }
+      },
+      "StageGroup": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "description": "Color de la banda, hex #rrggbb"
+          }
+        },
+        "required": [
+          "name"
+        ]
       }
     }
   },
@@ -2726,6 +2756,176 @@
         "parameters": [
           {
             "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      }
+    },
+    "/diagrams/{id}/stageGroups": {
+      "post": {
+        "summary": "Crear un grupo de etapas",
+        "tags": [
+          "diagramas"
+        ],
+        "responses": {
+          "201": {
+            "description": "Creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Stage"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      }
+    },
+    "/diagrams/{id}/stageGroups/{groupId}": {
+      "put": {
+        "summary": "Actualizar o eliminar un grupo de etapas",
+        "tags": [
+          "diagramas"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Stage"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Actualizar o eliminar un grupo de etapas",
+        "tags": [
+          "diagramas"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          },
+          {
+            "name": "groupId",
             "in": "path",
             "required": true,
             "schema": {

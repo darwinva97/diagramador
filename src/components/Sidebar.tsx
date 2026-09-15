@@ -30,6 +30,7 @@ export function Sidebar() {
   const compMenu = (e: React.MouseEvent, cid: string, name: string) => {
     select({ kind: 'component', id: cid });
     const cell = targetCell();
+    const aqui = actions.instancesHere(cid), diagramas = actions.usedInDiagrams(cid);
     const items: MenuItem[] = [
       { label: 'Copiar', hint: 'Ctrl+C', onClick: () => { select({ kind: 'component', id: cid }); copySelection(); } },
       { label: cell ? 'Colocar en la celda activa' : 'Colocar (elige antes una celda)', hint: 'Ctrl+V', disabled: !cell,
@@ -38,7 +39,12 @@ export function Sidebar() {
         onClick: () => { select({ kind: 'component', id: cid }); copySelection(); paste(true); } },
       { sep: true },
       { label: 'Duplicar componente', onClick: () => actions.duplicateComponent(cid) },
-      { label: 'Desvincular en este diagrama', disabled: !actions.canDetach(cid), onClick: () => actions.detachComponent(cid, undefined) },
+      { label: `Separar sus ${aqui} instancias de este diagrama`, disabled: aqui < 2,
+        title: aqui < 2 ? 'Sólo tiene una instancia en este diagrama: no hay nada que separar.' : 'Cada instancia pasa a tener su propia copia del componente y dejan de ser clones entre sí.',
+        onClick: () => actions.splitInstances(cid) },
+      { label: 'Desvincular en este diagrama', disabled: diagramas < 2,
+        title: diagramas < 2 ? 'Sólo se usa en este diagrama, así que no hay de qué desvincularlo. Usa “Separar sus instancias”.' : 'Las instancias de este diagrama pasan a una copia; los demás diagramas conservan el original.',
+        onClick: () => actions.detachComponent(cid, undefined) },
       { label: 'Editar en el inspector', hint: 'F2', onClick: () => setUI({ inspectorOpen: true }) },
       { sep: true },
       { label: 'Eliminar de la librería', danger: true, onClick: () => actions.deleteComponent(cid) },

@@ -24,7 +24,11 @@ Library (biblioteca, global para todos los diagramas)
 
 Diagram
  ├─ layers[]       Layer { id, name, color, height? }          ← filas
- ├─ stages[]       Stage { id, name, width? }                  ← columnas
+ ├─ stages[]       Stage { id, name, width?, groupId? }        ← columnas
+ │                  groupId = grupo al que pertenece la etapa (o null).
+ ├─ stageGroups[]  StageGroup { id, name, color? }
+ │                  Banda por encima de las columnas ("Evaluación rápida" sobre 6 etapas).
+ │                  Sólo se dibujan juntas las etapas CONTIGUAS del mismo grupo.
  ├─ placements[]   Placement { id, componentId, layerId, stageId, x, y, parentId|null }
  │                  = una INSTANCIA de un componente en una celda (capa × etapa).
  │                  Un mismo componente puede tener varias instancias (clones) en distintas celdas.
@@ -69,7 +73,8 @@ Atajo: `POST /templates/aliados/apply` `{ "name": "Mi copia" }` crea una bibliot
 | `/diagrams` | GET (resúmenes con contadores), POST |
 | `/diagrams/{id}` | GET (completo), PUT, PATCH (p. ej. `{ "name": ... }`), DELETE |
 | `/diagrams/{id}/layers` · `/diagrams/{id}/layers/{layerId}` | POST `{ name, color? }` · PUT, DELETE |
-| `/diagrams/{id}/stages` · `/diagrams/{id}/stages/{stageId}` | POST `{ name, width? }` · PUT, DELETE |
+| `/diagrams/{id}/stages` · `/diagrams/{id}/stages/{stageId}` | POST `{ name, width?, groupId? }` · PUT, DELETE |
+| `/diagrams/{id}/stageGroups` · `/diagrams/{id}/stageGroups/{groupId}` | POST `{ name, color? }` · PUT, DELETE |
 | `/diagrams/{id}/placements` · `/diagrams/{id}/placements/{placementId}` | POST · PUT (mover: layerId/stageId/x/y/parentId), DELETE (borra subcomponentes y relaciones) |
 | `/diagrams/{id}/relations` · `/diagrams/{id}/relations/{relationId}` | POST · PUT, DELETE |
 | `/diagrams/{id}/export` | GET → `{ libraries (sólo lo usado), diagrams: [diagrama] }` |
@@ -90,6 +95,9 @@ PUT sobre `/diagrams/{id}` o `/libraries/{id}` reemplaza el documento entero: ú
 - Lee `GET /diagrams/{id}` antes de modificar: obtén ids reales de capas, etapas e instancias.
 - Para "el mismo componente en dos etapas" crea dos placements con el mismo `componentId`; la app los resalta como clones.
 - Colores: hex `#rrggbb`. Colores de capa sugeridos (pastel): `#fef9c3 #e0f2fe #ccfbf1 #ede9fe #fce7f3`.
+- **Agrupar etapas:** crea el grupo con `POST /diagrams/{id}/stageGroups` `{ "name": "Evaluación rápida" }` y luego
+  pon `groupId` en cada etapa con `PUT /diagrams/{id}/stages/{stageId}`. Ordena las etapas de forma que las del
+  grupo queden seguidas: si se intercala una etapa ajena, la banda se parte en dos tramos.
 - Iconos de tipo: un emoji. Campos `json`: envía el JSON como **string**.
 - **Contratos de API:** usa campos `json` para `request_body` / `response_body`. La app reconoce su estructura
   (campos, tipos y ejemplos, incluidos objetos anidados y arrays) y esos campos son los que se pueden elegir
