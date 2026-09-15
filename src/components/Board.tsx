@@ -11,6 +11,9 @@ import { resolveStyle, styleToCss } from '../lib/rules';
 import { copySelection, cutSelection, hasClip, paste } from '../clipboard';
 import type { Diagram, Layer, Placement, Stage, StageGroup } from '../types';
 
+/** Ancho de la columna de cabeceras de capa. */
+const LANE_W = 210;
+
 /** Arrastre libre de una instancia (posición en vivo, relativa a su celda de origen). */
 interface ChipDrag { pid: string; x: number; y: number }
 
@@ -30,6 +33,7 @@ export function Board() {
   const [rects, setRects] = useState<Record<string, Rect>>({});
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [bandH, setBandH] = useState(0); // alto de la banda de grupos, para fijar debajo las etapas
+  const [headH, setHeadH] = useState(0); // alto de la fila de cabeceras de etapa
   const [linking, setLinking] = useState<LinkingState | null>(null);
   const [drag, setDrag] = useState<ChipDrag | null>(null);
   const overRef = useRef<HTMLElement | null>(null);
@@ -66,6 +70,9 @@ export function Board() {
     const band = g.querySelector<HTMLElement>('.corner-gap.start');
     const bh = band ? band.offsetHeight : 0;
     setBandH(prev => prev === bh ? prev : bh);
+    const head = g.querySelector<HTMLElement>('.stage-h');
+    const hh = head ? head.offsetHeight : 0;
+    setHeadH(prev => prev === hh ? prev : hh);
   }, []);
   useLayoutEffect(() => { measure(); }, [data, drag, measure]);
   useEffect(() => {
@@ -452,7 +459,7 @@ export function Board() {
     setCell(cell ? { layerId: cell.dataset.lid!, stageId: cell.dataset.sid! } : null);
   };
 
-  const cols = `210px ${d.stages.map(s => s.width ? `${s.width}px` : `minmax(${CELL_DEFAULT_W}px, 1fr)`).join(' ')} 44px`;
+  const cols = `${LANE_W}px ${d.stages.map(s => s.width ? `${s.width}px` : `minmax(${CELL_DEFAULT_W}px, 1fr)`).join(' ')} 44px`;
   const spans = stageSpans(d);
   return (
     <section id="canvasWrap" ref={wrapRef} onPointerDown={onWrapPointerDown} onAuxClick={e => e.preventDefault()}
@@ -460,7 +467,7 @@ export function Board() {
       <div id="board" ref={boardRef}>
         <div id="grid" ref={gridRef}
           className={(ui.pinLayers ? 'pin-cols' : '') + (ui.pinStages ? ' pin-rows' : '')}
-          style={{ gridTemplateColumns: cols, ['--band-h' as string]: `${bandH + 6}px` }}
+          style={{ gridTemplateColumns: cols, ['--band-h' as string]: `${bandH + 6}px`, ['--head-h' as string]: `${headH + 6}px`, ['--lane-w' as string]: `${LANE_W}px` }}
           onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}
           onPointerDown={e => { onBandPointerDown(e); onPointerDown(e); }} onClick={onGridClick} onDoubleClick={onGridDoubleClick} onContextMenu={onGridContextMenu}>
           <div className="group-gap corner-gap start" />
@@ -508,8 +515,10 @@ function StageGroupHeader({ g, count, snapshot }: { g: StageGroup; count: number
 function StageHeader({ s, snapshot }: { s: Stage; snapshot(): void }) {
   return (
     <div className="stage-h" data-sid={s.id}>
-      <span className="handle" draggable data-drag="stage" data-id={s.id} title="Arrastrar para reordenar">⋮⋮</span>
-      <input className="name" value={s.name} onFocus={snapshot} onChange={e => actions.renameStage(s.id, e.target.value)} />
+      <span className="sh-stick">
+        <span className="handle" draggable data-drag="stage" data-id={s.id} title="Arrastrar para reordenar">⋮⋮</span>
+        <input className="name" value={s.name} onFocus={snapshot} onChange={e => actions.renameStage(s.id, e.target.value)} />
+      </span>
       <button className="btn icon ghost" onClick={() => actions.deleteStage(s.id)} title="Eliminar etapa">×</button>
       <div className="rs-x" title="Arrastra para cambiar el ancho · doble clic = automático" />
     </div>
@@ -519,12 +528,14 @@ function StageHeader({ s, snapshot }: { s: Stage; snapshot(): void }) {
 function LayerHeader({ l, snapshot }: { l: Layer; snapshot(): void }) {
   return (
     <div className="layer-h" data-lid={l.id} style={{ ['--lc' as string]: l.color }}>
-      <div className="lh-top">
-        <span className="handle" draggable data-drag="layer" data-id={l.id} title="Arrastrar para reordenar">⋮⋮</span>
-        <input className="name" value={l.name} onFocus={snapshot} onChange={e => actions.renameLayer(l.id, e.target.value)} />
-        <button className="btn icon ghost" onClick={() => actions.deleteLayer(l.id)} title="Eliminar capa">×</button>
+      <div className="lh-stick">
+        <div className="lh-top">
+          <span className="handle" draggable data-drag="layer" data-id={l.id} title="Arrastrar para reordenar">⋮⋮</span>
+          <input className="name" value={l.name} onFocus={snapshot} onChange={e => actions.renameLayer(l.id, e.target.value)} />
+          <button className="btn icon ghost" onClick={() => actions.deleteLayer(l.id)} title="Eliminar capa">×</button>
+        </div>
+        <input type="color" className="lcolor" value={l.color} onFocus={snapshot} onChange={e => actions.colorLayer(l.id, e.target.value)} title="Color de la capa" />
       </div>
-      <input type="color" className="lcolor" value={l.color} onFocus={snapshot} onChange={e => actions.colorLayer(l.id, e.target.value)} title="Color de la capa" />
       <div className="rs-y" title="Arrastra para cambiar el alto · doble clic = automático" />
     </div>
   );

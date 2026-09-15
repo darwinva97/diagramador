@@ -438,3 +438,13 @@ body.panning .comp, body.panning .cell { pointer-events: none; }
 /* sombra sutil mientras hay contenido por debajo */
 #grid.pin-cols .layer-h { box-shadow: 6px 0 8px -8px var(--shadow-2); }
 #grid.pin-rows .stage-h { box-shadow: 0 6px 8px -8px var(--shadow-2); }
+
+/* ---------- El nombre de la capa y de la etapa siguen a la vista mientras su bloque lo esté */
+.layer-h .lh-stick { display: flex; flex-direction: column; gap: 6px; background: inherit;
+  position: sticky; top: 0; z-index: 3; }
+#grid.pin-rows .layer-h .lh-stick { top: calc(var(--band-h, 26px) + var(--head-h, 34px)); }
+.stage-h .sh-stick { display: flex; align-items: center; gap: 4px; min-width: 0; max-width: calc(100% - 28px);
+  background: inherit; position: sticky; left: 0; z-index: 3; }
+#grid.pin-cols .stage-h .sh-stick { left: calc(var(--lane-w, 210px) + 6px); }
+.stage-h .name { width: 190px; max-width: 100%; flex: 0 1 auto; }
+.stage-h > .btn.icon.ghost { margin-left: auto; }
