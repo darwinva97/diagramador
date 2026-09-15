@@ -11,7 +11,7 @@ export const nowIso = () => new Date().toISOString();
 export async function hashPassword(password: string, saltHex?: string): Promise<{ hash: string; salt: string }> {
   const salt = saltHex ? Uint8Array.from(saltHex.match(/../g)!.map(h => parseInt(h, 16))) : crypto.getRandomValues(new Uint8Array(16));
   const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 120_000 }, key, 256);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 100_000 }, key, 256);
   return { hash: hex(bits), salt: hex(salt.buffer) };
 }
 export async function verifyPassword(password: string, hash: string, salt: string): Promise<boolean> {
