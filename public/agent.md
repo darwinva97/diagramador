@@ -22,6 +22,17 @@ Library (biblioteca, global para todos los diagramas)
  └─ components[]   Component { id, name, typeId|null, description, fields: { [key]: valor } }
                     valor según kind: list → string[]; keyvalue → [{key,value}]; json → string JSON; checkbox → boolean
 
+StyleRule (regla de estilo: pinta los componentes según sus datos)
+ ├─ conditions[]   Condition { source, key?, op, value? }
+ │                  source ∈ field | name | description | type | library | people | role
+ │                  op ∈ eq | ne | contains | notContains | in | empty | notEmpty | gt | lt | regex
+ │                  match: 'all' (todas) | 'any' (alguna)
+ ├─ style          RuleStyle: bg, text, border, borderWidth, borderStyle, accent, accentWidth,
+ │                  top, topWidth, opacity, glow, badge, badgeText, icon, bold, strike.
+ │                  Sólo lo que defina; el resto lo aportan reglas de menor prioridad.
+ └─ priority       Mayor número manda cuando dos reglas pintan lo MISMO. Las que casan se
+                    aplican de menor a mayor, propiedad a propiedad.
+
 Person (persona del espacio de trabajo, compartida por todos los diagramas)
  └─ assignments[]  Assignment { id, kind, targetId, role, notes? }
                     kind ∈ component | diagram | layer | stage | type
@@ -72,6 +83,8 @@ Atajo: `POST /templates/aliados/apply` `{ "name": "Mi copia" }` crea una bibliot
 | Recurso | Métodos |
 |---|---|
 | `/auth/me` | GET |
+| `/rules` | GET (lista completa), POST `{ name, conditions, style, priority? }` |
+| `/rules/{id}` | GET, PUT, PATCH, DELETE |
 | `/people` | GET (lista completa), POST `{ name, email?, title?, team?, color? }` |
 | `/people/{id}` | GET, PUT (reemplazo), PATCH (parcial), DELETE |
 | `/people/{id}/assignments` · `/people/{id}/assignments/{assignmentId}` | POST `{ kind, targetId, role }` · DELETE |
@@ -87,8 +100,8 @@ Atajo: `POST /templates/aliados/apply` `{ "name": "Mi copia" }` crea una bibliot
 | `/diagrams/{id}/placements` · `/diagrams/{id}/placements/{placementId}` | POST · PUT (mover: layerId/stageId/x/y/parentId), DELETE (borra subcomponentes y relaciones) |
 | `/diagrams/{id}/relations` · `/diagrams/{id}/relations/{relationId}` | POST · PUT, DELETE |
 | `/diagrams/{id}/export` | GET → `{ libraries (sólo lo usado), diagrams: [diagrama] }` |
-| `/export` | GET → todo (bibliotecas, diagramas y personas) |
-| `/import` | POST `{ libraries?, diagrams?, people? }` → upsert por id (formato de exportación de la app) |
+| `/export` | GET → todo (bibliotecas, diagramas, personas y reglas) |
+| `/import` | POST `{ libraries?, diagrams?, people?, rules? }` → upsert por id (formato de exportación de la app) |
 | `/templates` · `/templates/{key}/apply` | GET · POST `{ name? }` (la plantilla incluida es `aliados`) |
 | `/api-keys` · `/api-keys/{id}` | GET, POST `{ name }` · DELETE |
 
@@ -103,6 +116,11 @@ PUT sobre `/diagrams/{id}` o `/libraries/{id}` reemplaza el documento entero: ú
 
 - Lee `GET /diagrams/{id}` antes de modificar: obtén ids reales de capas, etapas e instancias.
 - Para "el mismo componente en dos etapas" crea dos placements con el mismo `componentId`; la app los resalta como clones.
+- **Reglas de estilo:** para "si el campo estado vale CONFIRMADO, píntalo verde" basta
+  `POST /rules` `{ "name": "Estado: CONFIRMADO", "priority": 10,
+  "conditions": [{ "source": "field", "key": "estado", "op": "eq", "value": "CONFIRMADO" }],
+  "style": { "accent": "#16a34a", "accentWidth": 5 } }`. Reparte prioridades de 10 en 10 para
+  poder intercalar después, y usa números altos para las reglas que deban mandar.
 - **Personas:** crea la persona con `POST /people` `{ "name": "Cesar Lama", "title": "Líder técnico" }` y luego
   añade participaciones con `POST /people/{id}/assignments` `{ "kind": "component", "targetId": "<componentId>", "role": "Owner" }`.
   Un mismo `targetId` puede tener varias personas y una persona varios papeles.

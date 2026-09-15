@@ -153,11 +153,23 @@ app.delete('/api-keys/:id', async c => {
 });
 
 // ------------------------------------------------------------------ documentos (librerías y diagramas)
-type Kind = 'library' | 'diagram' | 'person';
+type Kind = 'library' | 'diagram' | 'person' | 'rule';
 type DocRow = { id: string; name: string; data: string; updated_at: string };
 interface Library { id: string; name: string; types: Record<string, unknown>[]; components: Record<string, unknown>[] }
 interface Person { id: string; name: string; email?: string; title?: string; team?: string; color?: string; notes?: string; assignments: Record<string, unknown>[] }
 const ASSIGN_KINDS = ['component', 'diagram', 'layer', 'stage', 'type'];
+interface StyleRule { id: string; name: string; enabled: boolean; priority: number; match: string; conditions: Record<string, unknown>[]; style: Record<string, unknown>; diagramId?: string | null }
+const normRule = (r: Partial<StyleRule>, id?: string): StyleRule => ({
+  ...r,
+  id: id ?? r.id ?? uid(),
+  name: String(r.name ?? 'Regla'),
+  enabled: r.enabled !== false,
+  priority: typeof r.priority === 'number' ? r.priority : 0,
+  match: r.match === 'any' ? 'any' : 'all',
+  conditions: (r.conditions ?? []).filter(c => typeof c?.op === 'string'),
+  style: r.style ?? {},
+  diagramId: r.diagramId ?? null,
+});
 const normPerson = (p: Partial<Person>, id?: string): Person => ({
   ...p,
   id: id ?? p.id ?? uid(),
@@ -213,6 +225,36 @@ const summary = (d: Diagram & { updatedAt: string }) => ({
   id: d.id, name: d.name, description: d.description, updatedAt: d.updatedAt,
   counts: { layers: d.layers.length, stages: d.stages.length, placements: d.placements.length, relations: d.relations.length },
 });
+
+// ---- reglas de estilo
+app.get('/rules', async c => c.json({ rules: await listDocs<StyleRule>(c.get('store'), c.get('user').id, 'rule') }));
+app.post('/rules', async c => {
+  const body = await c.req.json<Partial<StyleRule>>().catch(() => ({}) as never);
+  if (!body.name) return bad(c, 'Falta "name"');
+  const r = normRule(body);
+  await putDoc(c.get('store'), c.get('user').id, 'rule', r);
+  return c.json(r, 201);
+});
+app.get('/rules/:id', async c => {
+  const r = await getDoc<StyleRule>(c.get('store'), c.get('user').id, 'rule', c.req.param('id'));
+  return r ? c.json(r) : c.json({ error: 'Regla no encontrada' }, 404);
+});
+app.put('/rules/:id', async c => {
+  const body = await c.req.json<Partial<StyleRule>>().catch(() => ({}) as never);
+  const r = normRule(body, c.req.param('id'));
+  await putDoc(c.get('store'), c.get('user').id, 'rule', r);
+  return c.json(r);
+});
+app.patch('/rules/:id', async c => {
+  const cur = await getDoc<StyleRule>(c.get('store'), c.get('user').id, 'rule', c.req.param('id'));
+  if (!cur) return c.json({ error: 'Regla no encontrada' }, 404);
+  const body = await c.req.json<Partial<StyleRule>>();
+  const r = normRule({ ...cur, ...body }, cur.id);
+  await putDoc(c.get('store'), c.get('user').id, 'rule', r);
+  return c.json(r);
+});
+app.delete('/rules/:id', async c => (await delDoc(c.get('store'), c.get('user').id, 'rule', c.req.param('id')))
+  ? c.json({ ok: true }) : c.json({ error: 'Regla no encontrada' }, 404));
 
 // ---- personas
 app.get('/people', async c => c.json({ people: await listDocs<Person>(c.get('store'), c.get('user').id, 'person') }));
@@ -430,7 +472,7 @@ for (const [path, { key, required }] of Object.entries(SUBS)) {
 // ---- exportar / importar / plantillas
 app.get('/export', async c => {
   const store = c.get('store'); const u = c.get('user').id;
-  return c.json({ app: 'diagramador', version: 1, exportedAt: nowIso(), libraries: await listDocs<Library>(store, u, 'library'), diagrams: await listDocs<Diagram>(store, u, 'diagram'), people: await listDocs<Person>(store, u, 'person') });
+  return c.json({ app: 'diagramador', version: 1, exportedAt: nowIso(), libraries: await listDocs<Library>(store, u, 'library'), diagrams: await listDocs<Diagram>(store, u, 'diagram'), people: await listDocs<Person>(store, u, 'person'), rules: await listDocs<StyleRule>(store, u, 'rule') });
 });
 app.get('/diagrams/:id/export', async c => {
   const store = c.get('store'); const u = c.get('user').id;
@@ -444,13 +486,15 @@ app.get('/diagrams/:id/export', async c => {
   return c.json({ app: 'diagramador', version: 1, exportedAt: nowIso(), libraries: libs, diagrams: [d] });
 });
 app.post('/import', async c => {
-  const body = await c.req.json<{ libraries?: Partial<Library>[]; diagrams?: Partial<Diagram>[]; people?: Partial<Person>[] }>().catch(() => ({}) as never);
+  const body = await c.req.json<{ libraries?: Partial<Library>[]; diagrams?: Partial<Diagram>[]; people?: Partial<Person>[]; rules?: Partial<StyleRule>[] }>().catch(() => ({}) as never);
   const store = c.get('store'); const u = c.get('user').id;
   const libs: Library[] = []; const diags: Diagram[] = []; const ppl: Person[] = [];
   for (const l of body.libraries ?? []) { const lib = normLib(l); await putDoc(store, u, 'library', lib); libs.push(lib); }
   for (const d of body.diagrams ?? []) { const dg = normDiag(d); await putDoc(store, u, 'diagram', dg); diags.push(dg); }
   for (const p of body.people ?? []) { const per = normPerson(p); await putDoc(store, u, 'person', per); ppl.push(per); }
-  return c.json({ imported: { libraries: libs.map(l => l.id), diagrams: diags.map(d => d.id), people: ppl.map(p => p.id) } }, 201);
+  const rls: StyleRule[] = [];
+  for (const r of body.rules ?? []) { const rr = normRule(r); await putDoc(store, u, 'rule', rr); rls.push(rr); }
+  return c.json({ imported: { libraries: libs.map(l => l.id), diagrams: diags.map(d => d.id), people: ppl.map(p => p.id), rules: rls.map(r => r.id) } }, 201);
 });
 app.get('/templates', c => c.json({ templates: [{ key: 'aliados', name: 'Plantilla Aliados (APIs y microservicios por capas)' }] }));
 app.post('/templates/:key/apply', async c => {

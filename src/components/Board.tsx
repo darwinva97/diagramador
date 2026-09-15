@@ -7,6 +7,7 @@ import { dragKind, readDrag, setDragData, startDrag } from './dnd';
 import { Links, type LinkingState } from './Links';
 import { openMenu, type MenuItem } from './ContextMenu';
 import { Avatar, openAssign } from './People';
+import { resolveStyle, styleToCss } from '../lib/rules';
 import { copySelection, cutSelection, hasClip, paste } from '../clipboard';
 import type { Diagram, Layer, Placement, Stage, StageGroup } from '../types';
 
@@ -506,11 +507,14 @@ function Chip(props: ChipProps) {
   const clones = d.placements.filter(x => x.componentId === c.id).length;
   const kids = childrenOf(d, p.id);
   const gente = participants(data, 'component', c.id);
+  const { style: rstyle } = resolveStyle(data, c, d.id);
+  const rcss = styleToCss(rstyle);
   const top = !p.parentId || !!ghost;
   const selected = sel?.kind === 'placement' && sel.id === p.id;
   const cls = 'comp' + (selected ? ' selected' : '') + (hoverCid === c.id ? ' glow' : '') + (linkTarget === p.id ? ' link-target' : '')
-    + (ghost ? ' dragging' : '') + (!ghost && dragPid === p.id ? ' drag-src' : '') + (kids.length ? ' group' : '') + (p.parentId && !ghost ? ' child' : '');
-  const style: React.CSSProperties = { ['--c' as string]: t?.color ?? '#94a3b8' };
+    + (ghost ? ' dragging' : '') + (!ghost && dragPid === p.id ? ' drag-src' : '') + (kids.length ? ' group' : '') + (p.parentId && !ghost ? ' child' : '')
+    + (rcss.className ? ' ' + rcss.className : '');
+  const style: React.CSSProperties = { ['--c' as string]: t?.color ?? '#94a3b8', ...rcss.style };
   if (ghost) { style.left = ghost.x; style.top = ghost.y; }
   else if (top) { style.left = p.x; style.top = p.y; style.maxWidth = `calc(100% - ${Math.max(0, p.x) + 4}px)`; }
   return (
@@ -519,11 +523,12 @@ function Chip(props: ChipProps) {
       onMouseLeave={ghost ? undefined : () => onHover(null)}
       title={c.description || c.name}>
       <div className="comp-head">
-        <span className="icon">{t?.icon ?? '▫️'}</span>
+        <span className="icon">{rstyle.icon || t?.icon || '▫️'}</span>
         <span className="txt">
           <span className="label">{c.name}</span>
           {(c.fields.method || c.fields.path) ? <span className="sub">{[c.fields.method, c.fields.path].filter(Boolean).join(' ')}</span> : null}
         </span>
+        {rstyle.badge && <span className="r-badge" style={{ background: rstyle.badge }} title={rstyle.badgeText || undefined}>{rstyle.badgeText ?? ''}</span>}
         {gente.length > 0 && (
           <span className="chip-people" title={gente.map(x => `${x.person.name} · ${x.assignment.role}`).join('\n')}>
             {gente.slice(0, 3).map(({ person, assignment }) => <Avatar key={assignment.id} p={person} size={16} />)}

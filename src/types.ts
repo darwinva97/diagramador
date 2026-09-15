@@ -90,7 +90,93 @@ export interface AppData {
   diagrams: Diagram[];
   /** Personas del espacio de trabajo, compartidas por todos los diagramas. */
   people: Person[];
+  /** Reglas de estilo condicional para los componentes. */
+  rules: StyleRule[];
   currentDiagramId: string | null;
+}
+
+// ---------------------------------------------------------------- Reglas de estilo
+/** De dónde sale el dato que se compara. */
+export type RuleSource = 'field' | 'name' | 'description' | 'type' | 'library' | 'people' | 'role';
+export type RuleOp = 'eq' | 'ne' | 'contains' | 'notContains' | 'in' | 'empty' | 'notEmpty' | 'gt' | 'lt' | 'regex';
+export const RULE_SOURCES: Record<RuleSource, string> = {
+  field: 'Campo del componente', name: 'Nombre', description: 'Descripción',
+  type: 'Tipo', library: 'Librería', people: 'Persona asignada', role: 'Papel asignado',
+};
+export const RULE_OPS: Record<RuleOp, string> = {
+  eq: 'es igual a', ne: 'no es igual a', contains: 'contiene', notContains: 'no contiene',
+  in: 'es alguno de', empty: 'está vacío', notEmpty: 'tiene algún valor',
+  gt: 'es mayor que', lt: 'es menor que', regex: 'cumple la expresión regular',
+};
+/** Los operadores que no necesitan valor de comparación. */
+export const OPS_SIN_VALOR: RuleOp[] = ['empty', 'notEmpty'];
+
+export interface Condition {
+  source: RuleSource;
+  /** Clave del campo cuando `source` es 'field'. */
+  key?: string;
+  op: RuleOp;
+  value?: string;
+  /** Distinguir mayúsculas y tildes (por defecto no). */
+  caseSensitive?: boolean;
+}
+
+/** Qué se pinta. Todo es opcional: una regla sólo toca lo que define. */
+export interface RuleStyle {
+  bg?: string;
+  text?: string;
+  /** Borde completo del componente. */
+  border?: string;
+  borderWidth?: number;
+  borderStyle?: 'solid' | 'dashed' | 'dotted';
+  /** Franja de color del lado izquierdo (la que ya lleva el color del tipo). */
+  accent?: string;
+  accentWidth?: number;
+  /** Segunda franja, en el borde superior, para combinar dos colores. */
+  top?: string;
+  topWidth?: number;
+  opacity?: number;
+  /** Sombra de color alrededor ("brillo"). */
+  glow?: string;
+  /** Punto de color a la derecha del nombre, con texto corto opcional. */
+  badge?: string;
+  badgeText?: string;
+  /** Emoji que sustituye al icono del tipo. */
+  icon?: string;
+  /** Tachar o poner en negrita el nombre. */
+  bold?: boolean;
+  strike?: boolean;
+}
+export const STYLE_PARTS: { key: keyof RuleStyle; label: string; kind: 'color' | 'number' | 'text' | 'bool' | 'select' }[] = [
+  { key: 'bg', label: 'Fondo', kind: 'color' },
+  { key: 'text', label: 'Color del texto', kind: 'color' },
+  { key: 'border', label: 'Borde', kind: 'color' },
+  { key: 'borderWidth', label: 'Grosor del borde', kind: 'number' },
+  { key: 'borderStyle', label: 'Estilo del borde', kind: 'select' },
+  { key: 'accent', label: 'Franja izquierda', kind: 'color' },
+  { key: 'accentWidth', label: 'Ancho de la franja', kind: 'number' },
+  { key: 'top', label: 'Franja superior', kind: 'color' },
+  { key: 'topWidth', label: 'Alto de la franja superior', kind: 'number' },
+  { key: 'opacity', label: 'Opacidad', kind: 'number' },
+  { key: 'glow', label: 'Brillo', kind: 'color' },
+  { key: 'badge', label: 'Punto', kind: 'color' },
+  { key: 'badgeText', label: 'Texto del punto', kind: 'text' },
+  { key: 'icon', label: 'Icono', kind: 'text' },
+  { key: 'bold', label: 'Negrita', kind: 'bool' },
+  { key: 'strike', label: 'Tachado', kind: 'bool' },
+];
+
+export interface StyleRule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  /** Mayor prioridad gana cuando dos reglas pintan lo mismo. */
+  priority: number;
+  match: 'all' | 'any';
+  conditions: Condition[];
+  style: RuleStyle;
+  /** Limitar la regla a un diagrama (null = todos). */
+  diagramId?: string | null;
 }
 
 /** A qué se puede asignar una persona. */
@@ -125,6 +211,7 @@ export interface Person {
 
 export type Selection =
   | { kind: 'person'; id: string }
+  | { kind: 'rule'; id: string }
   | { kind: 'placement'; id: string }
   | { kind: 'component'; id: string }
   | { kind: 'relation'; id: string }

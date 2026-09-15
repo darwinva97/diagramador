@@ -531,6 +531,157 @@
         "required": [
           "name"
         ]
+      },
+      "Condition": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "field",
+              "name",
+              "description",
+              "type",
+              "library",
+              "people",
+              "role"
+            ]
+          },
+          "key": {
+            "type": "string",
+            "description": "Clave del campo cuando source es 'field'."
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "eq",
+              "ne",
+              "contains",
+              "notContains",
+              "in",
+              "empty",
+              "notEmpty",
+              "gt",
+              "lt",
+              "regex"
+            ]
+          },
+          "value": {
+            "type": "string",
+            "description": "Valor a comparar. Con 'in', lista separada por comas."
+          },
+          "caseSensitive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "source",
+          "op"
+        ]
+      },
+      "RuleStyle": {
+        "type": "object",
+        "description": "Sólo lo que la regla pinta; el resto se hereda de reglas de menor prioridad.",
+        "properties": {
+          "bg": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "border": {
+            "type": "string"
+          },
+          "borderWidth": {
+            "type": "number"
+          },
+          "borderStyle": {
+            "type": "string",
+            "enum": [
+              "solid",
+              "dashed",
+              "dotted"
+            ]
+          },
+          "accent": {
+            "type": "string",
+            "description": "Franja de color a la izquierda."
+          },
+          "accentWidth": {
+            "type": "number"
+          },
+          "top": {
+            "type": "string",
+            "description": "Franja de color arriba."
+          },
+          "topWidth": {
+            "type": "number"
+          },
+          "opacity": {
+            "type": "number"
+          },
+          "glow": {
+            "type": "string",
+            "description": "Sombra de color alrededor."
+          },
+          "badge": {
+            "type": "string"
+          },
+          "badgeText": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "bold": {
+            "type": "boolean"
+          },
+          "strike": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StyleRule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "priority": {
+            "type": "number",
+            "description": "Mayor número gana cuando dos reglas pintan lo mismo."
+          },
+          "match": {
+            "type": "string",
+            "enum": [
+              "all",
+              "any"
+            ]
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Condition"
+            }
+          },
+          "style": {
+            "$ref": "#/components/schemas/RuleStyle"
+          },
+          "diagramId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Limitar a un diagrama; null = todos."
+          }
+        },
+        "required": [
+          "name"
+        ]
       }
     }
   },
@@ -3352,6 +3503,289 @@
             "description": "Quitada"
           }
         }
+      }
+    },
+    "/rules": {
+      "get": {
+        "summary": "Reglas de estilo",
+        "tags": [
+          "reglas"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "libraries": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Library"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        }
+      },
+      "post": {
+        "summary": "Reglas de estilo",
+        "tags": [
+          "reglas"
+        ],
+        "responses": {
+          "201": {
+            "description": "Creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Library"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Library"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules/{id}": {
+      "get": {
+        "summary": "Una regla de estilo",
+        "tags": [
+          "reglas"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Library"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      },
+      "put": {
+        "summary": "Una regla de estilo",
+        "tags": [
+          "reglas"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Library"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Library"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Una regla de estilo",
+        "tags": [
+          "reglas"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Library"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Library"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Una regla de estilo",
+        "tags": [
+          "reglas"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
       }
     }
   }

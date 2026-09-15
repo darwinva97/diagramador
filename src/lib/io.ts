@@ -1,4 +1,4 @@
-import type { AppData, Diagram, Library, Person } from '../types';
+import type { AppData, Diagram, Library, Person, StyleRule } from '../types';
 import { cloneDiagram, findLib, normalize, slugify, stamp } from './model';
 
 export interface ExportFile {
@@ -8,6 +8,7 @@ export interface ExportFile {
   libraries: Library[];
   diagrams: Diagram[];
   people?: Person[];
+  rules?: StyleRule[];
 }
 
 export function download(name: string, obj: unknown) {
@@ -20,7 +21,7 @@ export function download(name: string, obj: unknown) {
 }
 
 export function exportAll(data: AppData) {
-  const f: ExportFile = { app: 'diagramador', version: 1, exportedAt: new Date().toISOString(), libraries: data.libraries, diagrams: data.diagrams, people: data.people };
+  const f: ExportFile = { app: 'diagramador', version: 1, exportedAt: new Date().toISOString(), libraries: data.libraries, diagrams: data.diagrams, people: data.people, rules: data.rules };
   download(`diagramador-todo-${stamp()}.json`, f);
 }
 
@@ -53,13 +54,17 @@ export function mergeImport(data: AppData, raw: unknown): string | null {
   const obj = raw as Partial<ExportFile> & { diagram?: Diagram };
   if (!obj || typeof obj !== 'object' || (!Array.isArray(obj.libraries) && !Array.isArray(obj.diagrams) && !obj.diagram))
     throw new Error('Formato no reconocido: se esperaba un JSON exportado por Diagramador.');
-  const inc = normalize({ libraries: obj.libraries ?? [], diagrams: obj.diagrams ?? (obj.diagram ? [obj.diagram] : []), people: obj.people ?? [] });
+  const inc = normalize({ libraries: obj.libraries ?? [], diagrams: obj.diagrams ?? (obj.diagram ? [obj.diagram] : []), people: obj.people ?? [], rules: obj.rules ?? [] });
 
   for (const l of inc.libraries) {
     const ex = findLib(data, l.id);
     if (!ex) { data.libraries.push(l); continue; }
     for (const t of l.types) { const i = ex.types.findIndex(x => x.id === t.id); if (i >= 0) ex.types[i] = t; else ex.types.push(t); }
     for (const c of l.components) { const i = ex.components.findIndex(x => x.id === c.id); if (i >= 0) ex.components[i] = c; else ex.components.push(c); }
+  }
+  for (const r of inc.rules) {
+    const i = data.rules.findIndex(x => x.id === r.id);
+    if (i >= 0) data.rules[i] = r; else data.rules.push(r);
   }
   for (const p of inc.people) {
     const i = data.people.findIndex(x => x.id === p.id);

@@ -1,5 +1,5 @@
 import { useStore } from './store';
-import { API_CONTRACT_FIELDS, type AppData, type AssignKind, type Assignment, type Component, type ComponentType, type Diagram, type FieldDef, type Person, type Placement, type Relation, type StageGroup } from './types';
+import { API_CONTRACT_FIELDS, type AppData, type AssignKind, type Assignment, type Component, type ComponentType, type Condition, type Diagram, type FieldDef, type Person, type Placement, type Relation, type RuleStyle, type StageGroup, type StyleRule } from './types';
 import type { Library } from './types';
 import { LAYER_COLORS, PALETTE, cloneDiagram, curDiagram, descendantIds, findComp, findLib, findPerson, findType, instanceCount, libOfComp, libOfType, nextStackPos, setCell, snap, tidyCell, uid } from './lib/model';
 import { exportAll, exportDiagram, mergeImport, pickFile } from './lib/io';
@@ -474,6 +474,84 @@ export const actions = {
       for (const l of d.libraries) for (const c of l.components) if (c.typeId === id) c.typeId = null;
     });
     select(null);
+  },
+
+  // ---------- Reglas de estilo
+  addRule(patch: Partial<StyleRule> = {}): string {
+    const id = uid();
+    const rules = S().data.rules;
+    const r: StyleRule = {
+      id, name: 'Nueva regla', enabled: true,
+      priority: rules.length ? Math.max(...rules.map(x => x.priority ?? 0)) + 10 : 10,
+      match: 'all', conditions: [], style: {}, diagramId: null, ...patch,
+    };
+    mutate(d => { d.rules.push(r); });
+    S().setUI({ tab: 'rules', sidebarOpen: true, inspectorOpen: true });
+    select({ kind: 'rule', id });
+    return id;
+  },
+  updateRule(id: string, patch: Partial<StyleRule>, snap = false) {
+    mutate(d => { const r = d.rules.find(x => x.id === id); if (r) Object.assign(r, patch); }, snap);
+  },
+  setRuleStyle(id: string, patch: RuleStyle, snap = false) {
+    mutate(d => {
+      const r = d.rules.find(x => x.id === id); if (!r) return;
+      for (const [k, v] of Object.entries(patch)) {
+        if (v === undefined) delete (r.style as Record<string, unknown>)[k];
+        else (r.style as Record<string, unknown>)[k] = v;
+      }
+    }, snap);
+  },
+  duplicateRule(id: string) {
+    const src = S().data.rules.find(r => r.id === id); if (!src) return;
+    const copy: StyleRule = JSON.parse(JSON.stringify(src));
+    copy.id = uid(); copy.name = src.name + ' (copia)'; copy.priority = (src.priority ?? 0) + 1;
+    mutate(d => { const i = d.rules.findIndex(r => r.id === id); d.rules.splice(i + 1, 0, copy); });
+    select({ kind: 'rule', id: copy.id });
+  },
+  deleteRule(id: string) {
+    const r = S().data.rules.find(x => x.id === id); if (!r) return;
+    if (!confirm(`¿Eliminar la regla "${r.name}"?`)) return;
+    mutate(d => { d.rules = d.rules.filter(x => x.id !== id); });
+    select(null);
+  },
+  addCondition(ruleId: string, cond: Partial<Condition> = {}) {
+    mutate(d => { d.rules.find(r => r.id === ruleId)?.conditions.push({ source: 'field', key: '', op: 'eq', value: '', ...cond }); });
+  },
+  updateCondition(ruleId: string, idx: number, patch: Partial<Condition>, snap = false) {
+    mutate(d => { const c = d.rules.find(r => r.id === ruleId)?.conditions[idx]; if (c) Object.assign(c, patch); }, snap);
+  },
+  deleteCondition(ruleId: string, idx: number) {
+    mutate(d => { const r = d.rules.find(x => x.id === ruleId); if (r) r.conditions.splice(idx, 1); });
+  },
+  /** Sube o baja la prioridad de una regla intercambiándola con la vecina. */
+  moveRule(id: string, dir: -1 | 1) {
+    mutate(d => {
+      const sorted = [...d.rules].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
+      const i = sorted.findIndex(r => r.id === id); const j = i + dir;
+      if (i < 0 || j < 0 || j >= sorted.length) return;
+      const a = d.rules.find(r => r.id === sorted[i].id)!, b = d.rules.find(r => r.id === sorted[j].id)!;
+      const tmp = a.priority; a.priority = b.priority; b.priority = tmp;
+    });
+  },
+  /**
+   * Atajo para el caso habitual: un campo con valores fijos ("estado") y un color por valor.
+   * Crea una regla por cada valor encontrado, con colores repartidos y prioridades escalonadas.
+   */
+  rulesFromField(key: string, label: string, values: string[], part: keyof RuleStyle = 'accent'): number {
+    const base = S().data.rules.length ? Math.max(...S().data.rules.map(r => r.priority ?? 0)) : 0;
+    const paleta = ['#16a34a', '#eab308', '#dc2626', '#2563eb', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#ea580c', '#0d9488'];
+    const nuevas: StyleRule[] = values.filter(Boolean).map((v, i) => ({
+      id: uid(), name: `${label}: ${v}`, enabled: true, priority: base + 10 * (i + 1), match: 'all',
+      conditions: [{ source: 'field', key, op: 'eq', value: v }],
+      style: { [part]: paleta[i % paleta.length], ...(part === 'accent' ? { accentWidth: 5 } : {}) } as RuleStyle,
+      diagramId: null,
+    }));
+    if (!nuevas.length) return 0;
+    mutate(d => { d.rules.push(...nuevas); });
+    S().setUI({ tab: 'rules', sidebarOpen: true });
+    select({ kind: 'rule', id: nuevas[0].id });
+    return nuevas.length;
   },
 
   // ---------- Personas

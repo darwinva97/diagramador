@@ -1,4 +1,4 @@
-import type { AppData, AssignKind, Assignment, Component, ComponentType, Diagram, Library, Person, Placement, StageGroup } from '../types';
+import type { AppData, AssignKind, Assignment, Component, ComponentType, Diagram, Library, Person, Placement, StageGroup, StyleRule } from '../types';
 
 export const uid = () =>
   Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
@@ -86,6 +86,7 @@ export function normalize(raw: Partial<AppData> | null | undefined): AppData {
     libraries: Array.isArray(raw?.libraries) ? raw!.libraries : [],
     diagrams: Array.isArray(raw?.diagrams) ? raw!.diagrams : [],
     people: Array.isArray(raw?.people) ? raw!.people : [],
+    rules: Array.isArray(raw?.rules) ? raw!.rules : [],
     currentDiagramId: raw?.currentDiagramId ?? null,
   };
   for (const l of d.libraries) {
@@ -128,6 +129,13 @@ export function normalize(raw: Partial<AppData> | null | undefined): AppData {
     p.assignments = (Array.isArray(p.assignments) ? p.assignments : [])
       .filter(a => a && alive[a.kind]?.has(a.targetId))
       .map(a => ({ ...a, id: a.id || uid(), role: a.role || 'Participante' }));
+  }
+  for (const r of d.rules) {
+    r.id ||= uid(); r.name ||= 'Regla'; r.match ||= 'all';
+    r.enabled = r.enabled !== false;
+    r.priority = typeof r.priority === 'number' ? r.priority : 0;
+    r.conditions = Array.isArray(r.conditions) ? r.conditions : [];
+    r.style = (r.style ?? {}) as StyleRule['style'];
   }
   if (!d.diagrams.some(g => g.id === d.currentDiagramId)) d.currentDiagramId = d.diagrams[0]?.id ?? null;
   return d;

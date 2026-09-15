@@ -5,6 +5,7 @@ import { DIRS, KINDS, STYLES, type Component, type ComponentType, type Diagram, 
 import { useState } from 'react';
 import { connectableFields, parseJsonFields } from '../lib/schema';
 import { Avatar, PeopleOf } from './People';
+import { RulePanel, RulesOf } from './Rules';
 import { ASSIGN_LABEL, ROLES, type Person } from '../types';
 
 export function Inspector() {
@@ -20,6 +21,7 @@ export function Inspector() {
     body = <ComponentPanel comp={findComp(data, p.componentId)!} placement={p} d={d} />;
   } else if (sel.kind === 'component') body = <ComponentPanel comp={findComp(data, sel.id)!} placement={null} d={d} />;
   else if (sel.kind === 'person') body = <PersonPanel p={findPerson(data, sel.id)!} />;
+  else if (sel.kind === 'rule') body = <RulePanel r={data.rules.find(r => r.id === sel.id)!} />;
   else if (sel.kind === 'relation') body = <RelationPanel r={d.relations.find(x => x.id === sel.id)!} d={d} />;
   else body = <TypePanel t={findType(data, sel.id)!} />;
   return <aside id="inspector">{body}</aside>;
@@ -139,6 +141,8 @@ function ComponentPanel({ comp, placement, d }: { comp: Component; placement: Pl
         </>
       )}
       {t && t.fields.length === 0 && <div className="muted">El tipo “{t.name}” no define campos. <button className="link" onClick={() => select({ kind: 'type', id: t.id })}>Editar tipo</button></div>}
+
+      <RulesOf componentId={comp.id} />
 
       <PeopleOf kind="component" targetId={comp.id} label={comp.name} />
 

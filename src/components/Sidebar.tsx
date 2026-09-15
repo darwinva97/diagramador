@@ -4,6 +4,8 @@ import { curDiagram, findType } from '../lib/model';
 import { setDragData, startDrag } from './dnd';
 import { openMenu, type MenuItem } from './ContextMenu';
 import { Avatar, openAssign } from './People';
+import { RulePreview, RulesFromFieldButton } from './Rules';
+import { ruleImpact } from '../lib/rules';
 import { copySelection, paste, targetCell } from '../clipboard';
 
 export function Sidebar() {
@@ -65,6 +67,20 @@ export function Sidebar() {
       { label: 'Eliminar tipo', danger: true, onClick: () => actions.deleteType(tid) },
     ], name);
   };
+  /** Menú contextual de una regla. */
+  const ruleMenu = (e: React.MouseEvent, rid: string, name: string) => {
+    select({ kind: 'rule', id: rid });
+    const r = data.rules.find(x => x.id === rid);
+    openMenu(e, [
+      { label: 'Editar en el inspector', onClick: () => setUI({ inspectorOpen: true }) },
+      { label: r?.enabled ? 'Desactivar' : 'Activar', onClick: () => actions.updateRule(rid, { enabled: !r?.enabled }, true) },
+      { label: 'Más prioridad', onClick: () => actions.moveRule(rid, 1) },
+      { label: 'Menos prioridad', onClick: () => actions.moveRule(rid, -1) },
+      { label: 'Duplicar', onClick: () => actions.duplicateRule(rid) },
+      { sep: true },
+      { label: 'Eliminar regla', danger: true, onClick: () => actions.deleteRule(rid) },
+    ], name);
+  };
   /** Menú contextual de una persona. */
   const personMenu = (e: React.MouseEvent, pid: string, name: string) => {
     select({ kind: 'person', id: pid });
@@ -100,7 +116,8 @@ export function Sidebar() {
       <span className="caret">{collapsed.has(id) ? '▸' : '▾'}</span> {name} <small>{n}</small>
     </button>
   );
-  const total = ui.tab === 'comps' ? libs.reduce((n, l) => n + l.components.filter(matchComp).length, 0)
+  const total = ui.tab === 'rules' ? data.rules.filter(r => !qn || norm(r.name).includes(qn)).length
+    : ui.tab === 'comps' ? libs.reduce((n, l) => n + l.components.filter(matchComp).length, 0)
     : ui.tab === 'people' ? data.people.filter(p => !qn || [p.name, p.email, p.title, p.team].some(v => norm(v).includes(qn))).length
     : libs.reduce((n, l) => n + l.types.filter(t => !qn || norm(t.name).includes(qn)).length, 0);
 
@@ -119,10 +136,11 @@ export function Sidebar() {
         <button className={'tab' + (ui.tab === 'comps' ? ' on' : '')} onClick={() => setUI({ tab: 'comps' })}>Componentes</button>
         <button className={'tab' + (ui.tab === 'types' ? ' on' : '')} onClick={() => setUI({ tab: 'types' })}>Tipos</button>
         <button className={'tab' + (ui.tab === 'people' ? ' on' : '')} onClick={() => setUI({ tab: 'people' })}>Personas</button>
+        <button className={'tab' + (ui.tab === 'rules' ? ' on' : '')} onClick={() => setUI({ tab: 'rules' })} title="Reglas de estilo: pintan los componentes según sus datos">Reglas</button>
       </div>
       <div className="search-wrap">
         <span className="search-icon">🔍</span>
-        <input id="lib-search" className="search" placeholder={ui.tab === 'comps' ? 'Buscar componente, tipo, campo…' : ui.tab === 'people' ? 'Buscar persona, correo, equipo…' : 'Buscar tipo…'} value={ui.search}
+        <input id="lib-search" className="search" placeholder={ui.tab === 'comps' ? 'Buscar componente, tipo, campo…' : ui.tab === 'people' ? 'Buscar persona, correo, equipo…' : ui.tab === 'rules' ? 'Buscar regla…' : 'Buscar tipo…'} value={ui.search}
           onChange={e => setUI({ search: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') setUI({ search: '' }); }} />
         {ui.search && <button className="search-clear" onClick={() => setUI({ search: '' })} title="Limpiar">×</button>}
       </div>
@@ -162,6 +180,27 @@ export function Sidebar() {
             </div>
           );
         })}
+        {ui.tab === 'rules' && (() => {
+          const reglas = [...data.rules].filter(r => !qn || norm(r.name).includes(qn))
+            .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+          return (
+            <>
+              {reglas.length === 0 && <div className="empty-sm">{data.rules.length ? 'Ninguna regla coincide.' : 'Sin reglas. Créalas con “+ Regla”, o genera una por cada valor de un campo con el botón ⚡.'}</div>}
+              {reglas.length > 0 && <div className="muted small" style={{ padding: '2px 4px 6px' }}>De mayor a menor prioridad: la de arriba manda.</div>}
+              {reglas.map(r => (
+                <div key={r.id} className={'item rule-item' + (sel?.kind === 'rule' && sel.id === r.id ? ' selected' : '') + (r.enabled ? '' : ' off')}
+                  style={{ ['--c' as string]: r.style.accent ?? r.style.border ?? r.style.bg ?? '#94a3b8' }}
+                  onClick={() => select({ kind: 'rule', id: r.id })}
+                  onContextMenu={e => ruleMenu(e, r.id, r.name)}>
+                  <input type="checkbox" checked={r.enabled} title={r.enabled ? 'Activa' : 'Desactivada'}
+                    onClick={e => e.stopPropagation()} onChange={e => actions.updateRule(r.id, { enabled: e.target.checked }, true)} />
+                  <span className="txt"><b>{r.name}</b><small>prioridad {r.priority} · {ruleImpact(data, r)} componente(s)</small></span>
+                  <RulePreview style={r.style} label="" />
+                </div>
+              ))}
+            </>
+          );
+        })()}
         {ui.tab === 'people' && (() => {
           const gente = data.people.filter(p => !qn || [p.name, p.email, p.title, p.team].some(v => norm(v).includes(qn)))
             .sort((a, b) => a.name.localeCompare(b.name));
@@ -206,6 +245,8 @@ export function Sidebar() {
       <div className="side-foot">
         {ui.tab === 'comps'
           ? <><button className="btn primary" onClick={actions.addComponent}>+ Componente</button><small>Arrastra al tablero. Suelta aquí una instancia para quitarla. Ctrl+arrastrar en el tablero = clonar.</small></>
+          : ui.tab === 'rules'
+          ? <><div className="row"><button className="btn primary" onClick={() => actions.addRule()}>+ Regla</button><RulesFromFieldButton /></div><small>Pintan los componentes según sus datos (p. ej. campo “estado”). Si dos reglas pintan lo mismo, gana la de más prioridad.</small></>
           : ui.tab === 'people'
           ? <><button className="btn primary" onClick={() => actions.addPerson()}>+ Persona</button><small>Asigna personas a componentes, capas, etapas o al diagrama con un papel (Owner, Líder técnico…). Clic en una persona para ver dónde participa.</small></>
           : <><div className="row"><button className="btn primary" onClick={actions.addType}>+ Tipo</button><button className="btn" onClick={actions.addApiType} title="Tipo con el contrato completo de una API">+ Tipo API</button></div><small>Un tipo define color, icono y campos propios. “Tipo API” trae método, path, URLs por entorno, request/response…</small></>}
