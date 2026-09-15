@@ -83,6 +83,7 @@ Las relaciones pueden unir cualquier par de instancias, aunque estén en capas o
 | Recurso | Métodos |
 |---|---|
 | `/auth/me` | GET |
+| `/public/diagrams/{id}` | GET **sin autenticación**: sólo responde si el diagrama tiene `"public": true`. Devuelve `{ diagram, libraries, people, rules }` con lo justo para dibujarlo. |
 | `/rules` | GET (lista completa), POST `{ name, conditions, style, priority? }` |
 | `/rules/{id}` | GET, PUT, PATCH, DELETE |
 | `/people` | GET (lista completa), POST `{ name, email?, title?, team?, color? }` |
@@ -115,6 +116,7 @@ PUT sobre `/diagrams/{id}` o `/libraries/{id}` reemplaza el documento entero: ú
 
 - Lee `GET /diagrams/{id}` antes de modificar: obtén ids reales de capas, etapas e instancias.
 - Para "el mismo componente en dos etapas" crea dos placements con el mismo `componentId`; la app los resalta como clones.
+- **Publicar un diagrama:** `PATCH /diagrams/{id}` `{ "public": true }`. A partir de ahí cualquiera puede leerlo en `/p/{id}` (web) o en `GET /api/v1/public/diagrams/{id}` (JSON), sin clave. Ponlo a `false` para dejar de publicarlo.
 - **Reglas de estilo:** para "si el campo estado vale CONFIRMADO, píntalo verde" basta
   `POST /rules` `{ "name": "Estado: CONFIRMADO", "priority": 10,
   "conditions": [{ "source": "field", "key": "estado", "op": "eq", "value": "CONFIRMADO" }],

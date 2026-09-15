@@ -353,6 +353,10 @@
               "$ref": "#/components/schemas/StageGroup"
             },
             "description": "Bandas por encima de las columnas. Sólo se dibujan las etapas contiguas del mismo grupo."
+          },
+          "public": {
+            "type": "boolean",
+            "description": "Si es true, cualquiera puede leerlo en /p/{id} sin cuenta."
           }
         },
         "required": [
@@ -3680,6 +3684,33 @@
             "description": ""
           }
         ]
+      }
+    },
+    "/public/diagrams/{id}": {
+      "get": {
+        "summary": "Vista pública de un diagrama (sin autenticación)",
+        "tags": [
+          "diagramas"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Diagrama publicado con lo necesario para dibujarlo"
+          },
+          "404": {
+            "description": "No existe o no está publicado"
+          }
+        }
       }
     }
   }
