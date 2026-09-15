@@ -64,21 +64,25 @@ Atajo: `POST /templates/aliados/apply` `{ "name": "Mi copia" }` crea una bibliot
 | `/auth/me` | GET |
 | `/libraries` | GET (lista completa), POST |
 | `/libraries/{id}` | GET, PUT (reemplazo completo), PATCH (parcial), DELETE |
-| `/libraries/{id}/types` · `/types/{typeId}` | POST · PUT, DELETE |
-| `/libraries/{id}/components` · `/components/{componentId}` | POST · PUT, DELETE (también quita sus instancias de todos los diagramas) |
+| `/libraries/{id}/types` · `/libraries/{id}/types/{typeId}` | POST · PUT, DELETE |
+| `/libraries/{id}/components` · `/libraries/{id}/components/{componentId}` | POST · PUT, DELETE (también quita sus instancias de todos los diagramas) |
 | `/diagrams` | GET (resúmenes con contadores), POST |
 | `/diagrams/{id}` | GET (completo), PUT, PATCH (p. ej. `{ "name": ... }`), DELETE |
-| `/diagrams/{id}/layers` · `/layers/{layerId}` | POST `{ name, color? }` · PUT, DELETE |
-| `/diagrams/{id}/stages` · `/stages/{stageId}` | POST `{ name, width? }` · PUT, DELETE |
-| `/diagrams/{id}/placements` · `/placements/{pid}` | POST · PUT (mover: layerId/stageId/x/y/parentId), DELETE (borra subcomponentes y relaciones) |
-| `/diagrams/{id}/relations` · `/relations/{rid}` | POST · PUT, DELETE |
+| `/diagrams/{id}/layers` · `/diagrams/{id}/layers/{layerId}` | POST `{ name, color? }` · PUT, DELETE |
+| `/diagrams/{id}/stages` · `/diagrams/{id}/stages/{stageId}` | POST `{ name, width? }` · PUT, DELETE |
+| `/diagrams/{id}/placements` · `/diagrams/{id}/placements/{placementId}` | POST · PUT (mover: layerId/stageId/x/y/parentId), DELETE (borra subcomponentes y relaciones) |
+| `/diagrams/{id}/relations` · `/diagrams/{id}/relations/{relationId}` | POST · PUT, DELETE |
 | `/diagrams/{id}/export` | GET → `{ libraries (sólo lo usado), diagrams: [diagrama] }` |
 | `/export` | GET → todo (bibliotecas y diagramas) |
 | `/import` | POST `{ libraries?, diagrams? }` → upsert por id (formato de exportación de la app) |
-| `/templates` · `/templates/aliados/apply` | GET · POST `{ name? }` |
+| `/templates` · `/templates/{key}/apply` | GET · POST `{ name? }` (la plantilla incluida es `aliados`) |
 | `/api-keys` · `/api-keys/{id}` | GET, POST `{ name }` · DELETE |
 
+Todas las rutas son absolutas tal cual aparecen aquí: un sub-recurso **siempre** lleva el prefijo de su padre
+(`PUT /libraries/{id}/components/{componentId}`, no `PUT /components/{componentId}`).
+
 PUT sobre un sub-recurso hace merge de los campos enviados (no hace falta reenviar el objeto completo).
+En un componente, `fields` se reemplaza entero: manda el objeto completo, no sólo las claves que cambian.
 PUT sobre `/diagrams/{id}` o `/libraries/{id}` reemplaza el documento entero: úsalo con lo devuelto por GET.
 
 ## Consejos
