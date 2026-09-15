@@ -35,6 +35,8 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
     ['Alt+1 · Alt+2', 'Pestaña Componentes · Tipos de la librería'],
     ['Clic en el título de una librería', 'Plegar / desplegar esa librería'],
     ['Botones ⇤ ⤒', 'Fijar la columna de capas y la fila de etapas al hacer scroll'],
+    [`${MOD}+rueda`, 'Zoom del diagrama (no de la interfaz)'],
+    [`${MOD}++ · ${MOD}+− · ${MOD}+0`, 'Acercar · alejar · volver al 100 %'],
     [`${MOD}+Shift+F`, 'Modo zen (sólo el tablero)'],
     ['?', 'Esta ayuda'],
   ] },

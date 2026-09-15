@@ -13,6 +13,9 @@ import type { Diagram, Layer, Placement, Stage, StageGroup } from '../types';
 
 /** Ancho de la columna de cabeceras de capa. */
 const LANE_W = 210;
+/** Límites y paso del zoom del tablero. */
+export const ZOOM_MIN = 0.25, ZOOM_MAX = 2;
+export const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
 
 /** Arrastre libre de una instancia (posición en vivo, relativa a su celda de origen). */
 interface ChipDrag { pid: string; x: number; y: number }
@@ -25,6 +28,13 @@ export function Board() {
   const snapshot = useStore(s => s.snapshot);
   const hover = useHover();
   const ui = useStore(s => s.ui);
+  const zoom = ui.zoom || 1;
+  /**
+   * Con zoom por encima del 100 % el navegador calcula mal qué hay bajo el cursor
+   * cuando además hay cabeceras fijas (falla el arrastre). Por encima de ese punto
+   * se sueltan solas; la preferencia del usuario se mantiene para cuando vuelva.
+   */
+  const pegajosas = zoom <= 1;
   const d = curDiagram(data);
 
   const wrapRef = useRef<HTMLElement>(null);
@@ -120,7 +130,7 @@ export function Board() {
     if (dd.t === 'comp') {
       if (tgt.classList.contains('comp')) { actions.placeInto(dd.id, tgt.dataset.pid!); return; }
       const r = tgt.getBoundingClientRect();
-      actions.place(dd.id, tgt.dataset.lid!, tgt.dataset.sid!, { x: e.clientX - r.left - 24, y: e.clientY - r.top - 16 });
+      actions.place(dd.id, tgt.dataset.lid!, tgt.dataset.sid!, { x: (e.clientX - r.left) / zoom - 24, y: (e.clientY - r.top) / zoom - 16 });
     } else if (dd.t === 'stage') actions.reorder('stages', dd.id, tgt.dataset.sid!);
     else if (dd.t === 'layer') actions.reorder('layers', dd.id, tgt.dataset.lid!);
   };
@@ -193,11 +203,11 @@ export function Board() {
       e.preventDefault(); e.stopPropagation();
       const isX = rs.classList.contains('rs-x');
       const owner = rs.parentElement!; const id = isX ? owner.dataset.sid! : owner.dataset.lid!;
-      const r0 = owner.getBoundingClientRect(); const s0 = isX ? e.clientX : e.clientY; const size0 = isX ? r0.width : r0.height;
+      const s0 = isX ? e.clientX : e.clientY; const size0 = isX ? owner.offsetWidth : owner.offsetHeight;
       snapshot();
       document.body.classList.add(isX ? 'resizing-x' : 'resizing-y');
       const move = (ev: PointerEvent) => {
-        const v = Math.round(size0 + ((isX ? ev.clientX : ev.clientY) - s0));
+        const v = Math.round(size0 + ((isX ? ev.clientX : ev.clientY) - s0) / zoom);
         if (isX) actions.setStageWidth(id, Math.max(CELL_MIN_W, v)); else actions.setLayerHeight(id, Math.max(60, v));
       };
       const up = () => { window.removeEventListener('pointermove', move); document.body.classList.remove('resizing-x', 'resizing-y'); suppressClick.current = true; };
@@ -247,7 +257,7 @@ export function Board() {
     let started = false;
     const move = (ev: PointerEvent) => {
       if (!started) { if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 4) return; started = true; document.body.classList.add('dragging-chip'); }
-      setDrag({ pid, x: ev.clientX - offX - cr.left, y: ev.clientY - offY - cr.top });
+      setDrag({ pid, x: (ev.clientX - offX - cr.left) / zoom, y: (ev.clientY - offY - cr.top) / zoom });
     };
     const up = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', move);
@@ -258,9 +268,12 @@ export function Board() {
       const underEl = document.elementFromPoint(ev.clientX, ev.clientY);
       if (underEl?.closest('#sidebar')) { actions.removePlacement(pid); return; }
       const overChip = underEl?.closest<HTMLElement>('.comp');
-      if (overChip && overChip.dataset.pid) {
-        const tpid = overChip.dataset.pid;
-        if (tpid === pid || descendantIds(d, pid).includes(tpid)) return; // sobre sí mismo o un hijo: nada
+      // soltar sobre otro componente lo anida; sobre sí mismo o sobre un hijo suyo
+      // no tiene sentido anidar, así que se trata como un movimiento normal a la celda
+      const tpid0 = overChip?.dataset.pid;
+      const anidar = !!tpid0 && tpid0 !== pid && !descendantIds(d, pid).includes(tpid0);
+      if (overChip && anidar) {
+        const tpid = tpid0!;
         const tp = d.placements.find(x => x.id === tpid)!;
         // sobre un subcomponente => hermano suyo (antes de él); sobre uno de nivel superior => dentro de él
         if (tp.parentId) actions.nestPlacement(pid, tp.parentId, tpid, ev.ctrlKey || ev.altKey);
@@ -269,8 +282,8 @@ export function Board() {
       }
       const target = cellAt(ev.clientX, ev.clientY); if (!target) return;
       const tr = target.getBoundingClientRect();
-      const x = Math.min(Math.max(0, ev.clientX - offX - tr.left), Math.max(0, tr.width - r.width));
-      const y = Math.max(0, ev.clientY - offY - tr.top);
+      const x = Math.min(Math.max(0, (ev.clientX - offX - tr.left) / zoom), Math.max(0, (tr.width - r.width) / zoom));
+      const y = Math.max(0, (ev.clientY - offY - tr.top) / zoom);
       actions.movePlacement(pid, target.dataset.lid!, target.dataset.sid!, x, y, ev.ctrlKey || ev.altKey);
     };
     window.addEventListener('pointermove', move);
@@ -402,6 +415,64 @@ export function Board() {
     ], r.label || 'Relación');
   };
 
+  /** Ajusta el zoom para que el diagrama quepa de ancho en la ventana. */
+  const ajustar = useCallback(() => {
+    const wrap = wrapRef.current, g = gridRef.current; if (!wrap || !g) return;
+    const anchoReal = g.offsetWidth;          // ancho en px CSS, sin el zoom aplicado
+    const disponible = wrap.clientWidth - 32; // menos el relleno del tablero
+    if (anchoReal <= 0) return;
+    useStore.getState().setUI({ zoom: clampZoom(disponible / anchoReal) });
+    requestAnimationFrame(() => { wrap.scrollLeft = 0; });
+  }, []);
+
+  /**
+   * Cambia el zoom manteniendo bajo el puntero el mismo punto del diagrama.
+   * Sin punto de referencia (botones y atajos) se conserva el centro de la vista.
+   */
+  const zoomA = useCallback((nuevo: number, cx?: number, cy?: number) => {
+    const wrap = wrapRef.current; if (!wrap) return;
+    const z0 = useStore.getState().ui.zoom || 1;
+    const z1 = clampZoom(nuevo);
+    if (z1 === z0) return;
+    const r = wrap.getBoundingClientRect();
+    const px = (cx ?? r.left + r.width / 2) - r.left;
+    const py = (cy ?? r.top + r.height / 2) - r.top;
+    const cl = wrap.scrollLeft, ct = wrap.scrollTop;
+    useStore.getState().setUI({ zoom: z1 });
+    const k = z1 / z0;
+    requestAnimationFrame(() => {
+      wrap.scrollLeft = (cl + px) * k - px;
+      wrap.scrollTop = (ct + py) * k - py;
+    });
+  }, []);
+
+  // Ctrl/⌘ + rueda sobre el tablero: hace zoom sólo del diagrama, no de la página
+  useEffect(() => {
+    const wrap = wrapRef.current; if (!wrap) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      zoomA((useStore.getState().ui.zoom || 1) * (e.deltaY < 0 ? 1.1 : 1 / 1.1), e.clientX, e.clientY);
+    };
+    wrap.addEventListener('wheel', onWheel, { passive: false });
+    return () => wrap.removeEventListener('wheel', onWheel);
+  }, [zoomA]);
+
+  // Ctrl + / Ctrl − / Ctrl 0
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.matches?.('input, textarea, select')) return;
+      const z = useStore.getState().ui.zoom || 1;
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomA(z * 1.25); }
+      else if (e.key === '-') { e.preventDefault(); zoomA(z / 1.25); }
+      else if (e.key === '0') { e.preventDefault(); zoomA(1); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [zoomA]);
+
   /**
    * Mover el lienzo arrastrando, como en Figma: con la barra espaciadora, con el botón
    * central, o arrastrando sobre una zona libre (un clic sin mover sigue deseleccionando).
@@ -466,8 +537,8 @@ export function Board() {
       onClick={e => { if (e.target === e.currentTarget) { select(null); setCell(null); } }}>
       <div id="board" ref={boardRef}>
         <div id="grid" ref={gridRef}
-          className={(ui.pinLayers ? 'pin-cols' : '') + (ui.pinStages ? ' pin-rows' : '')}
-          style={{ gridTemplateColumns: cols, ['--band-h' as string]: `${bandH + 6}px`, ['--head-h' as string]: `${headH + 6}px`, ['--lane-w' as string]: `${LANE_W}px` }}
+          className={(ui.pinLayers && pegajosas ? 'pin-cols' : '') + (ui.pinStages && pegajosas ? ' pin-rows' : '')}
+          style={{ gridTemplateColumns: cols, zoom, ['--band-h' as string]: `${bandH + 6}px`, ['--head-h' as string]: `${headH + 6}px`, ['--lane-w' as string]: `${LANE_W}px` }}
           onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}
           onPointerDown={e => { onBandPointerDown(e); onPointerDown(e); }} onClick={onGridClick} onDoubleClick={onGridDoubleClick} onContextMenu={onGridContextMenu}>
           <div className="group-gap corner-gap start" />
@@ -495,6 +566,14 @@ export function Board() {
         </div>
         <Links rects={rects} size={size} relations={d.relations} sel={sel} hoverPid={hover.pid} linking={linking}
           onSelect={id => select({ kind: 'relation', id })} onContext={onRelationContextMenu} />
+      </div>
+      <div className={'zoom-bar' + (zoom > 1 && (ui.pinLayers || ui.pinStages) ? ' warn-pin' : '')}
+        title={'Zoom sólo del diagrama · Ctrl + rueda, Ctrl +, Ctrl −, Ctrl 0'
+          + (zoom > 1 && (ui.pinLayers || ui.pinStages) ? '\nPor encima del 100 % las cabeceras dejan de estar fijas' : '')}>
+        <button className="btn icon" onClick={() => zoomA(zoom / 1.25)} disabled={zoom <= ZOOM_MIN} title="Alejar (Ctrl −)">−</button>
+        <button className="btn zoom-val" onClick={() => zoomA(1)} title="Volver al 100 % (Ctrl 0)">{Math.round(zoom * 100)}%</button>
+        <button className="btn icon" onClick={() => zoomA(zoom * 1.25)} disabled={zoom >= ZOOM_MAX} title="Acercar (Ctrl +)">+</button>
+        <button className="btn icon" onClick={ajustar} title="Ajustar el ancho a la ventana">⤢</button>
       </div>
     </section>
   );

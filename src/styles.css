@@ -448,3 +448,22 @@ body.panning .comp, body.panning .cell { pointer-events: none; }
 #grid.pin-cols .stage-h .sh-stick { left: calc(var(--lane-w, 210px) + 6px); }
 .stage-h .name { width: 190px; max-width: 100%; flex: 0 1 auto; }
 .stage-h > .btn.icon.ghost { margin-left: auto; }
+
+/* ---------- Control de zoom del diagrama */
+.zoom-bar { position: sticky; bottom: 10px; left: 10px; z-index: 40; display: inline-flex; align-items: center; gap: 2px;
+  margin: 0 0 10px 10px; padding: 3px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 4px 14px var(--shadow-2); }
+.zoom-bar .btn { padding: 3px 7px; }
+.zoom-bar .zoom-val { min-width: 52px; font-variant-numeric: tabular-nums; font-size: 12px; }
+body.zen .zoom-bar { opacity: .5; }
+body.zen .zoom-bar:hover { opacity: 1; }
+
+/* ---------- Control de zoom del diagrama */
+.zoom-bar { position: sticky; bottom: 10px; left: 10px; z-index: 40; display: inline-flex; align-items: center; gap: 2px;
+  margin: 0 0 10px 10px; padding: 3px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 4px 14px var(--shadow-2); }
+.zoom-bar .btn { padding: 3px 7px; }
+.zoom-bar .zoom-val { min-width: 52px; font-variant-numeric: tabular-nums; font-size: 12px; }
+body.zen .zoom-bar { opacity: .55; }
+body.zen .zoom-bar:hover { opacity: 1; }
+.zoom-bar.warn-pin .zoom-val { color: var(--accent); }
