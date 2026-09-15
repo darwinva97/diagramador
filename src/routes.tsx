@@ -13,6 +13,7 @@ import { Sidebar } from './components/Sidebar';
 import { Board } from './components/Board';
 import { Inspector } from './components/Inspector';
 import { Account } from './components/Account';
+import { Shortcuts } from './components/Shortcuts';
 import { PANEL_MAX, PANEL_MIN, useStore } from './store';
 import { actions } from './actions';
 import { toggleFullscreen, type View } from './sync';
@@ -40,7 +41,7 @@ export function AppRoutes() {
 function Shell() {
   const zen = useStore(s => s.ui.zen);
   useEffect(() => { document.body.classList.toggle('zen', zen); return () => document.body.classList.remove('zen'); }, [zen]);
-  return <><TopBar /><Outlet /></>;
+  return <><TopBar /><Outlet /><Shortcuts /></>;
 }
 
 /** Tirador vertical entre paneles: arrastra para cambiar el ancho del panel indicado. */

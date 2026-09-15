@@ -15,6 +15,8 @@ interface Props {
 
 const DASH: Record<Relation['style'], string | undefined> = { solid: undefined, dashed: '9 6', dotted: '2 6' };
 const mid = (c: string) => 'm-' + c.replace('#', '');
+/** Último tramo de la ruta de un campo, para que quepa sobre la flecha. */
+const short = (p?: string) => !p ? '*' : p.split('.').slice(-2).join('.');
 
 export function Links({ rects, size, relations, sel, hoverPid, linking, onSelect }: Props) {
   const colors = new Set(relations.map(r => r.color));
@@ -43,6 +45,7 @@ export function Links({ rects, size, relations, sel, hoverPid, linking, onSelect
               markerEnd={r.dir !== 'none' ? `url(#${mid(r.color)})` : undefined}
               markerStart={r.dir === 'both' ? `url(#${mid(r.color)})` : undefined} />
             {r.label && <text x={m.x} y={m.y - 4}>{r.label}</text>}
+            {(r.fromField || r.toField) && <text className="map" x={m.x} y={m.y + (r.label ? 9 : -4)}>{`${short(r.fromField)} → ${short(r.toField)}`}</text>}
           </g>
         );
       })}

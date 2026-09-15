@@ -82,7 +82,9 @@ button.link { background: none; border: 0; color: var(--accent); cursor: pointer
 .search-clear:hover { color: var(--text); }
 .search-count { margin: -4px 10px 4px; font-size: 11px; color: var(--muted); }
 .list { flex: 1; overflow: auto; padding: 0 10px 10px; }
-.group { font-weight: 600; margin: 10px 0 4px; color: var(--muted); font-size: 12px; }
+.group { font-weight: 600; margin: 10px 0 4px; color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 4px; width: 100%; background: none; border: 0; padding: 2px 0; cursor: pointer; font: inherit; font-weight: 600; font-size: 12px; text-align: left; }
+.group:hover { color: var(--text); }
+.group .caret { display: inline-block; width: 12px; font-size: 10px; }
 .group small { font-weight: 400; }
 .empty-sm { color: var(--muted); font-size: 12px; padding: 6px 4px; }
 .item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; margin: 3px 0; border: 1px solid var(--border); border-left: 4px solid var(--c); border-radius: 6px; background: var(--panel); cursor: grab; }
@@ -276,3 +278,29 @@ body.linking #links .rel .hit { pointer-events: none; }
   body { background: #fff; color: #0f172a; }
   .stage-h .name, .layer-h .name { border: 0; }
 }
+
+/* ---------- Celda activa, JSON reconocido, atajos */
+.cell.active { outline: 2px solid var(--accent); outline-offset: -2px; }
+.json-fld .ok { color: #059669; font-weight: 400; }
+.json-fld .warn { font-weight: 400; }
+.schema { margin-top: 4px; font-size: 11.5px; }
+.schema summary { cursor: pointer; color: var(--muted); }
+.schema table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+.schema th { text-align: left; font-weight: 500; color: var(--muted); padding: 2px 4px; border-bottom: 1px solid var(--border); }
+.schema td { padding: 2px 4px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); vertical-align: top; }
+.schema td code { font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+.schema tr.branch td { color: var(--muted); }
+.schema td.ex { font-family: ui-monospace, Menlo, monospace; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+.modal-bg { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); display: flex; align-items: center; justify-content: center; z-index: 200; }
+.modal { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; width: min(920px, 94vw); max-height: 88vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+.modal h2 { margin: 0 0 8px; font-size: 18px; }
+.shortcuts { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 8px 24px; }
+.shortcuts h4 { margin: 8px 0 4px; }
+.shortcuts table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.shortcuts td { padding: 3px 4px; border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent); vertical-align: top; }
+.shortcuts td:first-child { white-space: nowrap; width: 1%; }
+kbd { font: inherit; font-size: 11.5px; font-family: ui-monospace, Menlo, monospace; background: var(--field); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; }
+#links text.map { font-size: 10px; font-family: ui-monospace, Menlo, monospace; fill: var(--muted); }
+.map-preview { font-size: 12px; margin: -4px 0 8px; display: flex; gap: 6px; align-items: center; }
+.map-preview code { font-family: ui-monospace, Menlo, monospace; background: var(--field); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
+.small { font-size: 12px; }

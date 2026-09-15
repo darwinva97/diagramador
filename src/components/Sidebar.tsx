@@ -23,6 +23,13 @@ export function Sidebar() {
     if (norm(c.name).includes(qn) || norm(t?.name).includes(qn) || norm(c.description).includes(qn)) return true;
     return Object.values(c.fields).some(v => norm(typeof v === 'object' ? JSON.stringify(v) : v).includes(qn));
   };
+  const collapsed = new Set(ui.collapsedLibs);
+  const toggleLib = (id: string) => setUI({ collapsedLibs: collapsed.has(id) ? ui.collapsedLibs.filter(x => x !== id) : [...ui.collapsedLibs, id] });
+  const GroupHead = ({ id, name, n }: { id: string; name: string; n: number }) => (
+    <button className={'group' + (collapsed.has(id) ? ' closed' : '')} onClick={() => toggleLib(id)} title={collapsed.has(id) ? 'Desplegar' : 'Plegar'}>
+      <span className="caret">{collapsed.has(id) ? '▸' : '▾'}</span> {name} <small>{n}</small>
+    </button>
+  );
   const total = ui.tab === 'comps' ? libs.reduce((n, l) => n + l.components.filter(matchComp).length, 0) : libs.reduce((n, l) => n + l.types.filter(t => !qn || norm(t.name).includes(qn)).length, 0);
 
   return (
@@ -42,7 +49,7 @@ export function Sidebar() {
       </div>
       <div className="search-wrap">
         <span className="search-icon">🔍</span>
-        <input className="search" placeholder={ui.tab === 'comps' ? 'Buscar componente, tipo, campo…' : 'Buscar tipo…'} value={ui.search}
+        <input id="lib-search" className="search" placeholder={ui.tab === 'comps' ? 'Buscar componente, tipo, campo…' : 'Buscar tipo…'} value={ui.search}
           onChange={e => setUI({ search: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') setUI({ search: '' }); }} />
         {ui.search && <button className="search-clear" onClick={() => setUI({ search: '' })} title="Limpiar">×</button>}
       </div>
@@ -54,9 +61,9 @@ export function Sidebar() {
           const comps = l.components.filter(matchComp).sort((a, b) => a.name.localeCompare(b.name));
           return (
             <div key={l.id}>
-              {libs.length > 1 && <div className="group">{l.name} <small>{comps.length}</small></div>}
-              {comps.length === 0 && <div className="empty-sm">Sin componentes</div>}
-              {comps.map(c => {
+              <GroupHead id={l.id} name={l.name} n={comps.length} />
+              {!collapsed.has(l.id) && comps.length === 0 && <div className="empty-sm">Sin componentes</div>}
+              {!collapsed.has(l.id) && comps.map(c => {
                 const t = findType(data, c.typeId);
                 const uses = d ? d.placements.filter(p => p.componentId === c.id).length : 0;
                 const isSel = sel?.kind === 'component' && sel.id === c.id;
@@ -85,9 +92,9 @@ export function Sidebar() {
           const types = l.types.filter(t => !qn || norm(t.name).includes(qn));
           return (
             <div key={l.id}>
-              {libs.length > 1 && <div className="group">{l.name} <small>{types.length}</small></div>}
-              {types.length === 0 && <div className="empty-sm">Sin tipos</div>}
-              {types.map(t => (
+              <GroupHead id={l.id} name={l.name} n={types.length} />
+              {!collapsed.has(l.id) && types.length === 0 && <div className="empty-sm">Sin tipos</div>}
+              {!collapsed.has(l.id) && types.map(t => (
                 <div key={t.id}
                   className={'item type-item' + (sel?.kind === 'type' && sel.id === t.id ? ' selected' : '')}
                   style={{ ['--c' as string]: t.color }}

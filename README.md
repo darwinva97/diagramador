@@ -43,7 +43,11 @@ npm run build      # genera dist/index.html (un único archivo; necesita un serv
 - Relaciones: arrastra desde el punto ● de un componente hasta otro (puede saltar capas y etapas).
   Estilos **directa / troceada / punteada**, dirección (→, ↔, ninguna), color, grosor y etiqueta.
 - Exportar todo, exportar sólo el diagrama actual (con los componentes/tipos que usa) e importar JSON (fusiona).
-- Deshacer (Ctrl+Z), Supr borra la instancia o relación seleccionada, Esc deselecciona, impresión sólo del tablero.
+- Deshacer (Ctrl+Z) y rehacer (Ctrl+Shift+Z), Supr borra la instancia o relación seleccionada, Esc deselecciona, impresión sólo del tablero.
+- **Copiar y pegar**: Ctrl+C / Ctrl+X sobre una instancia o un componente de la librería, clic en la celda destino y Ctrl+V. Ctrl+D duplica en la misma celda.
+- **Atajos de teclado** para casi todo; pulsa `?` (o el botón ⌨) para ver la lista completa.
+- **Librerías plegables** en el panel lateral: clic en el título para plegar o desplegar.
+- **Contratos de API**: los campos JSON muestran la estructura reconocida (campo, tipo y ejemplo) y una relación puede conectar un campo concreto del origen con uno del destino.
 
 ## Plataforma: cuentas, sincronización y API
 

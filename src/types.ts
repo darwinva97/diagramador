@@ -59,6 +59,9 @@ export interface Relation {
   id: string;
   from: string; // placement id
   to: string;   // placement id
+  /** Mapeo a nivel de campo: ruta de un campo del origen y del destino (p. ej. "response_body.id"). */
+  fromField?: string;
+  toField?: string;
   style: LineStyle;
   dir: Dir;
   color: string;

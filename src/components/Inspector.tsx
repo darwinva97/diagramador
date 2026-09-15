@@ -3,6 +3,7 @@ import { actions } from '../actions';
 import { childrenOf, curDiagram, findComp, findType, libOfComp, libOfType, placementsOf } from '../lib/model';
 import { DIRS, KINDS, STYLES, type Component, type ComponentType, type Diagram, type Dir, type FieldDef, type FieldKind, type KeyValue, type LineStyle, type Placement, type Relation } from '../types';
 import { useState } from 'react';
+import { connectableFields, parseJsonFields } from '../lib/schema';
 
 export function Inspector() {
   const data = useStore(s => s.data);
@@ -50,10 +51,11 @@ function DiagramPanel({ d }: { d: Diagram }) {
         <li>Dentro de la celda colócalo <b>donde quieras</b> arrastrándolo (se ajusta a una rejilla de 8 px). Con el componente seleccionado, las flechas del teclado lo mueven; ⊞ apila los de una celda.</li>
         <li><b>Subcomponentes:</b> suelta un componente encima de otro para meterlo dentro (p. ej. un microservicio dentro de su API). Arrástralo fuera, a la celda, para sacarlo. Las relaciones pueden salir de o llegar a un subcomponente.</li>
         <li><b>Componentes compartidos:</b> un mismo componente puede estar en varios diagramas y al editarlo cambia en todos. Al <b>duplicar un diagrama</b> puedes pedir copias independientes; y en el inspector tienes “Duplicar componente” y “Desvincular” para separar uno cuando quieras.</li>
-        <li><b>Contrato de API:</b> crea un tipo con “+ Tipo API” en la pestaña Tipos. Trae método, path, base URL por entorno, cabeceras, parámetros, request/response en JSON y códigos de respuesta. Los campos se editan al seleccionar el componente.</li>
+        <li><b>Contrato de API:</b> crea un tipo con “+ Tipo API” en la pestaña Tipos. Trae método, path, base URL por entorno, cabeceras, parámetros, request/response en JSON y códigos de respuesta. Los campos se editan al seleccionar el componente; los JSON válidos muestran su estructura (campos, tipos y ejemplos).</li>
         <li>Arrastra desde el punto <b>●</b> de un componente hasta otro para crear una relación (puede saltar capas y etapas).</li>
         <li>Haz clic en una flecha para cambiar estilo (directa, troceada, punteada), dirección, color y etiqueta.</li>
-        <li>Ctrl+arrastrar una instancia = clonarla. Suelta una instancia en la librería para quitarla. <b>Supr</b> borra lo seleccionado. <b>Ctrl+Z</b> deshace.</li>
+        <li>Ctrl+arrastrar una instancia = clonarla. Suelta una instancia en la librería para quitarla. <b>Supr</b> borra lo seleccionado. <b>Ctrl+Z</b> deshace, <b>Ctrl+Shift+Z</b> rehace.</li>
+        <li><b>Copiar y pegar:</b> selecciona una instancia (o un componente de la librería), <b>Ctrl+C</b>, haz clic en la celda destino y <b>Ctrl+V</b>. <b>Ctrl+D</b> duplica en la misma celda. Pulsa <b>?</b> para ver todos los atajos.</li>
         <li><b>Más espacio:</b> los botones ◧ ◨ de la barra superior (o Ctrl+B / Ctrl+J) ocultan la librería y el inspector; la pestaña del borde o un doble clic en un componente los vuelven a mostrar. <b>Zen</b> (Ctrl+Shift+F) deja sólo el tablero; ⤢ pone pantalla completa.</li>
         <li><b>Ventanas separadas:</b> con ⧉ abres la librería, el inspector o el tablero en otra ventana del navegador. Comparten datos y selección al instante, y puedes arrastrar componentes de una ventana a otra.</li>
         <li><b>Instalable:</b> el navegador ofrece “Instalar Diagramador” como aplicación; funciona sin conexión. Tema claro/oscuro con ☀ ☾ ◐.</li>
@@ -220,13 +222,24 @@ function FieldInput({ def, value, onChange, onFocus }: { def: FieldDef; value: u
     }
     case 'json': {
       const txt = String(v);
-      let bad = false;
-      if (txt.trim()) { try { JSON.parse(txt); } catch { bad = true; } }
+      const fields = parseJsonFields(txt);
+      const bad = !!txt.trim() && !fields;
+      const leaves = fields?.filter(f => f.leaf) ?? [];
       return (
-        <label>{def.label}{bad && <span className="warn"> · JSON no válido</span>}
-          <textarea className={'code' + (bad ? ' invalid' : '')} rows={6} spellCheck={false} value={txt} onFocus={onFocus} onChange={e => onChange(e.target.value)} placeholder='{ "campo": "valor" }' />
-          <span className="fld-hint"><button className="link" type="button" onClick={() => { if (!bad && txt.trim()) onChange(JSON.stringify(JSON.parse(txt), null, 2)); }}>Formatear</button></span>
-        </label>
+        <div className="fld json-fld">
+          <label>{def.label}{bad && <span className="warn"> · JSON no válido</span>}{fields && <span className="ok"> · {leaves.length} campo(s) reconocido(s)</span>}
+            <textarea className={'code' + (bad ? ' invalid' : '')} rows={6} spellCheck={false} value={txt} onFocus={onFocus} onChange={e => onChange(e.target.value)} placeholder='{ "campo": "valor" }' />
+            <span className="fld-hint"><button className="link" type="button" onClick={() => { if (!bad && txt.trim()) onChange(JSON.stringify(JSON.parse(txt), null, 2)); }}>Formatear</button></span>
+          </label>
+          {fields && fields.length > 0 && (
+            <details className="schema" open={leaves.length <= 12}>
+              <summary>Estructura ({fields.length})</summary>
+              <table><thead><tr><th>Campo</th><th>Tipo</th><th>Ejemplo</th></tr></thead>
+                <tbody>{fields.map(f => <tr key={f.path} className={f.leaf ? '' : 'branch'}><td><code>{f.path}</code></td><td>{f.type}</td><td className="ex">{f.example}</td></tr>)}</tbody>
+              </table>
+            </details>
+          )}
+        </div>
       );
     }
     case 'number': return <label>{def.label}<input type="number" value={String(v)} onFocus={onFocus} onChange={e => onChange(e.target.value === '' ? '' : Number(e.target.value))} /></label>;
@@ -238,6 +251,23 @@ function FieldInput({ def, value, onChange, onFocus }: { def: FieldDef; value: u
 function RelationPanel({ r, d }: { r: Relation; d: Diagram }) {
   const data = useStore(s => s.data);
   const { snapshot, select } = useStore();
+  /** Campos conectables del componente que hay en un extremo de la relación. */
+  const fieldsOf = (pid: string) => {
+    const p = d.placements.find(x => x.id === pid); const c = p && findComp(data, p.componentId);
+    if (!c) return [];
+    return connectableFields(findType(data, c.typeId)?.fields, c.fields);
+  };
+  const fromFields = fieldsOf(r.from), toFields = fieldsOf(r.to);
+  const FieldPicker = ({ end, value, opts }: { end: 'fromField' | 'toField'; value: string | undefined; opts: ReturnType<typeof fieldsOf> }) => {
+    if (opts.length === 0) return <div className="muted small">Sin campos (el componente no tiene tipo con campos).</div>;
+    const groups = [...new Set(opts.map(o => o.group))];
+    return (
+      <select value={value ?? ''} onChange={e => actions.updateRelation(r.id, { [end]: e.target.value || undefined }, true)}>
+        <option value="">— todo el componente —</option>
+        {groups.map(g => <optgroup key={g} label={g}>{opts.filter(o => o.group === g).map(o => <option key={o.path} value={o.path}>{o.label}</option>)}</optgroup>)}
+      </select>
+    );
+  };
   const desc = (pid: string) => {
     const p = d.placements.find(x => x.id === pid); const c = p && findComp(data, p.componentId);
     const L = d.layers.find(l => l.id === p?.layerId), S = d.stages.find(s => s.id === p?.stageId);
@@ -252,6 +282,13 @@ function RelationPanel({ r, d }: { r: Relation; d: Diagram }) {
       <label>Dirección<select value={r.dir} onChange={e => actions.updateRelation(r.id, { dir: e.target.value as Dir }, true)}>
         {Object.entries(DIRS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label>Etiqueta<input value={r.label} onFocus={snapshot} onChange={e => actions.updateRelation(r.id, { label: e.target.value })} placeholder="p. ej. envía pedido" /></label>
+
+      <h4>Conexión por campos</h4>
+      <div className="muted small">Opcional: qué campo del origen alimenta qué campo del destino. Los JSON válidos de request/response se despliegan campo a campo.</div>
+      <label>Campo de origen<FieldPicker end="fromField" value={r.fromField} opts={fromFields} /></label>
+      <label>Campo de destino<FieldPicker end="toField" value={r.toField} opts={toFields} /></label>
+      {(r.fromField || r.toField) && <div className="map-preview"><code>{r.fromField ?? '*'}</code> → <code>{r.toField ?? '*'}</code>
+        <button className="link" onClick={() => actions.updateRelation(r.id, { fromField: undefined, toField: undefined }, true)}>Quitar</button></div>}
       <div className="row">
         <label>Color<input type="color" value={r.color} onFocus={snapshot} onChange={e => actions.updateRelation(r.id, { color: e.target.value })} /></label>
         <label>Grosor<input type="number" min={1} max={8} value={r.width} onFocus={snapshot} onChange={e => actions.updateRelation(r.id, { width: Math.max(1, Number(e.target.value) || 1) })} /></label>

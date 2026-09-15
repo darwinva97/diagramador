@@ -142,6 +142,17 @@ export const actions = {
     for (const ch of g.placements.filter(p => p.parentId === pid)) actions._cloneTree(g, ch.id, layerId, stageId, 0, 0, id);
     return id;
   },
+  /** Clona una instancia (con subcomponentes) al nivel superior de una celda, apilada. Devuelve el id. */
+  clonePlacement(pid: string, layerId: string, stageId: string): string | null {
+    let id: string | null = null;
+    mutate(d => {
+      const g = curDiagram(d)!; if (!g.placements.some(p => p.id === pid)) return;
+      const { x, y } = nextStackPos(g, layerId, stageId);
+      id = actions._cloneTree(g, pid, layerId, stageId, x, y, null);
+    });
+    if (id) select({ kind: 'placement', id });
+    return id;
+  },
   /** Mueve (o clona con `clone`) una instancia al nivel superior de una celda, en una posición. */
   movePlacement(pid: string, layerId: string, stageId: string, x: number, y: number, clone = false) {
     let newId = pid;
@@ -386,6 +397,7 @@ export const actions = {
       select(null);
     } catch (e) { alert('No se pudo cargar el ejemplo: ' + (e as Error).message); }
   },
+  redo() { S().redo(); },
   undo() { S().undo(); },
 };
 

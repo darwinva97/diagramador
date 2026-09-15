@@ -30,9 +30,13 @@ Diagram
  │                  Un mismo componente puede tener varias instancias (clones) en distintas celdas.
  │                  parentId = instancia contenedora (subcomponente, p. ej. microservicio dentro de su API).
  │                  x, y = posición en px dentro de la celda (rejilla de 8); se ignoran si tiene parentId.
- └─ relations[]    Relation { id, from, to, style, dir, color, width, label }
+ └─ relations[]    Relation { id, from, to, style, dir, color, width, label, fromField?, toField? }
                     from/to son ids de PLACEMENTS (instancias), no de componentes.
                     style ∈ solid | dashed | dotted · dir ∈ fwd | both | none
+                    fromField/toField = conexión a nivel de CAMPO (opcional). Ruta del campo:
+                    la clave del campo, y dentro de un campo JSON la ruta hasta la hoja:
+                    "response_body.datos.id", "request_body.items[].sku". La app la dibuja
+                    sobre la flecha y la ofrece en un desplegable generado desde el JSON.
 ```
 
 Reglas: un componente vive en una biblioteca; para dibujarlo se crea un placement en un diagrama.
@@ -49,6 +53,7 @@ Las relaciones pueden unir cualquier par de instancias, aunque estén en capas o
    - Posición opcional `x`, `y`. Sin posición se apila automáticamente.
    - Subcomponente: añade `"parentId": "<placementId del contenedor>"` (debe estar en la misma celda; el servidor lo mueve si no).
 6. `POST /diagrams/{diagId}/relations` `{ "from": "<placementId A>", "to": "<placementId B>", "style": "dashed", "label": "persiste" }`
+   - Conexión por campos (opcional): `"fromField": "response_body.aliadoId", "toField": "request_body.aliadoId"`.
 
 Atajo: `POST /templates/aliados/apply` `{ "name": "Mi copia" }` crea una biblioteca y un diagrama completos de ejemplo (APIs con microservicios anidados, subprocesos y backends).
 
@@ -82,5 +87,9 @@ PUT sobre `/diagrams/{id}` o `/libraries/{id}` reemplaza el documento entero: ú
 - Para "el mismo componente en dos etapas" crea dos placements con el mismo `componentId`; la app los resalta como clones.
 - Colores: hex `#rrggbb`. Colores de capa sugeridos (pastel): `#fef9c3 #e0f2fe #ccfbf1 #ede9fe #fce7f3`.
 - Iconos de tipo: un emoji. Campos `json`: envía el JSON como **string**.
+- **Contratos de API:** usa campos `json` para `request_body` / `response_body`. La app reconoce su estructura
+  (campos, tipos y ejemplos, incluidos objetos anidados y arrays) y esos campos son los que se pueden elegir
+  en `fromField` / `toField` de una relación. Escribe JSON de **ejemplo** con valores representativos:
+  de ahí salen el tipo y el ejemplo que ve el usuario.
 - Todo lo que hagas por API aparece en la app del usuario en cuanto recargue o, si tiene la sesión abierta, al volver a sincronizar.
 - Sé conservador: no borres bibliotecas o diagramas que no hayas creado salvo que el usuario lo pida.

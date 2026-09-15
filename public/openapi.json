@@ -288,6 +288,14 @@
           },
           "label": {
             "type": "string"
+          },
+          "fromField": {
+            "type": "string",
+            "description": "Conexión a nivel de campo: ruta del campo de origen. Para un campo JSON se usa `clave.ruta.dentro.del.json`, p. ej. `response_body.datos.id`."
+          },
+          "toField": {
+            "type": "string",
+            "description": "Ruta del campo de destino (misma sintaxis que fromField)."
           }
         },
         "required": [

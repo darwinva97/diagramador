@@ -14,6 +14,7 @@ export function Board() {
   const data = useStore(s => s.data);
   const sel = useValidSel();
   const select = useStore(s => s.select);
+  const setCell = useStore(s => s.setCell);
   const snapshot = useStore(s => s.snapshot);
   const hover = useHover();
   const d = curDiagram(data);
@@ -202,11 +203,13 @@ export function Board() {
     if (comp) { select({ kind: 'placement', id: comp.dataset.pid! }); return; }
     if (el.closest('button, input, select, .handle')) return;
     select(null);
+    const cell = el.closest<HTMLElement>('.cell');
+    setCell(cell ? { layerId: cell.dataset.lid!, stageId: cell.dataset.sid! } : null);
   };
 
   const cols = `210px ${d.stages.map(s => s.width ? `${s.width}px` : `minmax(${CELL_DEFAULT_W}px, 1fr)`).join(' ')} 44px`;
   return (
-    <section id="canvasWrap" onClick={e => { if (e.target === e.currentTarget) select(null); }}>
+    <section id="canvasWrap" onClick={e => { if (e.target === e.currentTarget) { select(null); setCell(null); } }}>
       <div id="board" ref={boardRef}>
         <div id="grid" ref={gridRef} style={{ gridTemplateColumns: cols }}
           onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}
@@ -265,6 +268,7 @@ interface CellProps {
 }
 function Cell({ d, l, s, sel, drag, rects, linkTarget, hoverCid, onHover }: CellProps) {
   const data = useStore(st => st.data);
+  const active = useStore(st => st.cell?.layerId === l.id && st.cell?.stageId === s.id);
   const ps = d.placements.filter(p => p.layerId === l.id && p.stageId === s.id && !p.parentId);
   const minHeight = Math.max(l.height ?? CELL_MIN_H, ...ps.map(p => p.y + (rects[p.id]?.h ?? CHIP_ROW - 8) + 20));
   // fantasma del chip que se está arrastrando, si su raíz está en esta celda
@@ -272,7 +276,7 @@ function Cell({ d, l, s, sel, drag, rects, linkTarget, hoverCid, onHover }: Cell
   const ghost = drag && dragRoot && dragRoot.layerId === l.id && dragRoot.stageId === s.id ? d.placements.find(p => p.id === drag.pid) : null;
   const common = { d, data, sel, linkTarget, hoverCid, onHover, dragPid: drag?.pid ?? null };
   return (
-    <div className="cell" data-lid={l.id} data-sid={s.id} style={{ ['--lc' as string]: l.color, minHeight }}>
+    <div className={'cell' + (active ? ' active' : '')} data-lid={l.id} data-sid={s.id} style={{ ['--lc' as string]: l.color, minHeight }}>
       {ps.map(p => <Chip key={p.id} p={p} {...common} />)}
       {ghost && <Chip p={ghost} {...common} ghost={drag!} />}
       <div className="cell-tools">
