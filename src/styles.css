@@ -129,7 +129,7 @@ textarea.invalid { border-color: var(--danger); background: color-mix(in srgb, v
 
 /* ---------- Zen / ventanas separadas / grupos */
 body.zen #topbar, body.zen #sidebar, body.zen #inspector, body.zen .splitter, body.zen .edge-tab { display: none; }
-body.zen #canvasWrap { padding: 12px; }
+body.zen #board { padding: 12px; }
 .zen-bar { position: fixed; top: 10px; right: 14px; display: flex; gap: 6px; z-index: 20; opacity: .35; transition: opacity .15s; }
 .zen-bar:hover { opacity: 1; }
 .popout { height: 100%; display: flex; }
@@ -174,8 +174,8 @@ code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background:
 .account-btn.on { background: var(--soft); border-color: var(--accent); color: var(--accent); }
 
 /* ---------- Tablero */
-#canvasWrap { flex: 1; overflow: auto; position: relative; padding: 16px; }
-#board { position: relative; display: inline-block; min-width: 100%; }
+#canvasWrap { flex: 1; overflow: auto; position: relative; }
+#board { position: relative; display: inline-block; min-width: 100%; padding: 16px; }
 #grid { display: grid; gap: 6px; align-items: stretch; }
 .corner { display: flex; align-items: flex-end; padding: 6px 8px; color: var(--muted); font-size: 12px; }
 .stage-h { display: flex; align-items: center; gap: 4px; padding: 6px; background: var(--head); border-radius: 8px; font-weight: 600; }
@@ -419,3 +419,22 @@ kbd { font: inherit; font-size: 11.5px; font-family: ui-monospace, Menlo, monosp
 body.pan-ready #canvasWrap { cursor: grab; }
 body.panning, body.panning #canvasWrap { cursor: grabbing !important; user-select: none; }
 body.panning .comp, body.panning .cell { pointer-events: none; }
+
+/* ---------- Cabeceras fijas (la columna de capas y la fila de etapas no se desplazan) */
+.corner, .group-gap, .add-col { background: var(--bg); }
+/* columna de capas */
+#grid.pin-cols .layer-h,
+#grid.pin-cols .corner,
+#grid.pin-cols .corner-gap.start { position: sticky; left: 0; z-index: 16; }
+/* fila superior: primero la banda de grupos y, justo debajo, las cabeceras de etapa */
+#grid.pin-rows .stage-group,
+#grid.pin-rows .group-gap { position: sticky; top: 0; z-index: 18; }
+#grid.pin-rows .stage-h,
+#grid.pin-rows .add-col,
+#grid.pin-rows .corner { position: sticky; top: var(--band-h, 26px); z-index: 18; }
+/* la esquina y el hueco de arriba a la izquierda cruzan las dos, así que van por encima */
+#grid.pin-cols.pin-rows .corner { left: 0; z-index: 24; }
+#grid.pin-cols.pin-rows .corner-gap.start { top: 0; z-index: 24; }
+/* sombra sutil mientras hay contenido por debajo */
+#grid.pin-cols .layer-h { box-shadow: 6px 0 8px -8px var(--shadow-2); }
+#grid.pin-rows .stage-h { box-shadow: 0 6px 8px -8px var(--shadow-2); }

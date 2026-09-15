@@ -21,6 +21,7 @@ export function Board() {
   const setCell = useStore(s => s.setCell);
   const snapshot = useStore(s => s.snapshot);
   const hover = useHover();
+  const ui = useStore(s => s.ui);
   const d = curDiagram(data);
 
   const wrapRef = useRef<HTMLElement>(null);
@@ -28,6 +29,7 @@ export function Board() {
   const gridRef = useRef<HTMLDivElement>(null);
   const [rects, setRects] = useState<Record<string, Rect>>({});
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [bandH, setBandH] = useState(0); // alto de la banda de grupos, para fijar debajo las etapas
   const [linking, setLinking] = useState<LinkingState | null>(null);
   const [drag, setDrag] = useState<ChipDrag | null>(null);
   const overRef = useRef<HTMLElement | null>(null);
@@ -61,6 +63,9 @@ export function Board() {
     });
     setRects(prev => rectsEqual(prev, out) ? prev : out);
     setSize(prev => (prev.w === b.scrollWidth && prev.h === b.scrollHeight) ? prev : { w: b.scrollWidth, h: b.scrollHeight });
+    const band = g.querySelector<HTMLElement>('.corner-gap.start');
+    const bh = band ? band.offsetHeight : 0;
+    setBandH(prev => prev === bh ? prev : bh);
   }, []);
   useLayoutEffect(() => { measure(); }, [data, drag, measure]);
   useEffect(() => {
@@ -326,6 +331,7 @@ export function Board() {
       openMenu(e, [
         { label: 'Renombrar', onClick: () => layerEl.querySelector<HTMLInputElement>('input.name')?.select() },
         { label: 'Personas…', onClick: () => openAssign('layer', lid, d.layers.find(l => l.id === lid)?.name ?? 'Capa') },
+        { label: st.ui.pinLayers ? 'Soltar la columna de capas' : 'Fijar la columna de capas', onClick: () => st.setUI({ pinLayers: !st.ui.pinLayers }) },
         { label: 'Añadir capa', onClick: actions.addLayer },
         { label: 'Alto automático', onClick: () => { snapshot(); actions.setLayerHeight(lid, undefined); } },
         { sep: true },
@@ -342,6 +348,7 @@ export function Board() {
       openMenu(e, [
         { label: 'Renombrar', onClick: () => stageEl.querySelector<HTMLInputElement>('input.name')?.select() },
         { label: 'Personas…', onClick: () => openAssign('stage', sid, st2?.name ?? 'Etapa') },
+        { label: st.ui.pinStages ? 'Soltar la fila de etapas' : 'Fijar la fila de etapas', onClick: () => st.setUI({ pinStages: !st.ui.pinStages }) },
         { label: 'Añadir etapa', onClick: actions.addStage },
         { label: 'Ancho automático', onClick: () => { snapshot(); actions.setStageWidth(sid, undefined); } },
         { sep: true },
@@ -451,17 +458,19 @@ export function Board() {
     <section id="canvasWrap" ref={wrapRef} onPointerDown={onWrapPointerDown} onAuxClick={e => e.preventDefault()}
       onClick={e => { if (e.target === e.currentTarget) { select(null); setCell(null); } }}>
       <div id="board" ref={boardRef}>
-        <div id="grid" ref={gridRef} style={{ gridTemplateColumns: cols }}
+        <div id="grid" ref={gridRef}
+          className={(ui.pinLayers ? 'pin-cols' : '') + (ui.pinStages ? ' pin-rows' : '')}
+          style={{ gridTemplateColumns: cols, ['--band-h' as string]: `${bandH + 6}px` }}
           onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}
           onPointerDown={e => { onBandPointerDown(e); onPointerDown(e); }} onClick={onGridClick} onDoubleClick={onGridDoubleClick} onContextMenu={onGridContextMenu}>
-          <div className="group-gap corner-gap" />
+          <div className="group-gap corner-gap start" />
           {spans.map(sp => sp.group
             ? <StageGroupHeader key={sp.key} g={sp.group} count={sp.count} snapshot={snapshot} />
             : <div key={sp.key} className="group-gap" data-sid={sp.sid} style={{ gridColumn: `span ${sp.count}` }}
                 title="Arrastra sobre las columnas para agruparlas">
                 <span className="gap-hint">+ agrupar</span>
               </div>)}
-          <div className="group-gap corner-gap" />
+          <div className="group-gap corner-gap end" />
           <div className="corner"><span>Capas ╲ Etapas</span></div>
           {d.stages.map(s => <StageHeader key={s.id} s={s} snapshot={snapshot} />)}
           <div className="add-col"><button className="btn icon" onClick={actions.addStage} title="Añadir etapa">+</button></div>

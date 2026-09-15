@@ -34,6 +34,7 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
     [`${MOD}+K`, 'Buscar en la librería'],
     ['Alt+1 · Alt+2', 'Pestaña Componentes · Tipos de la librería'],
     ['Clic en el título de una librería', 'Plegar / desplegar esa librería'],
+    ['Botones ⇤ ⤒', 'Fijar la columna de capas y la fila de etapas al hacer scroll'],
     [`${MOD}+Shift+F`, 'Modo zen (sólo el tablero)'],
     ['?', 'Esta ayuda'],
   ] },

@@ -56,6 +56,12 @@ export function TopBar() {
         <button className="btn icon" onClick={() => openPopout('inspector')} title="Abrir el inspector en otra ventana">⧉</button>
       </span>
       <button className="btn icon" onClick={() => openPopout('board')} title="Abrir el tablero en otra ventana">▣⧉</button>
+      <span className="btn-group" title="Fijar cabeceras al hacer scroll">
+        <button className={'btn icon toggle' + (ui.pinLayers ? ' on' : '')} onClick={() => setUI({ pinLayers: !ui.pinLayers })}
+          title={(ui.pinLayers ? 'Soltar' : 'Fijar') + ' la columna de capas'}>⇤</button>
+        <button className={'btn icon toggle' + (ui.pinStages ? ' on' : '')} onClick={() => setUI({ pinStages: !ui.pinStages })}
+          title={(ui.pinStages ? 'Soltar' : 'Fijar') + ' la fila de etapas y grupos'}>⤒</button>
+      </span>
       <button className="btn icon" onClick={() => setUI({ zen: true })} title="Modo zen: sólo el tablero (Ctrl+Shift+F, Esc para salir)">◻ Zen</button>
       <button className="btn icon" onClick={toggleFullscreen} title="Pantalla completa">⤢</button>
       <button className="btn icon" onClick={() => useHelp.setState({ open: true })} title="Atajos de teclado (?)">⌨</button>

@@ -21,6 +21,9 @@ export interface UIState {
   zen: boolean;
   /** Librerías plegadas en el panel lateral. */
   collapsedLibs: string[];
+  /** Cabeceras fijas: la columna de capas y la fila de etapas no se desplazan al hacer scroll. */
+  pinLayers: boolean;
+  pinStages: boolean;
 }
 
 /** Celda activa del tablero (destino de pegar / nuevo componente). */
@@ -55,7 +58,7 @@ export const useStore = create<Store>()(
       cell: null,
       past: [],
       future: [],
-      ui: { libFilter: 'all', tab: 'comps', search: '', link: { style: 'solid', dir: 'fwd', color: '#475569', width: 2 }, sidebarW: 280, inspectorW: 320, sidebarOpen: true, inspectorOpen: true, theme: 'system', zen: false, collapsedLibs: [] },
+      ui: { libFilter: 'all', tab: 'comps', search: '', link: { style: 'solid', dir: 'fwd', color: '#475569', width: 2 }, sidebarW: 280, inspectorW: 320, sidebarOpen: true, inspectorOpen: true, theme: 'system', zen: false, collapsedLibs: [], pinLayers: true, pinStages: true },
       mutate(fn, snap = true) {
         const snapStr = snap ? JSON.stringify(get().data) : null;
         set(s => {
