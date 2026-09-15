@@ -339,14 +339,14 @@ function Agentes() {
       </div>
       <h3>Ejemplo</h3>
       <pre className="code-block">{`# quién soy
-curl -H "Authorization: Bearer $DIAGRAMADOR_API_KEY" ${base}/auth/me
+curl -H "Authorization: Bearer $DRAWER_API_KEY" ${base}/auth/me
 
-# crear un diagrama desde la plantilla Aliados
-curl -X POST -H "Authorization: Bearer $DIAGRAMADOR_API_KEY" -H "Content-Type: application/json" \\
+# crear una biblioteca
+curl -X POST -H "Authorization: Bearer $DRAWER_API_KEY" -H "Content-Type: application/json" \\
   -d '{"name":"Mi arquitectura"}' ${base}/libraries
 
 # listar diagramas
-curl -H "Authorization: Bearer $DIAGRAMADOR_API_KEY" ${base}/diagrams`}</pre>
+curl -H "Authorization: Bearer $DRAWER_API_KEY" ${base}/diagrams`}</pre>
       <h3>Recursos</h3>
       <ul className="help">
         <li><code>/libraries</code> · <code>/libraries/:id/types</code> · <code>/libraries/:id/components</code></li>
