@@ -322,8 +322,17 @@ kbd { font: inherit; font-size: 11.5px; font-family: ui-monospace, Menlo, monosp
 .ctx-sep { height: 1px; background: var(--border); margin: 4px 2px; }
 
 /* ---------- Grupos de etapas (banda sobre las columnas) */
-.group-gap { min-height: 4px; }
-.stage-group { display: flex; align-items: center; justify-content: flex-start; margin: 0 1px -1px; padding: 3px 8px;
+.group-gap { position: relative; min-height: 20px; display: flex; align-items: center; justify-content: center;
+  margin: 0 1px; border-radius: 8px 8px 0 0; cursor: cell; }
+.group-gap:not(.corner-gap):hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.corner-gap { cursor: default; }
+.gap-hint { font-size: 10.5px; color: var(--muted); opacity: 0; pointer-events: none; }
+.group-gap:hover .gap-hint { opacity: .85; }
+.sg-edge { position: absolute; top: 0; height: 100%; width: 10px; cursor: col-resize; z-index: 6; }
+.sg-edge.left { left: -2px; }
+.sg-edge.right { right: -2px; }
+.sg-edge:hover { background: linear-gradient(to right, transparent 3px, var(--accent) 3px, var(--accent) 5px, transparent 5px); }
+.stage-group { position: relative; display: flex; align-items: center; justify-content: flex-start; margin: 0 1px -1px; padding: 3px 8px;
   border: 1px solid color-mix(in srgb, var(--gc) 45%, var(--border)); border-bottom: 0; border-radius: 8px 8px 0 0;
   background: color-mix(in srgb, var(--gc) 16%, var(--panel)); }
 .stage-group input.name { width: fit-content; max-width: calc(100% - 16px); min-width: 80px; margin: 0; padding: 1px 6px;

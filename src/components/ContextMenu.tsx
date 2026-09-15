@@ -40,17 +40,20 @@ export function ContextMenu() {
   useEffect(() => {
     if (!menu) return;
     const onKey = (ev: KeyboardEvent) => { if (ev.key === 'Escape') { ev.stopPropagation(); closeMenu(); } };
-    const onDown = () => closeMenu();
+    // ojo: en fase de captura esto se ejecuta antes que el onClick del propio menú,
+    // así que hay que dejar pasar los eventos que ocurren dentro de él
+    const dentro = (ev: Event) => !!(ev.target as HTMLElement | null)?.closest?.('.ctx-menu');
+    const onDown = (ev: Event) => { if (!dentro(ev)) closeMenu(); };
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('pointerdown', onDown, true);
-    window.addEventListener('blur', onDown);
-    window.addEventListener('resize', onDown);
+    window.addEventListener('blur', closeMenu);
+    window.addEventListener('resize', closeMenu);
     document.addEventListener('scroll', onDown, true);
     return () => {
       window.removeEventListener('keydown', onKey, true);
       window.removeEventListener('pointerdown', onDown, true);
-      window.removeEventListener('blur', onDown);
-      window.removeEventListener('resize', onDown);
+      window.removeEventListener('blur', closeMenu);
+      window.removeEventListener('resize', closeMenu);
       document.removeEventListener('scroll', onDown, true);
     };
   }, [menu]);

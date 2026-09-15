@@ -135,14 +135,14 @@ export function cloneDiagram(src: Diagram, name?: string): Diagram {
  * Tramos de la banda superior: etapas consecutivas del mismo grupo se funden en un tramo;
  * las que no tienen grupo quedan como hueco de una columna.
  */
-export function stageSpans(g: Diagram): { group: StageGroup | null; count: number; key: string }[] {
+export function stageSpans(g: Diagram): { group: StageGroup | null; count: number; key: string; sid: string }[] {
   const groups = g.stageGroups ?? [];
-  const out: { group: StageGroup | null; count: number; key: string }[] = [];
+  const out: { group: StageGroup | null; count: number; key: string; sid: string }[] = [];
   g.stages.forEach(s => {
     const grp = s.groupId ? groups.find(x => x.id === s.groupId) ?? null : null;
     const last = out[out.length - 1];
     if (grp && last && last.group?.id === grp.id) { last.count++; return; }
-    out.push({ group: grp, count: 1, key: grp ? `${grp.id}-${s.id}` : `s-${s.id}` });
+    out.push({ group: grp, count: 1, key: grp ? `${grp.id}-${s.id}` : `s-${s.id}`, sid: s.id });
   });
   return out;
 }

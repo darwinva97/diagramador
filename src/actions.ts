@@ -115,9 +115,8 @@ export const actions = {
   },
   // ---------- Grupos de etapas (banda por encima de las columnas)
   /** Crea un grupo, opcionalmente con las etapas indicadas dentro. Devuelve su id. */
-  addStageGroup(stageIds: string[] = [], name?: string): string | null {
-    const n = name ?? prompt('Nombre del grupo de etapas', 'Nuevo grupo');
-    if (!n) return null;
+  addStageGroup(stageIds: string[] = [], name = 'Nuevo grupo'): string | null {
+    const n = name;
     const id = uid();
     mutate(d => {
       const g = curDiagram(d); if (!g) return;
@@ -133,6 +132,20 @@ export const actions = {
   },
   colorStageGroup(id: string, color: string) {
     mutate(d => { const x = curDiagram(d)?.stageGroups?.find(y => y.id === id); if (x) x.color = color; }, false);
+  },
+  /**
+   * Fija de una vez qué etapas cubre un grupo, por posición: las de `from..to` entran y
+   * las demás salen. Es lo que usa el arrastre de los bordes de la banda.
+   */
+  setStageGroupRange(groupId: string, from: number, to: number, snap = false) {
+    const [a, b] = from <= to ? [from, to] : [to, from];
+    mutate(d => {
+      const g = curDiagram(d); if (!g) return;
+      g.stages.forEach((s, i) => {
+        if (i >= a && i <= b) s.groupId = groupId;
+        else if (s.groupId === groupId) s.groupId = null;
+      });
+    }, snap);
   },
   /** Mete o saca una etapa de un grupo (`groupId` null = fuera de cualquier grupo). */
   setStageGroup(stageId: string, groupId: string | null) {

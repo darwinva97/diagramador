@@ -34,7 +34,7 @@ function DiagramPanel({ d }: { d: Diagram }) {
       <div className="stats">{d.layers.length} capas · {d.stages.length} etapas · {d.placements.length} instancias · {d.relations.length} relaciones</div>
 
       <h4>Grupos de etapas ({(d.stageGroups ?? []).length})</h4>
-      <div className="muted small">Una banda por encima de las columnas. Marca las etapas que entran en cada grupo; si quedan separadas, el grupo se dibuja en varios tramos.</div>
+      <div className="muted small">Una banda por encima de las columnas. En el tablero puedes arrastrar sobre la franja gris para crear un grupo, y arrastrar los bordes de una banda para abarcar más o menos columnas. Aquí puedes marcarlas a mano; si quedan separadas, el grupo se dibuja en varios tramos.</div>
       {(d.stageGroups ?? []).map(gr => (
         <div key={gr.id} className="sg-edit">
           <div className="row">
@@ -73,6 +73,7 @@ function DiagramPanel({ d }: { d: Diagram }) {
         <li>Dentro de la celda colócalo <b>donde quieras</b> arrastrándolo (se ajusta a una rejilla de 8 px). Con el componente seleccionado, las flechas del teclado lo mueven; ⊞ apila los de una celda.</li>
         <li><b>Subcomponentes:</b> suelta un componente encima de otro para meterlo dentro (p. ej. un microservicio dentro de su API). Arrástralo fuera, a la celda, para sacarlo. Las relaciones pueden salir de o llegar a un subcomponente.</li>
         <li><b>Componentes compartidos:</b> un mismo componente puede estar en varios diagramas y al editarlo cambia en todos. Al <b>duplicar un diagrama</b> puedes pedir copias independientes; y en el inspector tienes “Duplicar componente” y “Desvincular” para separar uno cuando quieras.</li>
+        <li><b>Agrupar etapas:</b> arrastra sobre la franja gris que hay encima de las cabeceras de etapa para crear un grupo (“Evaluación rápida” sobre varias columnas) y escribe su nombre; arrastra los bordes de la banda para abarcar más o menos columnas.</li>
         <li><b>Contrato de API:</b> crea un tipo con “+ Tipo API” en la pestaña Tipos. Trae método, path, base URL por entorno, cabeceras, parámetros, request/response en JSON y códigos de respuesta. Los campos se editan al seleccionar el componente; los JSON válidos muestran su estructura (campos, tipos y ejemplos).</li>
         <li>Arrastra desde el punto <b>●</b> de un componente hasta otro para crear una relación (puede saltar capas y etapas).</li>
         <li>Haz clic en una flecha para cambiar estilo (directa, troceada, punteada), dirección, color y etiqueta.</li>

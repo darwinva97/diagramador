@@ -95,9 +95,65 @@ export function Board() {
   const onDragEnd = () => { clearOver(); setDragData(null); };
 
   // ---- Puntero: crear relación (desde ●) o mover libremente una instancia
+  /** Índice de la cabecera de etapa que hay bajo el puntero (para el arrastre de la banda). */
+  const stageIndexAt = (cx: number): number | null => {
+    let best: number | null = null;
+    d.stages.forEach((s, i) => {
+      const h = gridRef.current?.querySelector<HTMLElement>(`.stage-h[data-sid="${s.id}"]`);
+      if (!h) return;
+      const r = h.getBoundingClientRect();
+      if (cx >= r.left && cx <= r.right) best = i;
+    });
+    return best;
+  };
+
+  /**
+   * Arrastre en la banda superior: desde un hueco crea un grupo que abarca las columnas
+   * recorridas; desde el borde de un grupo lo extiende o lo reduce.
+   */
+  const onBandPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    const el = e.target as HTMLElement;
+    const edge = el.closest<HTMLElement>('.sg-edge');
+    const gap = el.closest<HTMLElement>('.group-gap');
+    if (!edge && !gap) return;
+    e.preventDefault(); e.stopPropagation();
+
+    const start = stageIndexAt(e.clientX); if (start === null) return;
+    snapshot();
+
+    let gid: string;
+    let anchor: number;
+    if (edge) {
+      gid = edge.dataset.gid!;
+      const idx = d.stages.map((s, i) => ({ s, i })).filter(x => x.s.groupId === gid).map(x => x.i);
+      // el extremo contrario al que se arrastra queda fijo
+      anchor = edge.classList.contains('left') ? Math.max(...idx) : Math.min(...idx);
+    } else {
+      const id = actions.addStageGroup([d.stages[start].id]); if (!id) return;
+      gid = id; anchor = start;
+    }
+
+    document.body.classList.add('resizing-x');
+    const move = (ev: PointerEvent) => {
+      const j = stageIndexAt(ev.clientX); if (j === null) return;
+      actions.setStageGroupRange(gid, anchor, j);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      document.body.classList.remove('resizing-x');
+      suppressClick.current = true;
+      // al crear uno nuevo, el nombre queda listo para escribirlo
+      if (gap) setTimeout(() => gridRef.current?.querySelector<HTMLInputElement>(`.stage-group[data-gid="${gid}"] input`)?.select(), 0);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
     const el = e.target as HTMLElement;
+    if (el.closest('.stage-group, .group-gap')) return; // lo gestiona onBandPointerDown
 
     // ----- redimensionar columna (ancho de etapa) o fila (alto de capa)
     const rs = el.closest<HTMLElement>('.rs-x, .rs-y');
@@ -267,7 +323,10 @@ export function Board() {
         { label: 'Ancho automático', onClick: () => { snapshot(); actions.setStageWidth(sid, undefined); } },
         { sep: true },
         ...groups.filter(g => g.id !== st2?.groupId).map(g => ({ label: `Poner en «${g.name}»`, onClick: () => actions.setStageGroup(sid, g.id) })),
-        { label: 'Nuevo grupo con esta etapa…', onClick: () => actions.addStageGroup([sid]) },
+        { label: 'Nuevo grupo con esta etapa', onClick: () => {
+            const id = actions.addStageGroup([sid]);
+            if (id) setTimeout(() => gridRef.current?.querySelector<HTMLInputElement>(`.stage-group[data-gid="${id}"] input`)?.select(), 0);
+          } },
         ...(st2?.groupId ? [{ label: 'Sacar del grupo', onClick: () => actions.setStageGroup(sid, null) }] : []),
         { sep: true },
         { label: 'Eliminar etapa', danger: true, onClick: () => actions.deleteStage(sid) },
@@ -333,14 +392,15 @@ export function Board() {
       <div id="board" ref={boardRef}>
         <div id="grid" ref={gridRef} style={{ gridTemplateColumns: cols }}
           onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}
-          onPointerDown={onPointerDown} onClick={onGridClick} onDoubleClick={onGridDoubleClick} onContextMenu={onGridContextMenu}>
-          {spans.some(sp => sp.group) && <>
-            <div className="group-gap" />
-            {spans.map(sp => sp.group
-              ? <StageGroupHeader key={sp.key} g={sp.group} count={sp.count} snapshot={snapshot} />
-              : <div key={sp.key} className="group-gap" style={{ gridColumn: `span ${sp.count}` }} />)}
-            <div className="group-gap" />
-          </>}
+          onPointerDown={e => { onBandPointerDown(e); onPointerDown(e); }} onClick={onGridClick} onDoubleClick={onGridDoubleClick} onContextMenu={onGridContextMenu}>
+          <div className="group-gap corner-gap" />
+          {spans.map(sp => sp.group
+            ? <StageGroupHeader key={sp.key} g={sp.group} count={sp.count} snapshot={snapshot} />
+            : <div key={sp.key} className="group-gap" data-sid={sp.sid} style={{ gridColumn: `span ${sp.count}` }}
+                title="Arrastra sobre las columnas para agruparlas">
+                <span className="gap-hint">+ agrupar</span>
+              </div>)}
+          <div className="group-gap corner-gap" />
           <div className="corner"><span>Capas ╲ Etapas</span></div>
           {d.stages.map(s => <StageHeader key={s.id} s={s} snapshot={snapshot} />)}
           <div className="add-col"><button className="btn icon" onClick={actions.addStage} title="Añadir etapa">+</button></div>
@@ -367,8 +427,10 @@ export function Board() {
 function StageGroupHeader({ g, count, snapshot }: { g: StageGroup; count: number; snapshot(): void }) {
   return (
     <div className="stage-group" data-gid={g.id} style={{ gridColumn: `span ${count}`, ['--gc' as string]: g.color ?? '#94a3b8' }}
-      title="Grupo de etapas · clic derecho para más acciones">
+      title="Grupo de etapas · arrastra los bordes para abarcar más o menos columnas · clic derecho para más acciones">
+      <div className="sg-edge left" data-gid={g.id} title="Arrastra para cambiar dónde empieza el grupo" />
       <input className="name" value={g.name} onFocus={snapshot} onChange={e => actions.renameStageGroup(g.id, e.target.value)} />
+      <div className="sg-edge right" data-gid={g.id} title="Arrastra para cambiar dónde acaba el grupo" />
     </div>
   );
 }
