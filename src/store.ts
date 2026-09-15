@@ -28,6 +28,8 @@ export interface UIState {
   compTab: string;
   /** Zoom del tablero (sólo del diagrama, no del resto de la interfaz). 1 = 100 %. */
   zoom: number;
+  /** Zoom de los títulos (capas, etapas y grupos), independiente del contenido. */
+  titleZoom: number;
 }
 
 /** Celda activa del tablero (destino de pegar / nuevo componente). */
@@ -62,7 +64,7 @@ export const useStore = create<Store>()(
       cell: null,
       past: [],
       future: [],
-      ui: { libFilter: 'all', tab: 'comps', search: '', link: { style: 'solid', dir: 'fwd', color: '#475569', width: 2 }, sidebarW: 280, inspectorW: 320, sidebarOpen: true, inspectorOpen: true, theme: 'system', zen: false, collapsedLibs: [], pinLayers: true, pinStages: true, zoom: 1, compTab: 'datos' },
+      ui: { libFilter: 'all', tab: 'comps', search: '', link: { style: 'solid', dir: 'fwd', color: '#475569', width: 2 }, sidebarW: 280, inspectorW: 320, sidebarOpen: true, inspectorOpen: true, theme: 'system', zen: false, collapsedLibs: [], pinLayers: true, pinStages: true, zoom: 1, titleZoom: 1, compTab: 'datos' },
       mutate(fn, snap = true) {
         const snapStr = snap ? JSON.stringify(get().data) : null;
         set(s => {

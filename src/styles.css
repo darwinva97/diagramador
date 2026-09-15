@@ -425,7 +425,7 @@ body.panning .comp, body.panning .cell { pointer-events: none; }
 /* columna de capas */
 #grid.pin-cols .layer-h,
 #grid.pin-cols .corner,
-#grid.pin-cols .corner-gap.start { position: sticky; left: 0; z-index: 16; }
+#grid.pin-cols .corner-gap.start { position: sticky; left: 0; }
 /* fila superior: primero la banda de grupos y, justo debajo, las cabeceras de etapa */
 #grid.pin-rows .stage-group,
 #grid.pin-rows .group-gap { position: sticky; top: 0; z-index: 18; }
@@ -433,8 +433,8 @@ body.panning .comp, body.panning .cell { pointer-events: none; }
 #grid.pin-rows .add-col,
 #grid.pin-rows .corner { position: sticky; top: var(--band-h, 26px); z-index: 18; }
 /* la esquina y el hueco de arriba a la izquierda cruzan las dos, así que van por encima */
-#grid.pin-cols.pin-rows .corner { left: 0; z-index: 24; }
-#grid.pin-cols.pin-rows .corner-gap.start { top: 0; z-index: 24; }
+#grid.pin-cols.pin-rows .corner { left: 0; }
+#grid.pin-cols.pin-rows .corner-gap.start { top: 0; }
 /* sombra sutil mientras hay contenido por debajo */
 #grid.pin-cols .layer-h { box-shadow: 6px 0 8px -8px var(--shadow-2); }
 #grid.pin-rows .stage-h { box-shadow: 0 6px 8px -8px var(--shadow-2); }
@@ -476,3 +476,14 @@ body.zen .zoom-bar:hover { opacity: 1; }
 .itab.on { background: var(--soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .itab small { background: var(--border); color: var(--text-2); border-radius: 8px; padding: 0 5px; font-size: 10.5px; }
 .itab.on small { background: var(--accent); color: #fff; }
+
+/* ---------- Zoom propio de los títulos (--tf compensa el zoom del diagrama) */
+.layer-h .name, .stage-h .name, .stage-group input.name { font-size: calc(12.5px * var(--tf, 1)); }
+.layer-h .name, .stage-h .name { padding: calc(3px * var(--tf, 1)) calc(6px * var(--tf, 1)); }
+.stage-h { padding: calc(6px * var(--tf, 1)); }
+.layer-h { padding: calc(8px * var(--tf, 1)); }
+.stage-group { padding: calc(3px * var(--tf, 1)) calc(8px * var(--tf, 1)); }
+.corner span { font-size: calc(12px * var(--tf, 1)); }
+.layer-h .handle, .stage-h .handle, .stage-group .handle { font-size: calc(14px * var(--tf, 1)); }
+.stage-h .name { width: calc(190px * var(--tf, 1)); }
+.zoom-sep { width: 1px; align-self: stretch; margin: 2px 3px; background: var(--border); }

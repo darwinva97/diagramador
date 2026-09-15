@@ -15,6 +15,8 @@ import type { Diagram, Layer, Placement, Stage, StageGroup } from '../types';
 const LANE_W = 210;
 /** Límites y paso del zoom del tablero. */
 export const ZOOM_MIN = 0.25, ZOOM_MAX = 2;
+/** Límites del zoom de los títulos, relativo al tamaño normal en pantalla. */
+export const TZ_MIN = 0.5, TZ_MAX = 3;
 export const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
 
 /** Arrastre libre de una instancia (posición en vivo, relativa a su celda de origen). */
@@ -28,13 +30,23 @@ export function Board() {
   const snapshot = useStore(s => s.snapshot);
   const hover = useHover();
   const ui = useStore(s => s.ui);
+  const setUI = useStore(s => s.setUI);
   const zoom = ui.zoom || 1;
   /**
-   * Con zoom por encima del 100 % el navegador calcula mal qué hay bajo el cursor
-   * cuando además hay cabeceras fijas (falla el arrastre). Por encima de ese punto
-   * se sueltan solas; la preferencia del usuario se mantiene para cuando vuelva.
+   * La columna de capas se fija con sticky horizontal, y Chrome calcula mal qué hay
+   * bajo el cursor cuando eso se combina con zoom por encima del 100 % (el arrastre
+   * deja de funcionar). Al acercar se suelta sólo esa columna; la fila de etapas y la
+   * banda de grupos se quedan fijas en todos los niveles.
    */
-  const pegajosas = zoom <= 1;
+  const columnaFija = ui.pinLayers && zoom <= 1;
+  /**
+   * Los títulos tienen su propio zoom, independiente del contenido: se dibujan dentro
+   * de la rejilla (que ya lleva el zoom del diagrama), así que hay que compensarlo para
+   * que su tamaño en pantalla sea el que pide el usuario.
+   */
+  const tz = ui.titleZoom || 1;
+  const tf = tz / zoom;
+
   const d = curDiagram(data);
 
   const wrapRef = useRef<HTMLElement>(null);
@@ -530,59 +542,68 @@ export function Board() {
     setCell(cell ? { layerId: cell.dataset.lid!, stageId: cell.dataset.sid! } : null);
   };
 
-  const cols = `${LANE_W}px ${d.stages.map(s => s.width ? `${s.width}px` : `minmax(${CELL_DEFAULT_W}px, 1fr)`).join(' ')} 44px`;
+  // la columna de títulos crece con su propio zoom para que el texto siga cabiendo
+  const cols = `${Math.round(LANE_W * tf)}px ${d.stages.map(s => s.width ? `${s.width}px` : `minmax(${CELL_DEFAULT_W}px, 1fr)`).join(' ')} ${Math.round(44 * tf)}px`;
   const spans = stageSpans(d);
   return (
     <section id="canvasWrap" ref={wrapRef} onPointerDown={onWrapPointerDown} onAuxClick={e => e.preventDefault()}
       onClick={e => { if (e.target === e.currentTarget) { select(null); setCell(null); } }}>
       <div id="board" ref={boardRef}>
         <div id="grid" ref={gridRef}
-          className={(ui.pinLayers && pegajosas ? 'pin-cols' : '') + (ui.pinStages && pegajosas ? ' pin-rows' : '')}
-          style={{ gridTemplateColumns: cols, zoom, ['--band-h' as string]: `${bandH + 6}px`, ['--head-h' as string]: `${headH + 6}px`, ['--lane-w' as string]: `${LANE_W}px` }}
+          className={(columnaFija ? 'pin-cols' : '') + (ui.pinStages ? ' pin-rows' : '')}
+          style={{ gridTemplateColumns: cols, zoom, ['--band-h' as string]: `${bandH + 6}px`, ['--head-h' as string]: `${headH + 6}px`, ['--lane-w' as string]: `${Math.round(LANE_W * tf)}px`, ['--tf' as string]: tf }}
           onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}
           onPointerDown={e => { onBandPointerDown(e); onPointerDown(e); }} onClick={onGridClick} onDoubleClick={onGridDoubleClick} onContextMenu={onGridContextMenu}>
-          <div className="group-gap corner-gap start" />
-          {spans.map(sp => sp.group
-            ? <StageGroupHeader key={sp.key} g={sp.group} count={sp.count} snapshot={snapshot} />
-            : <div key={sp.key} className="group-gap" data-sid={sp.sid} style={{ gridColumn: `span ${sp.count}` }}
+          {spans.map((sp, k) => sp.group
+            ? <StageGroupHeader key={sp.key} g={sp.group} count={sp.count} col={2 + spans.slice(0, k).reduce((n, x) => n + x.count, 0)} snapshot={snapshot} />
+            : <div key={sp.key} className="group-gap" data-sid={sp.sid}
+                style={{ gridRow: 1, gridColumn: `${2 + spans.slice(0, k).reduce((n, x) => n + x.count, 0)} / span ${sp.count}` }}
                 title="Arrastra sobre las columnas para agruparlas">
                 <span className="gap-hint">+ agrupar</span>
               </div>)}
-          <div className="group-gap corner-gap end" />
-          <div className="corner"><span>Capas ╲ Etapas</span></div>
-          {d.stages.map(s => <StageHeader key={s.id} s={s} snapshot={snapshot} />)}
-          <div className="add-col"><button className="btn icon" onClick={actions.addStage} title="Añadir etapa">+</button></div>
-          {d.layers.map(l => (
+          <div className="group-gap corner-gap end" style={{ gridRow: 1, gridColumn: d.stages.length + 2 }} />
+          <div className="group-gap corner-gap start" style={{ gridRow: 1, gridColumn: 1 }} />
+          {d.stages.map((s, j) => <StageHeader key={s.id} s={s} col={j + 2} snapshot={snapshot} />)}
+          <div className="add-col" style={{ gridRow: 2, gridColumn: d.stages.length + 2 }}><button className="btn icon" onClick={actions.addStage} title="Añadir etapa">+</button></div>
+          <div className="corner" style={{ gridRow: 2, gridColumn: 1 }}><span>Capas ╲ Etapas</span></div>
+          {d.layers.map((l, i) => (
             <Fragment key={l.id}>
-              <LayerHeader l={l} snapshot={snapshot} />
-              {d.stages.map(s => (
+              {d.stages.map((s, j) => (
                 <Cell key={s.id} d={d} l={l} s={s} sel={sel} drag={drag} rects={rects} linkTarget={linking?.target ?? null} hoverCid={hover.cid}
-                  onHover={(cid, pid) => hover.set(cid, pid)} />
+                  row={i + 3} col={j + 2} onHover={(cid, pid) => hover.set(cid, pid)} />
               ))}
-              <div className="filler" />
+              <div className="filler" style={{ gridRow: i + 3, gridColumn: d.stages.length + 2 }} />
+              <LayerHeader l={l} row={i + 3} snapshot={snapshot} />
             </Fragment>
           ))}
-          <div className="add-row"><button className="btn" onClick={actions.addLayer}>+ Capa</button></div>
+          <div className="add-row" style={{ gridRow: d.layers.length + 3 }}><button className="btn" onClick={actions.addLayer}>+ Capa</button></div>
         </div>
         <Links rects={rects} size={size} relations={d.relations} sel={sel} hoverPid={hover.pid} linking={linking}
           onSelect={id => select({ kind: 'relation', id })} onContext={onRelationContextMenu} />
       </div>
-      <div className={'zoom-bar' + (zoom > 1 && (ui.pinLayers || ui.pinStages) ? ' warn-pin' : '')}
+      <div className={'zoom-bar' + (ui.pinLayers && !columnaFija ? ' warn-pin' : '')}
         title={'Zoom sólo del diagrama · Ctrl + rueda, Ctrl +, Ctrl −, Ctrl 0'
-          + (zoom > 1 && (ui.pinLayers || ui.pinStages) ? '\nPor encima del 100 % las cabeceras dejan de estar fijas' : '')}>
+          + (ui.pinLayers && !columnaFija ? '\nPor encima del 100 % la columna de capas deja de estar fija' : '')}>
         <button className="btn icon" onClick={() => zoomA(zoom / 1.25)} disabled={zoom <= ZOOM_MIN} title="Alejar (Ctrl −)">−</button>
         <button className="btn zoom-val" onClick={() => zoomA(1)} title="Volver al 100 % (Ctrl 0)">{Math.round(zoom * 100)}%</button>
         <button className="btn icon" onClick={() => zoomA(zoom * 1.25)} disabled={zoom >= ZOOM_MAX} title="Acercar (Ctrl +)">+</button>
         <button className="btn icon" onClick={ajustar} title="Ajustar el ancho a la ventana">⤢</button>
+        <span className="zoom-sep" />
+        <button className="btn icon" onClick={() => setUI({ titleZoom: Math.max(TZ_MIN, Math.round(tz / 1.25 * 100) / 100) })}
+          disabled={tz <= TZ_MIN} title="Títulos más pequeños">A−</button>
+        <button className="btn zoom-val" onClick={() => setUI({ titleZoom: 1 })}
+          title="Zoom de los títulos de capas, etapas y grupos · clic para volver al 100 %">{Math.round(tz * 100)}%</button>
+        <button className="btn icon" onClick={() => setUI({ titleZoom: Math.min(TZ_MAX, Math.round(tz * 1.25 * 100) / 100) })}
+          disabled={tz >= TZ_MAX} title="Títulos más grandes">A+</button>
       </div>
     </section>
   );
 }
 
 /** Cabecera de un grupo de etapas: abarca las columnas de sus etapas. */
-function StageGroupHeader({ g, count, snapshot }: { g: StageGroup; count: number; snapshot(): void }) {
+function StageGroupHeader({ g, count, col, snapshot }: { g: StageGroup; count: number; col: number; snapshot(): void }) {
   return (
-    <div className="stage-group" data-gid={g.id} style={{ gridColumn: `span ${count}`, ['--gc' as string]: g.color ?? '#94a3b8' }}
+    <div className="stage-group" data-gid={g.id} style={{ gridRow: 1, gridColumn: `${col} / span ${count}`, ['--gc' as string]: g.color ?? '#94a3b8' }}
       title="Grupo de etapas · arrastra los bordes para abarcar más o menos columnas · clic derecho para más acciones">
       <div className="sg-edge left" data-gid={g.id} title="Arrastra para cambiar dónde empieza el grupo" />
       <input className="name" value={g.name} onFocus={snapshot} onChange={e => actions.renameStageGroup(g.id, e.target.value)} />
@@ -591,9 +612,9 @@ function StageGroupHeader({ g, count, snapshot }: { g: StageGroup; count: number
   );
 }
 
-function StageHeader({ s, snapshot }: { s: Stage; snapshot(): void }) {
+function StageHeader({ s, col, snapshot }: { s: Stage; col: number; snapshot(): void }) {
   return (
-    <div className="stage-h" data-sid={s.id}>
+    <div className="stage-h" data-sid={s.id} style={{ gridRow: 2, gridColumn: col }}>
       <span className="sh-stick">
         <span className="handle" draggable data-drag="stage" data-id={s.id} title="Arrastrar para reordenar">⋮⋮</span>
         <input className="name" value={s.name} onFocus={snapshot} onChange={e => actions.renameStage(s.id, e.target.value)} />
@@ -604,9 +625,9 @@ function StageHeader({ s, snapshot }: { s: Stage; snapshot(): void }) {
   );
 }
 
-function LayerHeader({ l, snapshot }: { l: Layer; snapshot(): void }) {
+function LayerHeader({ l, row, snapshot }: { l: Layer; row: number; snapshot(): void }) {
   return (
-    <div className="layer-h" data-lid={l.id} style={{ ['--lc' as string]: l.color }}>
+    <div className="layer-h" data-lid={l.id} style={{ gridRow: row, gridColumn: 1, ['--lc' as string]: l.color }}>
       <div className="lh-stick">
         <div className="lh-top">
           <span className="handle" draggable data-drag="layer" data-id={l.id} title="Arrastrar para reordenar">⋮⋮</span>
@@ -622,10 +643,10 @@ function LayerHeader({ l, snapshot }: { l: Layer; snapshot(): void }) {
 
 interface CellProps {
   d: Diagram; l: Layer; s: Stage; sel: ReturnType<typeof useValidSel>; drag: ChipDrag | null; rects: Record<string, Rect>;
-  linkTarget: string | null; hoverCid: string | null;
+  linkTarget: string | null; hoverCid: string | null; row: number; col: number;
   onHover(cid: string | null, pid?: string | null): void;
 }
-function Cell({ d, l, s, sel, drag, rects, linkTarget, hoverCid, onHover }: CellProps) {
+function Cell({ d, l, s, sel, drag, rects, linkTarget, hoverCid, row, col, onHover }: CellProps) {
   const data = useStore(st => st.data);
   const active = useStore(st => st.cell?.layerId === l.id && st.cell?.stageId === s.id);
   const ps = d.placements.filter(p => p.layerId === l.id && p.stageId === s.id && !p.parentId);
@@ -635,7 +656,7 @@ function Cell({ d, l, s, sel, drag, rects, linkTarget, hoverCid, onHover }: Cell
   const ghost = drag && dragRoot && dragRoot.layerId === l.id && dragRoot.stageId === s.id ? d.placements.find(p => p.id === drag.pid) : null;
   const common = { d, data, sel, linkTarget, hoverCid, onHover, dragPid: drag?.pid ?? null };
   return (
-    <div className={'cell' + (active ? ' active' : '')} data-lid={l.id} data-sid={s.id} style={{ ['--lc' as string]: l.color, minHeight }}>
+    <div className={'cell' + (active ? ' active' : '')} data-lid={l.id} data-sid={s.id} style={{ gridRow: row, gridColumn: col, ['--lc' as string]: l.color, minHeight }}>
       {ps.map(p => <Chip key={p.id} p={p} {...common} />)}
       {ghost && <Chip p={ghost} {...common} ghost={drag!} />}
       <div className="cell-tools">
