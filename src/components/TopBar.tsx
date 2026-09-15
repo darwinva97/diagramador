@@ -1,14 +1,12 @@
 import { useHelp, useStore } from '../store';
 import { actions } from '../actions';
 import { openPopout, toggleFullscreen } from '../sync';
-import aliados from '../../ejemplos/aliados.json';
 import { pedidoExample } from '../seed';
 import { useAuth } from '../cloud';
 import { useLocation, useNavigate } from 'react-router';
 import { accountPath } from '../routes';
 
 const EXAMPLES: { key: string; name: string; data: unknown }[] = [
-  { key: 'aliados', name: 'Plantilla Aliados (APIs y microservicios por capas)', data: aliados },
   { key: 'pedido', name: 'Ejemplo básico: flujo de pedido', data: pedidoExample() },
 ];
 

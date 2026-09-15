@@ -8,7 +8,6 @@ import { cors } from 'hono/cors';
 import { setCookie, deleteCookie } from 'hono/cookie';
 import type { Store } from './store';
 import { hashPassword, newApiKey, nowIso, randomId, sha256, signSession, verifyPassword, verifySession } from './auth';
-import aliados from '../ejemplos/aliados.json';
 
 export { Store } from './store';
 
@@ -61,7 +60,7 @@ async function currentUser(c: { req: { header(n: string): string | undefined }; 
 
 const requireAuth = app.use('*', async (c, next) => {
   const path = c.req.path;
-  if (/\/auth\/(register|login)$/.test(path) || path.endsWith('/health') || path.endsWith('/templates')) return next();
+  if (/\/auth\/(register|login)$/.test(path) || path.endsWith('/health')) return next();
   const r = await currentUser(c, c.get('store'));
   if (!r) return c.json({ error: 'No autenticado. Usa la cookie de sesión o Authorization: Bearer <api key>.' }, 401);
   c.set('user', r.user); c.set('via', r.via);
@@ -496,25 +495,4 @@ app.post('/import', async c => {
   for (const r of body.rules ?? []) { const rr = normRule(r); await putDoc(store, u, 'rule', rr); rls.push(rr); }
   return c.json({ imported: { libraries: libs.map(l => l.id), diagrams: diags.map(d => d.id), people: ppl.map(p => p.id), rules: rls.map(r => r.id) } }, 201);
 });
-app.get('/templates', c => c.json({ templates: [{ key: 'aliados', name: 'Plantilla Aliados (APIs y microservicios por capas)' }] }));
-app.post('/templates/:key/apply', async c => {
-  if (c.req.param('key') !== 'aliados') return c.json({ error: 'Plantilla no encontrada' }, 404);
-  const store = c.get('store'); const u = c.get('user').id;
-  const src = JSON.parse(JSON.stringify(aliados)) as { libraries: Library[]; diagrams: Diagram[] };
-  const { name } = await c.req.json<{ name?: string }>().catch(() => ({} as { name?: string }));
-  // ids nuevos para no chocar con una aplicación anterior de la plantilla
-  const map = new Map<string, string>(); const nid = (old: string) => { const n = map.get(old) ?? uid(); map.set(old, n); return n; };
-  for (const l of src.libraries) { l.id = nid(l.id); for (const t of l.types) t.id = nid(t.id as string); for (const cpt of l.components) { cpt.id = nid(cpt.id as string); if (cpt.typeId) cpt.typeId = nid(cpt.typeId as string); } }
-  for (const d of src.diagrams) {
-    d.id = nid(d.id); if (name) d.name = name;
-    for (const l of d.layers) l.id = nid(l.id as string); for (const s of d.stages) s.id = nid(s.id as string);
-    for (const p of d.placements) p.id = nid(p.id as string);
-    for (const p of d.placements) { p.componentId = nid(p.componentId as string); p.layerId = nid(p.layerId as string); p.stageId = nid(p.stageId as string); if (p.parentId) p.parentId = nid(p.parentId as string); }
-    for (const r of d.relations) { r.id = nid(r.id as string); r.from = nid(r.from as string); r.to = nid(r.to as string); }
-  }
-  for (const l of src.libraries) await putDoc(store, u, 'library', l);
-  for (const d of src.diagrams) await putDoc(store, u, 'diagram', d);
-  return c.json({ libraries: src.libraries.map(l => l.id), diagrams: src.diagrams.map(d => d.id) }, 201);
-});
-
 export default app;

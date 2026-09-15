@@ -1,14 +1,18 @@
 import type { AppData, Component, ComponentType, Diagram, Placement } from './types';
-import { normalize } from './lib/model';
-import aliados from '../ejemplos/aliados.json';
+import { normalize, uid } from './lib/model';
 
-/** Datos iniciales (primera vez que se abre la app): la plantilla "Aliados". */
+/** Datos iniciales la primera vez que se abre la app: un diagrama vacío listo para trabajar. */
 export function seed(): AppData {
-  const src = JSON.parse(JSON.stringify(aliados)) as { libraries: AppData['libraries']; diagrams: Diagram[] };
-  return normalize({ libraries: src.libraries, diagrams: src.diagrams, people: [], rules: [], currentDiagramId: src.diagrams[0]?.id ?? null });
+  const diagrama: Diagram = {
+    id: uid(), name: 'Mi diagrama', description: '',
+    layers: DEFAULT_LAYERS.map(l => ({ id: uid(), name: l.name, color: l.color })),
+    stages: DEFAULT_STAGES.map(n => ({ id: uid(), name: n })),
+    stageGroups: [], placements: [], relations: [],
+  };
+  return normalize({ libraries: [], diagrams: [diagrama], people: [], rules: [], currentDiagramId: diagrama.id });
 }
 
-/** Capas por defecto para un diagrama nuevo (misma estructura que la plantilla Aliados). */
+/** Capas por defecto para un diagrama nuevo. */
 export const DEFAULT_LAYERS: { name: string; color: string }[] = [
   { name: 'Sub Procesos', color: '#fef9c3' },
   { name: 'APIs Experiencia', color: '#e0f2fe' },

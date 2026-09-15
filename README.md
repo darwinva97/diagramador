@@ -65,7 +65,7 @@ npm run build      # genera dist/index.html (un único archivo; necesita un serv
 - **Páginas de administración**: perfil, API keys, diagramas, bibliotecas, tipos, configuración y guía para agentes.
 - **API REST** en `/api/v1` (Hono en el Worker). Autenticación por cookie o `Authorization: Bearer dgk_…` (API key).
   Todo lo que hace la app se puede hacer por API: bibliotecas, tipos, componentes, diagramas, capas, etapas, instancias,
-  relaciones, import/export y plantillas.
+  relaciones e import/export.
   - Guía para agentes: [`public/agent.md`](public/agent.md) → https://draw.bezenti.com/agent.md
   - OpenAPI: [`public/openapi.json`](public/openapi.json) → https://draw.bezenti.com/openapi.json
   - Skill para agentes: [`SKILL.md`](SKILL.md) · contexto del dominio: [`CONTEXT.md`](CONTEXT.md)
@@ -88,10 +88,10 @@ La app se publica como **Cloudflare Worker de archivos estáticos** (`wrangler.j
 
 ## Ejemplos
 
-Al abrir la app por primera vez se carga la **plantilla Aliados** (librería con tipos Subproceso, API con contrato, Microservicio, Sistema backend y Almacenamiento). Los diagramas nuevos usan sus capas por defecto: Sub Procesos, APIs Experiencia, APIs Proceso, APIs Negocio, APIs Sistema (SYS) y BACKEND.
+Al abrir la app por primera vez se crea un diagrama vacío con las capas por defecto: Sub Procesos, APIs Experiencia, APIs Proceso, APIs Negocio, APIs Sistema (SYS) y BACKEND. Los diagramas nuevos usan esas mismas capas.
 
 En `ejemplos/` hay diagramas listos para importar (menú **Ejemplos…** de la barra superior o **Importar JSON**).
-`ejemplos/aliados.json` se genera con `node scripts/gen-aliados.mjs` y reproduce una arquitectura por capas
+IGNORAR
 (subprocesos → APIs/microservicios de experiencia, proceso, negocio y sistema → backend) con 5 etapas.
 
 ## Estructura

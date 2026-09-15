@@ -343,7 +343,7 @@ curl -H "Authorization: Bearer $DIAGRAMADOR_API_KEY" ${base}/auth/me
 
 # crear un diagrama desde la plantilla Aliados
 curl -X POST -H "Authorization: Bearer $DIAGRAMADOR_API_KEY" -H "Content-Type: application/json" \\
-  -d '{"name":"Mi arquitectura"}' ${base}/templates/aliados/apply
+  -d '{"name":"Mi arquitectura"}' ${base}/libraries
 
 # listar diagramas
 curl -H "Authorization: Bearer $DIAGRAMADOR_API_KEY" ${base}/diagrams`}</pre>
@@ -351,7 +351,7 @@ curl -H "Authorization: Bearer $DIAGRAMADOR_API_KEY" ${base}/diagrams`}</pre>
       <ul className="help">
         <li><code>/libraries</code> · <code>/libraries/:id/types</code> · <code>/libraries/:id/components</code></li>
         <li><code>/diagrams</code> · <code>/diagrams/:id/layers</code> · <code>/stages</code> · <code>/placements</code> · <code>/relations</code></li>
-        <li><code>/export</code>, <code>/diagrams/:id/export</code>, <code>/import</code>, <code>/templates/aliados/apply</code>, <code>/api-keys</code></li>
+        <li><code>/export</code>, <code>/diagrams/:id/export</code>, <code>/import</code>, <code>/people</code>, <code>/rules</code>, <code>/api-keys</code></li>
       </ul>
       <p className="muted">Instrucciones típicas para un agente: “Usa la API de Drawer en {base} con la key X. Lee primero {location.origin}/agent.md.”</p>
     </>

@@ -29,7 +29,6 @@ como plataforma con sincronización y API REST.
   - `cloud.ts` cuenta y sincronización con la API (la cuenta es la fuente de verdad; cambios locales se suben con debounce).
 - `worker/` — Cloudflare Worker (Hono): API REST `/api/v1`, cookies de sesión firmadas (HMAC), contraseñas PBKDF2, API keys `dgk_…` (hash SHA-256). Persistencia en un **Durable Object con SQLite** (`Store`): tablas `users`, `api_keys`, `docs` (documentos JSON por usuario: `library` / `diagram`).
 - `public/` — PWA (manifest, iconos, `sw.js`), `agent.md` (guía para agentes), `openapi.json`.
-- `ejemplos/aliados.json` — plantilla por defecto, generada por `scripts/gen-aliados.mjs`.
 - Despliegue: Worker con assets estáticos (`wrangler.jsonc`), dominio `draw.bezenti.com`; CI en `.github/workflows/deploy.yml`.
 
 ## Convenciones

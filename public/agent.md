@@ -70,14 +70,13 @@ Las relaciones pueden unir cualquier par de instancias, aunque estén en capas o
 2. `POST /libraries/{libId}/types` `{ "name": "API", "color": "#2563eb", "icon": "🔌", "fields": [ { "key": "method", "label": "Método", "kind": "select", "options": "GET, POST, PUT, DELETE" }, { "key": "path", "label": "Path", "kind": "text" } ] }` → `typeId`
 3. `POST /libraries/{libId}/components` `{ "name": "API Pedidos", "typeId": "<typeId>", "fields": { "method": "POST", "path": "/pedidos" } }` → `componentId`
 4. `POST /diagrams` `{ "name": "Flujo de pedido", "layers": [ { "name": "Presentación" }, { "name": "Lógica" }, { "name": "Datos" } ], "stages": [ { "name": "Captura" }, { "name": "Proceso" } ] }`
-   → respuesta con los ids de `layers[]` y `stages[]`. (Si omites layers/stages se usan las capas de la plantilla Aliados.)
+   → respuesta con los ids de `layers[]` y `stages[]`. (Si omites layers/stages se usan las capas por defecto: Sub Procesos, APIs Experiencia, APIs Proceso, APIs Negocio, APIs Sistema (SYS) y BACKEND.)
 5. `POST /diagrams/{diagId}/placements` `{ "componentId": "<componentId>", "layerId": "<layerId>", "stageId": "<stageId>" }` → `placementId`
    - Posición opcional `x`, `y`. Sin posición se apila automáticamente.
    - Subcomponente: añade `"parentId": "<placementId del contenedor>"` (debe estar en la misma celda; el servidor lo mueve si no).
 6. `POST /diagrams/{diagId}/relations` `{ "from": "<placementId A>", "to": "<placementId B>", "style": "dashed", "label": "persiste" }`
    - Conexión por campos (opcional): `"fromField": "response_body.aliadoId", "toField": "request_body.aliadoId"`.
 
-Atajo: `POST /templates/aliados/apply` `{ "name": "Mi copia" }` crea una biblioteca y un diagrama completos de ejemplo (APIs con microservicios anidados, subprocesos y backends).
 
 ## Endpoints
 
@@ -103,7 +102,6 @@ Atajo: `POST /templates/aliados/apply` `{ "name": "Mi copia" }` crea una bibliot
 | `/diagrams/{id}/export` | GET → `{ libraries (sólo lo usado), diagrams: [diagrama] }` |
 | `/export` | GET → todo (bibliotecas, diagramas, personas y reglas) |
 | `/import` | POST `{ libraries?, diagrams?, people?, rules? }` → upsert por id (formato de exportación de la app) |
-| `/templates` · `/templates/{key}/apply` | GET · POST `{ name? }` (la plantilla incluida es `aliados`) |
 | `/api-keys` · `/api-keys/{id}` | GET, POST `{ name }` · DELETE |
 
 Todas las rutas son absolutas tal cual aparecen aquí: un sub-recurso **siempre** lleva el prefijo de su padre

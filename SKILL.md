@@ -15,4 +15,3 @@ esquemas, `https://draw.bezenti.com/openapi.json`.
 Resumen del modelo: **Biblioteca** → tipos y componentes. **Diagrama** → capas (filas), etapas (columnas),
 **instancias** (`placements`: componente en una celda, con `parentId` para subcomponentes) y **relaciones**
 (entre ids de instancias). Flujo: crear biblioteca → tipos → componentes → diagrama → placements → relations.
-Atajo: `POST /templates/aliados/apply` crea un ejemplo completo.
