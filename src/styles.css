@@ -487,3 +487,19 @@ body.zen .zoom-bar:hover { opacity: 1; }
 .layer-h .handle, .stage-h .handle, .stage-group .handle { font-size: calc(14px * var(--tf, 1)); }
 .stage-h .name { width: calc(190px * var(--tf, 1)); }
 .zoom-sep { width: 1px; align-self: stretch; margin: 2px 3px; background: var(--border); }
+
+/* ---------- Vista pública (sólo lectura) */
+body.read-only #root { display: flex; flex-direction: column; height: 100%; }
+body.read-only #topbar.public { gap: 10px; }
+body.read-only .pub-name { font-weight: 600; }
+body.read-only .pub-tag { font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 10px; padding: 1px 8px; }
+body.read-only .cell-tools, body.read-only .add-col, body.read-only .add-row,
+body.read-only .layer-h .btn.ghost, body.read-only .stage-h .btn.ghost,
+body.read-only .layer-h .handle, body.read-only .stage-h .handle,
+body.read-only .lcolor, body.read-only .rs-x, body.read-only .rs-y,
+body.read-only .comp .port, body.read-only .sg-edge, body.read-only .gap-hint { display: none !important; }
+body.read-only .name { pointer-events: none; }
+.public-msg { padding: 48px; text-align: center; }
+.public-msg h2 { margin-bottom: 8px; }
+.share-box { border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-bottom: 10px; }
+.share-box input { font-size: 11.5px; font-family: ui-monospace, Menlo, monospace; }

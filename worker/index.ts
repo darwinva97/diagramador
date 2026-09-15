@@ -60,7 +60,7 @@ async function currentUser(c: { req: { header(n: string): string | undefined }; 
 
 const requireAuth = app.use('*', async (c, next) => {
   const path = c.req.path;
-  if (/\/auth\/(register|login)$/.test(path) || path.endsWith('/health')) return next();
+  if (/\/auth\/(register|login)$/.test(path) || path.endsWith('/health') || /\/public\//.test(path)) return next();
   const r = await currentUser(c, c.get('store'));
   if (!r) return c.json({ error: 'No autenticado. Usa la cookie de sesión o Authorization: Bearer <api key>.' }, 401);
   c.set('user', r.user); c.set('via', r.via);
@@ -177,7 +177,7 @@ const normPerson = (p: Partial<Person>, id?: string): Person => ({
     .filter(a => ASSIGN_KINDS.includes(a.kind as string) && typeof a.targetId === 'string')
     .map(a => ({ ...a, id: (a.id as string) ?? uid(), role: String(a.role ?? 'Participante') })),
 });
-interface Diagram { id: string; name: string; description: string; layers: Record<string, unknown>[]; stages: Record<string, unknown>[]; stageGroups: Record<string, unknown>[]; placements: Record<string, unknown>[]; relations: Record<string, unknown>[]; stageWidths?: unknown }
+interface Diagram { id: string; name: string; description: string; public?: boolean; layers: Record<string, unknown>[]; stages: Record<string, unknown>[]; stageGroups: Record<string, unknown>[]; placements: Record<string, unknown>[]; relations: Record<string, unknown>[]; stageWidths?: unknown }
 
 const DEFAULT_LAYERS = [
   { name: 'Sub Procesos', color: '#fef9c3' }, { name: 'APIs Experiencia', color: '#e0f2fe' }, { name: 'APIs Proceso', color: '#ccfbf1' },
@@ -218,7 +218,7 @@ const normDiag = (d: Partial<Diagram>, id?: string): Diagram => {
     return { x: 8, y: 8 + n * 40, parentId: null, ...p, id: (p.id as string) ?? uid() };
   });
   const relations = (d.relations ?? []).map(r => ({ style: 'solid', dir: 'fwd', color: '#475569', width: 2, label: '', ...r, id: (r.id as string) ?? uid() }));
-  return { id: id ?? d.id ?? uid(), name: String(d.name ?? 'Diagrama'), description: String(d.description ?? ''), layers, stages, stageGroups, placements, relations };
+  return { id: id ?? d.id ?? uid(), name: String(d.name ?? 'Diagrama'), description: String(d.description ?? ''), public: d.public === true, layers, stages, stageGroups, placements, relations };
 };
 const summary = (d: Diagram & { updatedAt: string }) => ({
   id: d.id, name: d.name, description: d.description, updatedAt: d.updatedAt,
@@ -495,4 +495,32 @@ app.post('/import', async c => {
   for (const r of body.rules ?? []) { const rr = normRule(r); await putDoc(store, u, 'rule', rr); rls.push(rr); }
   return c.json({ imported: { libraries: libs.map(l => l.id), diagrams: diags.map(d => d.id), people: ppl.map(p => p.id), rules: rls.map(r => r.id) } }, 201);
 });
+/**
+ * Vista pública de un diagrama, sin sesión: sólo responde si su autor lo marcó como
+ * público. Devuelve el diagrama, lo que necesita para dibujarse (bibliotecas usadas,
+ * personas asignadas y reglas de estilo) y nada más: ni cuentas, ni API keys, ni el
+ * resto de diagramas.
+ */
+app.get('/public/diagrams/:id', async c => {
+  const store = c.get('store');
+  const rows = await store.all<DocRow & { user_id: string }>(
+    'SELECT user_id, id, name, data, updated_at FROM docs WHERE kind = ? AND id = ?', ['diagram', c.req.param('id')]);
+  const row = rows.find(r => { try { return (JSON.parse(r.data) as Diagram).public === true; } catch { return false; } });
+  if (!row) return c.json({ error: 'Diagrama no encontrado o no publicado' }, 404);
+  const u = row.user_id;
+  const d = { ...(JSON.parse(row.data) as Diagram), updatedAt: row.updated_at };
+  const usados = new Set(d.placements.map(p => p.componentId as string));
+  const libraries = (await listDocs<Library>(store, u, 'library'))
+    .map(l => ({ ...l, components: l.components.filter(x => usados.has(x.id as string)) }))
+    .map(l => ({ ...l, types: l.types.filter(t => l.components.some(x => x.typeId === t.id)) }))
+    .filter(l => l.components.length);
+  const ids = new Set([...usados, d.id, ...d.layers.map(l => l.id as string), ...d.stages.map(s => s.id as string),
+    ...libraries.flatMap(l => l.types.map(t => t.id as string))]);
+  const people = (await listDocs<Person>(store, u, 'person'))
+    .map(p => ({ ...p, email: undefined, assignments: p.assignments.filter(a => ids.has(a.targetId as string)) }))
+    .filter(p => p.assignments.length);
+  const rules = (await listDocs<StyleRule>(store, u, 'rule')).filter(r => !r.diagramId || r.diagramId === d.id);
+  return c.json({ app: 'diagramador', version: 1, diagram: d, libraries, people, rules });
+});
+
 export default app;

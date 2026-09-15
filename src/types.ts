@@ -80,6 +80,8 @@ export interface Diagram {
   stages: Stage[];
   /** Grupos de etapas (opcional; si está vacío no se dibuja la banda superior). */
   stageGroups?: StageGroup[];
+  /** Publicado: cualquiera con el enlace puede verlo (sólo lectura). */
+  public?: boolean;
   placements: Placement[];
   relations: Relation[];
 }

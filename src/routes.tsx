@@ -16,6 +16,7 @@ import { Account } from './components/Account';
 import { Shortcuts } from './components/Shortcuts';
 import { ContextMenu } from './components/ContextMenu';
 import { AssignDialog } from './components/People';
+import { PublicView } from './components/PublicView';
 import { PANEL_MAX, PANEL_MIN, useStore } from './store';
 import { actions } from './actions';
 import { toggleFullscreen, type View } from './sync';
@@ -28,6 +29,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/ventana/:view" element={<Popout />} />
+      <Route path="/p/:id" element={<PublicView />} />
       <Route element={<Shell />}>
         <Route index element={<Editor />} />
         <Route path="d/:id" element={<Editor />} />

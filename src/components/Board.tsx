@@ -123,6 +123,7 @@ export function Board() {
     return null;
   };
   const onDragStart = (e: React.DragEvent) => {
+    if (soloLectura) { e.preventDefault(); return; }
     const handle = (e.target as HTMLElement).closest<HTMLElement>('.handle');
     if (!handle || linking || drag) { e.preventDefault(); return; }
     startDrag(e, { t: handle.dataset.drag as 'stage' | 'layer', id: handle.dataset.id! });
@@ -135,6 +136,7 @@ export function Board() {
     if (overRef.current !== tgt) { clearOver(); tgt.classList.add('over'); overRef.current = tgt; }
   };
   const onDrop = (e: React.DragEvent) => {
+    if (soloLectura) return;
     const dd = readDrag(e); const tgt = dropTarget(e.target as HTMLElement, dd?.t ?? null);
     clearOver(); setDragData(null);
     if (!dd || !tgt) return;
@@ -166,7 +168,7 @@ export function Board() {
    * recorridas; desde el borde de un grupo lo extiende o lo reduce.
    */
   const onBandPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0 || space) return;
+    if (e.button !== 0 || space || soloLectura) return;
     const el = e.target as HTMLElement;
     const edge = el.closest<HTMLElement>('.sg-edge');
     const gap = el.closest<HTMLElement>('.group-gap');
@@ -205,7 +207,7 @@ export function Board() {
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0 || space) return; // con espacio se mueve el lienzo
+    if (e.button !== 0 || space || soloLectura) return; // con espacio se mueve el lienzo
     const el = e.target as HTMLElement;
     if (el.closest('.stage-group, .group-gap')) return; // lo gestiona onBandPointerDown
 
@@ -304,6 +306,7 @@ export function Board() {
 
   /** Menú contextual del tablero: instancia, celda, capa o etapa según dónde se haga clic derecho. */
   const onGridContextMenu = (e: React.MouseEvent) => {
+    if (soloLectura) return;
     const el = e.target as HTMLElement;
     const st = useStore.getState();
     const comp = el.closest<HTMLElement>('.comp');
@@ -415,6 +418,7 @@ export function Board() {
 
   /** Menú contextual de una flecha. */
   const onRelationContextMenu = (id: string, e: React.MouseEvent) => {
+    if (soloLectura) return;
     const r = d.relations.find(x => x.id === id); if (!r) return;
     select({ kind: 'relation', id });
     openMenu(e, [
@@ -489,6 +493,9 @@ export function Board() {
    * Mover el lienzo arrastrando, como en Figma: con la barra espaciadora, con el botón
    * central, o arrastrando sobre una zona libre (un clic sin mover sigue deseleccionando).
    */
+  /** En la vista pública sólo se mira: ni arrastrar, ni menús, ni redimensionar. */
+  const soloLectura = typeof document !== 'undefined' && document.body.classList.contains('read-only');
+
   const onWrapPointerDown = (e: React.PointerEvent) => {
     const el = e.target as HTMLElement;
     const central = e.button === 1;

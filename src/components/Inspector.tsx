@@ -39,6 +39,23 @@ function DiagramPanel({ d }: { d: Diagram }) {
       <label>Descripción<textarea rows={3} value={d.description} onFocus={snapshot} onChange={e => upd({ description: e.target.value })} /></label>
       <div className="stats">{d.layers.length} capas · {d.stages.length} etapas · {d.placements.length} instancias · {d.relations.length} relaciones</div>
 
+      <h4>Compartir</h4>
+      <label className="chk">
+        <input type="checkbox" checked={!!d.public}
+          onChange={e => { snapshot(); upd({ public: e.target.checked }); }} /> Público para lectura
+      </label>
+      {d.public ? (
+        <div className="share-box">
+          <div className="muted small">Cualquiera con el enlace puede verlo, sin cuenta y sin poder editarlo. Se publica lo que necesita para dibujarse: el diagrama, sus componentes, las personas asignadas y las reglas de estilo. No se comparten los correos ni el resto de tus diagramas.</div>
+          <div className="row">
+            <input readOnly value={`${location.origin}/p/${d.id}`} onFocus={e => e.currentTarget.select()} />
+            <button className="btn" onClick={() => { void navigator.clipboard?.writeText(`${location.origin}/p/${d.id}`); }}>Copiar</button>
+            <a className="btn" href={`/p/${d.id}`} target="_blank" rel="noreferrer">Abrir</a>
+          </div>
+          <div className="muted small">Necesita haberse sincronizado con tu cuenta: sin sesión iniciada el enlace no funciona.</div>
+        </div>
+      ) : <div className="muted small">Mientras no lo publiques, sólo se ve desde tu cuenta.</div>}
+
       <PeopleOf kind="diagram" targetId={d.id} label={d.name} />
 
       <h4>Grupos de etapas ({(d.stageGroups ?? []).length})</h4>
