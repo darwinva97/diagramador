@@ -16,10 +16,10 @@ como plataforma con sincronización y API REST.
 
 ## Arquitectura
 
-- `src/` — React 18 + TypeScript + Vite, estado con Zustand (immer + persist en `localStorage`, clave `diagramador.v2`).
+- `src/` — React 19 + TypeScript + Vite + React Router (declarativo, `routes.tsx`: `/d/:id`, `/cuenta/:tab`, `/ventana/:view`), estado con Zustand (immer + persist en `localStorage`, clave `diagramador.v2`).
   - `types.ts` modelo · `store.ts` estado/undo/UI · `actions.ts` operaciones · `lib/model.ts` normalización y árbol · `lib/geometry.ts` flechas · `lib/io.ts` import/export.
   - `components/` Board (cuadrícula, DnD, enlaces), Sidebar (bibliotecas), Inspector, TopBar, Account (perfil, API keys, listados, configuración, docs de agentes).
-  - `sync.ts` ventanas separadas (`?view=sidebar|inspector|board`) sincronizadas por `storage` + BroadcastChannel.
+  - `sync.ts` ventanas separadas (`/ventana/sidebar|inspector|board`) sincronizadas por `storage` + BroadcastChannel.
   - `cloud.ts` cuenta y sincronización con la API (la cuenta es la fuente de verdad; cambios locales se suben con debounce).
 - `worker/` — Cloudflare Worker (Hono): API REST `/api/v1`, cookies de sesión firmadas (HMAC), contraseñas PBKDF2, API keys `dgk_…` (hash SHA-256). Persistencia en un **Durable Object con SQLite** (`Store`): tablas `users`, `api_keys`, `docs` (documentos JSON por usuario: `library` / `diagram`).
 - `public/` — PWA (manifest, iconos, `sw.js`), `agent.md` (guía para agentes), `openapi.json`.

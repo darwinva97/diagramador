@@ -3,6 +3,8 @@ import { useStore } from '../store';
 import { actions } from '../actions';
 import { useAuth, login, register, logout, changePassword, deleteAccount, listKeys, createKey, deleteKey, pullAll, pushAll, platformAvailable, apiUrl, type ApiKeyInfo, type NewApiKey } from '../cloud';
 import { exportAll, exportDiagram } from '../lib/io';
+import { Link, NavLink, useNavigate, useParams } from 'react-router';
+import { accountPath, diagramPath } from '../routes';
 
 const TABS: { key: string; label: string }[] = [
   { key: 'perfil', label: '👤 Perfil' }, { key: 'keys', label: '🔑 API keys' }, { key: 'diagramas', label: '◫ Diagramas' },
@@ -10,15 +12,14 @@ const TABS: { key: string; label: string }[] = [
 ];
 
 export function Account() {
-  const tab = useStore(s => s.ui.pageTab);
-  const setUI = useStore(s => s.setUI);
+  const { tab = 'perfil' } = useParams<{ tab: string }>();
   const auth = useAuth();
   return (
     <div className="account">
       <aside className="account-nav">
-        <button className="btn" onClick={() => setUI({ page: null })}>← Volver al tablero</button>
+        <Link className="btn" to="/">← Volver al tablero</Link>
         <div className="account-user">{auth.status === 'auth' ? auth.user?.email : 'Sin sesión (modo local)'}</div>
-        {TABS.map(t => <button key={t.key} className={'nav-item' + (tab === t.key ? ' on' : '')} onClick={() => setUI({ pageTab: t.key })}>{t.label}</button>)}
+        {TABS.map(t => <NavLink key={t.key} className={({ isActive }) => 'nav-item' + (isActive ? ' on' : '')} to={accountPath(t.key)}>{t.label}</NavLink>)}
         <SyncStatus />
       </aside>
       <section className="account-body">
@@ -151,8 +152,8 @@ function ApiKeys() {
 
 // ------------------------------------------------------------------ Diagramas
 function Diagramas() {
-  const data = useStore(s => s.data); const setUI = useStore(s => s.setUI);
-  const open = (id: string) => { actions.setCurrent(id); setUI({ page: null }); };
+  const data = useStore(s => s.data); const navigate = useNavigate();
+  const open = (id: string) => { actions.setCurrent(id); navigate(diagramPath(id)); };
   return (
     <>
       <div className="row between"><h2>Diagramas ({data.diagrams.length})</h2><button className="btn primary" onClick={() => { actions.newDiagram(); }}>+ Nuevo diagrama</button></div>
@@ -179,7 +180,7 @@ function Diagramas() {
 
 // ------------------------------------------------------------------ Bibliotecas
 function Bibliotecas() {
-  const data = useStore(s => s.data); const setUI = useStore(s => s.setUI);
+  const data = useStore(s => s.data); const setUI = useStore(s => s.setUI); const navigate = useNavigate();
   const uses = (libId: string) => { const lib = data.libraries.find(l => l.id === libId)!; const ids = new Set(lib.components.map(c => c.id)); return data.diagrams.filter(d => d.placements.some(p => ids.has(p.componentId))).length; };
   return (
     <>
@@ -190,7 +191,7 @@ function Bibliotecas() {
           {data.libraries.map(l => (
             <tr key={l.id}><td><b>{l.name}</b></td><td>{l.types.length}</td><td>{l.components.length}</td><td>{uses(l.id)}</td>
               <td className="actions-cell">
-                <button className="btn" onClick={() => { setUI({ libFilter: l.id, tab: 'comps', page: null, sidebarOpen: true }); }}>Ver en el tablero</button>
+                <button className="btn" onClick={() => { setUI({ libFilter: l.id, tab: 'comps', sidebarOpen: true }); navigate('/'); }}>Ver en el tablero</button>
                 <button className="btn" onClick={() => actions.renameLibrary(l.id)}>Renombrar</button>
                 <button className="btn danger" onClick={() => actions.deleteLibrary(l.id)}>Eliminar</button>
               </td></tr>
@@ -204,7 +205,7 @@ function Bibliotecas() {
 
 // ------------------------------------------------------------------ Tipos
 function Tipos() {
-  const data = useStore(s => s.data); const setUI = useStore(s => s.setUI); const select = useStore(s => s.select);
+  const data = useStore(s => s.data); const setUI = useStore(s => s.setUI); const navigate = useNavigate(); const select = useStore(s => s.select);
   const types = data.libraries.flatMap(l => l.types.map(t => ({ t, lib: l })));
   const used = (tid: string) => data.libraries.flatMap(l => l.components).filter(c => c.typeId === tid).length;
   return (
@@ -217,7 +218,7 @@ function Tipos() {
             <tr key={t.id}><td><span className="swatch" style={{ background: t.color }} />{t.icon}</td><td><b>{t.name}</b></td><td>{lib.name}</td>
               <td className="muted small">{t.fields.map(f => f.label).join(', ') || '—'}</td><td>{used(t.id)}</td>
               <td className="actions-cell">
-                <button className="btn" onClick={() => { select({ kind: 'type', id: t.id }); setUI({ page: null, inspectorOpen: true, tab: 'types' }); }}>Editar</button>
+                <button className="btn" onClick={() => { select({ kind: 'type', id: t.id }); setUI({ inspectorOpen: true, tab: 'types' }); navigate('/'); }}>Editar</button>
                 <button className="btn danger" onClick={() => actions.deleteType(t.id)}>Eliminar</button>
               </td></tr>
           ))}

@@ -10,7 +10,7 @@ export function Inspector() {
   const d = curDiagram(data);
   if (!d) return <aside id="inspector"><p className="muted">Crea un diagrama para empezar.</p></aside>;
 
-  let body: JSX.Element;
+  let body: React.ReactElement;
   if (!sel) body = <DiagramPanel d={d} />;
   else if (sel.kind === 'placement') {
     const p = d.placements.find(x => x.id === sel.id)!;

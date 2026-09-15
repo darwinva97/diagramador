@@ -1,51 +1,23 @@
 import { useEffect } from 'react';
-import { TopBar } from './components/TopBar';
-import { Sidebar } from './components/Sidebar';
-import { Board } from './components/Board';
-import { Inspector } from './components/Inspector';
-import { PANEL_MAX, PANEL_MIN, useStore } from './store';
+import { useLocation, useNavigate } from 'react-router';
+import { useStore } from './store';
 import { actions } from './actions';
-import { currentView, initSync, toggleFullscreen } from './sync';
+import { initSync } from './sync';
 import { initCloud } from './cloud';
-import { Account } from './components/Account';
-
-/** Tirador vertical entre paneles: arrastra para cambiar el ancho del panel indicado. */
-function Splitter({ panel }: { panel: 'sidebar' | 'inspector' }) {
-  const width = useStore(s => panel === 'sidebar' ? s.ui.sidebarW : s.ui.inspectorW);
-  const setUI = useStore(s => s.setUI);
-  const onPointerDown = (e: React.PointerEvent) => {
-    e.preventDefault();
-    const x0 = e.clientX, w0 = width;
-    document.body.classList.add('resizing-panel');
-    const move = (ev: PointerEvent) => {
-      const delta = panel === 'sidebar' ? ev.clientX - x0 : x0 - ev.clientX; // el inspector crece hacia la izquierda
-      const w = Math.min(PANEL_MAX, Math.max(PANEL_MIN[panel], Math.round(w0 + delta)));
-      setUI(panel === 'sidebar' ? { sidebarW: w } : { inspectorW: w });
-    };
-    const up = () => { window.removeEventListener('pointermove', move); document.body.classList.remove('resizing-panel'); };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up, { once: true });
-  };
-  const reset = () => setUI(panel === 'sidebar' ? { sidebarW: 280 } : { inspectorW: 320 });
-  return <div className="splitter" onPointerDown={onPointerDown} onDoubleClick={reset} title="Arrastra para cambiar el ancho · doble clic = ancho por defecto" />;
-}
-
-const VIEW = currentView();
+import { AppRoutes } from './routes';
 
 export default function App() {
-  const ui = useStore(s => s.ui);
-  const setUI = useStore(s => s.setUI);
+  const theme = useStore(s => s.ui.theme);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const inAccount = location.pathname.startsWith('/cuenta');
 
-  // sincronización entre ventanas + tema + título
+  // sincronización entre ventanas + nube + tema
   useEffect(() => { initSync(); void initCloud(); }, []);
   useEffect(() => {
     const root = document.documentElement;
-    if (ui.theme === 'system') delete root.dataset.theme; else root.dataset.theme = ui.theme;
-  }, [ui.theme]);
-  useEffect(() => {
-    document.body.classList.toggle('zen', ui.zen && !VIEW);
-    document.title = VIEW ? `Diagramador · ${{ sidebar: 'Librería', inspector: 'Inspector', board: 'Tablero' }[VIEW]}` : 'Diagramador';
-  }, [ui.zen]);
+    if (theme === 'system') delete root.dataset.theme; else root.dataset.theme = theme;
+  }, [theme]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -54,7 +26,7 @@ export default function App() {
       const mod = e.ctrlKey || e.metaKey;
       if (e.key === 'Escape') {
         if (inField) { tgt.blur(); return; }
-        if (useStore.getState().ui.page) { useStore.getState().setUI({ page: null }); return; }
+        if (inAccount) { navigate('/'); return; }
         if (useStore.getState().ui.zen) { useStore.getState().setUI({ zen: false }); return; }
         useStore.getState().select(null); return;
       }
@@ -81,33 +53,7 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [inAccount, navigate]);
 
-  // ---- ventana separada: sólo una parte
-  if (VIEW === 'sidebar') return <div className="popout"><Sidebar /></div>;
-  if (VIEW === 'inspector') return <div className="popout"><Inspector /></div>;
-  if (VIEW === 'board') return <div className="popout"><Board /></div>;
-
-  if (ui.page === 'cuenta') return <><TopBar /><Account /></>;
-
-  return (
-    <>
-      <TopBar />
-      <main style={{ ['--sidebar-w' as string]: `${ui.sidebarW}px`, ['--inspector-w' as string]: `${ui.inspectorW}px` }}>
-        {ui.sidebarOpen
-          ? <><Sidebar /><Splitter panel="sidebar" /></>
-          : <button className="edge-tab left" onClick={() => setUI({ sidebarOpen: true })} title="Mostrar librería (Ctrl+B)">▸ Librería</button>}
-        <Board />
-        {ui.inspectorOpen
-          ? <><Splitter panel="inspector" /><Inspector /></>
-          : <button className="edge-tab right" onClick={() => setUI({ inspectorOpen: true })} title="Mostrar inspector (Ctrl+J)">◂ Inspector</button>}
-      </main>
-      {ui.zen && (
-        <div className="zen-bar">
-          <button className="btn" onClick={toggleFullscreen} title="Pantalla completa">⤢</button>
-          <button className="btn" onClick={() => setUI({ zen: false })} title="Salir del modo zen (Esc)">✕ Salir de zen</button>
-        </div>
-      )}
-    </>
-  );
+  return <AppRoutes />;
 }

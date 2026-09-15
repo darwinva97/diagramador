@@ -19,9 +19,6 @@ export interface UIState {
   theme: 'light' | 'dark' | 'system';
   /** Modo zen: sólo el tablero, sin barras ni paneles. */
   zen: boolean;
-  /** Página a pantalla completa en lugar del tablero (cuenta / administración). */
-  page: 'cuenta' | null;
-  pageTab: string;
 }
 export const PANEL_MIN = { sidebar: 200, inspector: 260 };
 export const PANEL_MAX = 720;
@@ -47,7 +44,7 @@ export const useStore = create<Store>()(
       data: seed(),
       sel: null,
       past: [],
-      ui: { libFilter: 'all', tab: 'comps', search: '', link: { style: 'solid', dir: 'fwd', color: '#475569', width: 2 }, sidebarW: 280, inspectorW: 320, sidebarOpen: true, inspectorOpen: true, theme: 'system', zen: false, page: null, pageTab: 'perfil' },
+      ui: { libFilter: 'all', tab: 'comps', search: '', link: { style: 'solid', dir: 'fwd', color: '#475569', width: 2 }, sidebarW: 280, inspectorW: 320, sidebarOpen: true, inspectorOpen: true, theme: 'system', zen: false },
       mutate(fn, snap = true) {
         const snapStr = snap ? JSON.stringify(get().data) : null;
         set(s => {
@@ -71,7 +68,7 @@ export const useStore = create<Store>()(
     {
       name: 'diagramador.v2',
       version: 1,
-      partialize: s => ({ data: s.data, ui: { ...s.ui, page: null, zen: false } }),
+      partialize: s => ({ data: s.data, ui: { ...s.ui, zen: false } }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<Pick<Store, 'data' | 'ui'>>;
         return {

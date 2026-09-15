@@ -1,9 +1,9 @@
 /* Service worker: la app funciona sin conexión.
- * - HTML (la app es un único index.html): red primero y, si falla, caché.
+ * - Navegaciones (cualquier ruta del router sirve el mismo index.html): red primero y, si falla, caché.
  * - Resto (manifest, iconos): caché primero.
  */
-const CACHE = 'diagramador-v2';
-const PRECACHE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+const CACHE = 'diagramador-v3';
+const PRECACHE = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -18,8 +18,8 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
   const isHtml = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
   if (isHtml) {
-    e.respondWith(fetch(req).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => { c.put('./index.html', copy); c.put('./', copy.clone()); }); } return res; })
-      .catch(() => caches.match('./index.html')));
+    e.respondWith(fetch(req).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put('/', copy)); } return res; })
+      .catch(() => caches.match('/')));
   } else {
     e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); } return res; })));
   }

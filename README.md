@@ -3,14 +3,21 @@
 Editor local de diagramas por **capas (filas) × etapas (columnas)**. Sin servidor: todo se guarda en el
 `localStorage` del navegador y se puede exportar/importar como JSON.
 
-Stack: React 18 + TypeScript + Vite + Zustand (immer/persist).
+Stack: React 19 + TypeScript + Vite + Zustand (immer/persist) + React Router.
+
+## Rutas
+
+- `/d/:id` — editor con ese diagrama (`/` redirige al diagrama actual). Cambiar de diagrama cambia la URL y el historial del navegador funciona.
+- `/cuenta/:tab` — cuenta y administración: `perfil`, `keys`, `diagramas`, `bibliotecas`, `tipos`, `config`, `agentes`.
+- `/ventana/:view` — una parte en ventana separada: `sidebar`, `inspector` o `board`.
+- Cualquier otra ruta redirige a `/`. No hay SEO: todo se sirve desde el mismo `index.html`.
 
 ## Uso
 
 ```bash
 npm install
 npm run dev        # desarrollo en http://localhost:5173
-npm run build      # genera dist/index.html (un único archivo, se abre directamente con doble clic)
+npm run build      # genera dist/index.html (un único archivo; necesita un servidor con fallback SPA, p. ej. `npm run preview` o el Worker)
 ```
 
 ## Funciones
@@ -24,7 +31,7 @@ npm run build      # genera dist/index.html (un único archivo, se abre directam
 - **PWA**: instalable desde el navegador (icono, `manifest.webmanifest`) y funciona sin conexión gracias a un service worker (`public/sw.js`).
 - **Tema** claro / oscuro / sistema (botón ☀ ☾ ◐ de la barra superior).
 - **Modo zen** (botón Zen o Ctrl+Shift+F): sólo el tablero; Esc para salir. Botón ⤢ de pantalla completa.
-- **Ventanas separadas**: botones ⧉ abren la librería, el inspector o el tablero en otra ventana del navegador (`?view=sidebar|inspector|board`). Todas las ventanas comparten datos y selección en tiempo real (localStorage + BroadcastChannel) y se puede arrastrar de una ventana a otra.
+- **Ventanas separadas**: botones ⧉ abren la librería, el inspector o el tablero en otra ventana del navegador (`/ventana/sidebar|inspector|board`). Todas las ventanas comparten datos y selección en tiempo real (localStorage + BroadcastChannel) y se puede arrastrar de una ventana a otra.
 - Paneles laterales plegables: botones ◧ ◨ en la barra superior, Ctrl+B (librería) y Ctrl+J (inspector); doble clic en un componente reabre el inspector.
 - Paneles laterales redimensionables: arrastra la barra entre paneles (mínimo 200 px la librería, 260 px el inspector; doble clic = ancho por defecto).
 - Tipos de campo: texto, texto largo, número, lista desplegable, casilla, URL, fecha, **lista de textos**, **clave → valor** y **JSON** (con validación y formateo).

@@ -2,7 +2,7 @@
  * Sincronización entre ventanas del mismo navegador (ventanas separadas de librería,
  * inspector y tablero):
  *  - datos y preferencias: cada ventana persiste en localStorage; las demás escuchan el
- *    evento `storage` y se rehidratan.
+ *    evento `storage` y se rehidratan. Cada ventana separada vive en la ruta `/ventana/:view`.
  *  - selección y hover (no persistidos): se difunden por BroadcastChannel.
  */
 import { useHover, useStore } from './store';
@@ -28,12 +28,8 @@ export function initSync() {
   useHover.subscribe((h, prev) => { if (!remote && (h.cid !== prev.cid || h.pid !== prev.pid)) bc.postMessage({ type: 'hover', cid: h.cid, pid: h.pid }); });
 }
 
-/** Vista de esta ventana: completa (null) o una parte separada. */
+/** Partes de la interfaz que pueden abrirse en una ventana separada (ruta /ventana/:view). */
 export type View = 'sidebar' | 'inspector' | 'board';
-export function currentView(): View | null {
-  const v = new URLSearchParams(location.search).get('view');
-  return v === 'sidebar' || v === 'inspector' || v === 'board' ? v : null;
-}
 
 const SIZES: Record<View, [number, number]> = { sidebar: [360, 820], inspector: [420, 900], board: [1400, 900] };
 const popups: Partial<Record<View, Window | null>> = {};
@@ -43,7 +39,7 @@ export function openPopout(view: View) {
   const existing = popups[view];
   if (existing && !existing.closed) { existing.focus(); return; }
   const [w, h] = SIZES[view];
-  const url = `${location.pathname}?view=${view}`;
+  const url = `/ventana/${view}`;
   const win = window.open(url, `diagramador-${view}`, `popup=yes,width=${w},height=${h}`);
   if (!win) { alert('El navegador bloqueó la ventana emergente. Permite ventanas emergentes para este sitio.'); return; }
   popups[view] = win;

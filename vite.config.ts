@@ -2,9 +2,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 
-// base './' + singlefile => dist/index.html se puede abrir directamente (file://) sin servidor.
+// singlefile: un único index.html (con rutas del router, se sirve con fallback SPA; ya no vale file://).
 export default defineConfig({
-  base: './',
+  base: '/',
   plugins: [react(), viteSingleFile()],
   build: { target: 'es2020', cssCodeSplit: false, assetsInlineLimit: 100_000_000 },
 });
