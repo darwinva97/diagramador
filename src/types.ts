@@ -88,10 +88,43 @@ export interface AppData {
   version: 1;
   libraries: Library[];
   diagrams: Diagram[];
+  /** Personas del espacio de trabajo, compartidas por todos los diagramas. */
+  people: Person[];
   currentDiagramId: string | null;
 }
 
+/** A qué se puede asignar una persona. */
+export type AssignKind = 'component' | 'diagram' | 'layer' | 'stage' | 'type';
+export const ASSIGN_LABEL: Record<AssignKind, string> = {
+  component: 'Componente', diagram: 'Diagrama', layer: 'Capa', stage: 'Etapa', type: 'Tipo',
+};
+/** Papeles sugeridos; el campo es libre, así que se puede escribir cualquier otro. */
+export const ROLES = [
+  'Owner', 'Stakeholder', 'Líder técnico', 'Product Owner', 'Arquitecto',
+  'Analista funcional', 'Desarrollo', 'QA', 'Seguridad', 'Infraestructura', 'Contacto',
+];
+/** Participación de una persona en una parte concreta (con su papel). */
+export interface Assignment {
+  id: string;
+  role: string;
+  kind: AssignKind;
+  targetId: string;
+  notes?: string;
+}
+export interface Person {
+  id: string;
+  name: string;
+  email?: string;
+  /** Cargo o puesto ("Arquitecto de soluciones"). */
+  title?: string;
+  team?: string;
+  color?: string;
+  notes?: string;
+  assignments: Assignment[];
+}
+
 export type Selection =
+  | { kind: 'person'; id: string }
   | { kind: 'placement'; id: string }
   | { kind: 'component'; id: string }
   | { kind: 'relation'; id: string }

@@ -7,7 +7,7 @@ import { seed } from './seed';
 
 export interface UIState {
   libFilter: string; // 'all' | libraryId
-  tab: 'comps' | 'types';
+  tab: 'comps' | 'types' | 'people';
   search: string;
   link: LinkDefaults;
   /** Anchos de los paneles laterales (px). */
@@ -107,6 +107,7 @@ export function useValidSel(): Selection | null {
     const sel = s.sel; if (!sel) return null;
     const d = curDiagram(s.data);
     switch (sel.kind) {
+      case 'person': return s.data.people.some(p => p.id === sel.id) ? sel : null;
       case 'placement': return d?.placements.some(p => p.id === sel.id) ? sel : null;
       case 'relation': return d?.relations.some(r => r.id === sel.id) ? sel : null;
       case 'component': return findComp(s.data, sel.id) ? sel : null;

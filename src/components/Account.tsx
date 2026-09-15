@@ -3,12 +3,15 @@ import { useStore } from '../store';
 import { actions } from '../actions';
 import { useAuth, login, register, logout, changePassword, deleteAccount, listKeys, createKey, deleteKey, pullAll, pushAll, platformAvailable, apiUrl, type ApiKeyInfo, type NewApiKey } from '../cloud';
 import { exportAll, exportDiagram } from '../lib/io';
+import { Avatar } from './People';
+import { ASSIGN_LABEL } from '../types';
+import { targetDiagram, targetName } from '../lib/model';
 import { Link, NavLink, useNavigate, useParams } from 'react-router';
 import { accountPath, diagramPath } from '../routes';
 
 const TABS: { key: string; label: string }[] = [
   { key: 'perfil', label: '👤 Perfil' }, { key: 'keys', label: '🔑 API keys' }, { key: 'diagramas', label: '◫ Diagramas' },
-  { key: 'bibliotecas', label: '📚 Bibliotecas' }, { key: 'tipos', label: '🏷 Tipos' }, { key: 'config', label: '⚙ Configuración' }, { key: 'agentes', label: '🤖 Agentes / API' },
+  { key: 'bibliotecas', label: '📚 Bibliotecas' }, { key: 'tipos', label: '🏷 Tipos' }, { key: 'personas', label: '👥 Personas' }, { key: 'config', label: '⚙ Configuración' }, { key: 'agentes', label: '🤖 Agentes / API' },
 ];
 
 export function Account() {
@@ -28,6 +31,7 @@ export function Account() {
         {tab === 'diagramas' && <Diagramas />}
         {tab === 'bibliotecas' && <Bibliotecas />}
         {tab === 'tipos' && <Tipos />}
+        {tab === 'personas' && <Personas />}
         {tab === 'config' && <Config />}
         {tab === 'agentes' && <Agentes />}
       </section>
@@ -174,6 +178,64 @@ function Diagramas() {
           ))}
         </tbody>
       </table>
+    </>
+  );
+}
+
+// ------------------------------------------------------------------ Personas
+function Personas() {
+  const data = useStore(s => s.data);
+  const select = useStore(s => s.select);
+  const setUI = useStore(s => s.setUI);
+  const navigate = useNavigate();
+  const abrir = (id: string) => { select({ kind: 'person', id }); setUI({ tab: 'people', sidebarOpen: true, inspectorOpen: true }); navigate('/'); };
+  const gente = [...data.people].sort((a, b) => a.name.localeCompare(b.name));
+  const papeles = [...new Set(gente.flatMap(p => p.assignments.map(a => a.role)))].sort();
+  return (
+    <>
+      <div className="row between"><h2>Personas ({gente.length})</h2><button className="btn primary" onClick={() => { actions.addPerson(); navigate('/'); }}>+ Nueva persona</button></div>
+      <p className="muted">Quién participa en cada parte de la arquitectura y con qué papel. Se asignan desde el inspector de un componente o del diagrama, y con el clic derecho en una capa, una etapa o un tipo.</p>
+      {gente.length === 0 && <p className="muted">Todavía no hay ninguna.</p>}
+      {gente.length > 0 && (
+        <table className="table">
+          <thead><tr><th /><th>Nombre</th><th>Cargo</th><th>Equipo</th><th>Correo</th><th>Participa en</th><th /></tr></thead>
+          <tbody>
+            {gente.map(p => (
+              <tr key={p.id}>
+                <td><Avatar p={p} size={26} /></td>
+                <td><b>{p.name}</b></td><td>{p.title || '—'}</td><td>{p.team || '—'}</td><td className="muted small">{p.email || '—'}</td>
+                <td className="muted small">
+                  {p.assignments.length === 0 ? '—' : p.assignments.slice(0, 4).map(a => {
+                    const dg = targetDiagram(data, a);
+                    return <div key={a.id}><b>{a.role}</b> · {ASSIGN_LABEL[a.kind].toLowerCase()} “{targetName(data, a) ?? '?'}”{dg ? ` (${dg.name})` : ''}</div>;
+                  })}
+                  {p.assignments.length > 4 && <div>y {p.assignments.length - 4} más…</div>}
+                </td>
+                <td className="actions-cell">
+                  <button className="btn" onClick={() => abrir(p.id)}>Abrir</button>
+                  <button className="btn danger" onClick={() => actions.deletePerson(p.id)}>Eliminar</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {papeles.length > 0 && (
+        <>
+          <h3>Por papel</h3>
+          <table className="table">
+            <thead><tr><th>Papel</th><th>Personas</th></tr></thead>
+            <tbody>
+              {papeles.map(r => (
+                <tr key={r}><td><b>{r}</b></td>
+                  <td>{gente.filter(p => p.assignments.some(a => a.role === r)).map(p => (
+                    <button key={p.id} className="person-chip as-button" onClick={() => abrir(p.id)}><Avatar p={p} size={18} />{p.name}</button>
+                  ))}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
     </>
   );
 }

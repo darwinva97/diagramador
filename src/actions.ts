@@ -1,7 +1,7 @@
 import { useStore } from './store';
-import { API_CONTRACT_FIELDS, type AppData, type Component, type ComponentType, type Diagram, type FieldDef, type Placement, type Relation, type StageGroup } from './types';
+import { API_CONTRACT_FIELDS, type AppData, type AssignKind, type Assignment, type Component, type ComponentType, type Diagram, type FieldDef, type Person, type Placement, type Relation, type StageGroup } from './types';
 import type { Library } from './types';
-import { LAYER_COLORS, PALETTE, cloneDiagram, curDiagram, descendantIds, findComp, findLib, findType, instanceCount, libOfComp, libOfType, nextStackPos, setCell, snap, tidyCell, uid } from './lib/model';
+import { LAYER_COLORS, PALETTE, cloneDiagram, curDiagram, descendantIds, findComp, findLib, findPerson, findType, instanceCount, libOfComp, libOfType, nextStackPos, setCell, snap, tidyCell, uid } from './lib/model';
 import { exportAll, exportDiagram, mergeImport, pickFile } from './lib/io';
 import { DEFAULT_LAYERS, DEFAULT_STAGES } from './seed';
 
@@ -474,6 +474,45 @@ export const actions = {
       for (const l of d.libraries) for (const c of l.components) if (c.typeId === id) c.typeId = null;
     });
     select(null);
+  },
+
+  // ---------- Personas
+  /** Crea una persona. Sin nombre, se crea "Nueva persona" y se selecciona para editarla. */
+  addPerson(name?: string): string {
+    const id = uid();
+    const p: Person = { id, name: name || 'Nueva persona', color: PALETTE[(S().data.people.length) % PALETTE.length], assignments: [] };
+    mutate(d => { d.people.push(p); });
+    S().setUI({ tab: 'people', sidebarOpen: true });
+    select({ kind: 'person', id });
+    return id;
+  },
+  updatePerson(id: string, patch: Partial<Person>, snap = false) {
+    mutate(d => { const p = findPerson(d, id); if (p) Object.assign(p, patch); }, snap);
+  },
+  deletePerson(id: string) {
+    const p = findPerson(S().data, id); if (!p) return;
+    const n = p.assignments.length;
+    if (!confirm(`¿Eliminar a "${p.name}"?` + (n ? ` Se quitarán sus ${n} participación(es).` : ''))) return;
+    mutate(d => { d.people = d.people.filter(x => x.id !== id); });
+    select(null);
+  },
+  /** Asigna una persona a algo con un papel. Si ya tiene ese papel ahí, no duplica. */
+  assign(personId: string, kind: AssignKind, targetId: string, role: string) {
+    mutate(d => {
+      const p = findPerson(d, personId); if (!p) return;
+      if (p.assignments.some(a => a.kind === kind && a.targetId === targetId && a.role === role)) return;
+      p.assignments.push({ id: uid(), kind, targetId, role });
+    });
+  },
+  unassign(personId: string, assignmentId: string) {
+    mutate(d => { const p = findPerson(d, personId); if (p) p.assignments = p.assignments.filter(a => a.id !== assignmentId); });
+  },
+  updateAssignment(personId: string, assignmentId: string, patch: Partial<Assignment>, snap = false) {
+    mutate(d => { const a = findPerson(d, personId)?.assignments.find(x => x.id === assignmentId); if (a) Object.assign(a, patch); }, snap);
+  },
+  /** Papeles ya usados, para sugerirlos junto a los de la lista por defecto. */
+  usedRoles(): string[] {
+    return [...new Set(S().data.people.flatMap(p => p.assignments.map(a => a.role)))].filter(Boolean).sort();
   },
 
   // ---------- Import / export

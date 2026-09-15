@@ -1,9 +1,11 @@
 import { useStore, useValidSel } from '../store';
 import { actions } from '../actions';
-import { childrenOf, curDiagram, findComp, findType, libOfComp, libOfType, placementsOf } from '../lib/model';
+import { childrenOf, collaborators, curDiagram, findComp, findPerson, findType, libOfComp, libOfType, placementsOf, targetDiagram, targetName } from '../lib/model';
 import { DIRS, KINDS, STYLES, type Component, type ComponentType, type Diagram, type Dir, type FieldDef, type FieldKind, type KeyValue, type LineStyle, type Placement, type Relation } from '../types';
 import { useState } from 'react';
 import { connectableFields, parseJsonFields } from '../lib/schema';
+import { Avatar, PeopleOf } from './People';
+import { ASSIGN_LABEL, ROLES, type Person } from '../types';
 
 export function Inspector() {
   const data = useStore(s => s.data);
@@ -17,6 +19,7 @@ export function Inspector() {
     const p = d.placements.find(x => x.id === sel.id)!;
     body = <ComponentPanel comp={findComp(data, p.componentId)!} placement={p} d={d} />;
   } else if (sel.kind === 'component') body = <ComponentPanel comp={findComp(data, sel.id)!} placement={null} d={d} />;
+  else if (sel.kind === 'person') body = <PersonPanel p={findPerson(data, sel.id)!} />;
   else if (sel.kind === 'relation') body = <RelationPanel r={d.relations.find(x => x.id === sel.id)!} d={d} />;
   else body = <TypePanel t={findType(data, sel.id)!} />;
   return <aside id="inspector">{body}</aside>;
@@ -32,6 +35,8 @@ function DiagramPanel({ d }: { d: Diagram }) {
       <label>Nombre<input value={d.name} onFocus={snapshot} onChange={e => upd({ name: e.target.value })} /></label>
       <label>Descripción<textarea rows={3} value={d.description} onFocus={snapshot} onChange={e => upd({ description: e.target.value })} /></label>
       <div className="stats">{d.layers.length} capas · {d.stages.length} etapas · {d.placements.length} instancias · {d.relations.length} relaciones</div>
+
+      <PeopleOf kind="diagram" targetId={d.id} label={d.name} />
 
       <h4>Grupos de etapas ({(d.stageGroups ?? []).length})</h4>
       <div className="muted small">Una banda por encima de las columnas. En el tablero puedes arrastrar sobre la franja gris para crear un grupo, y arrastrar los bordes de una banda para abarcar más o menos columnas. Aquí puedes marcarlas a mano; si quedan separadas, el grupo se dibuja en varios tramos.</div>
@@ -134,6 +139,8 @@ function ComponentPanel({ comp, placement, d }: { comp: Component; placement: Pl
         </>
       )}
       {t && t.fields.length === 0 && <div className="muted">El tipo “{t.name}” no define campos. <button className="link" onClick={() => select({ kind: 'type', id: t.id })}>Editar tipo</button></div>}
+
+      <PeopleOf kind="component" targetId={comp.id} label={comp.name} />
 
       <h4>Uso en diagramas ({usedIn.length})</h4>
       <div className="inst-list">
@@ -271,6 +278,79 @@ function FieldInput({ def, value, onChange, onFocus }: { def: FieldDef; value: u
     case 'number': return <label>{def.label}<input type="number" value={String(v)} onFocus={onFocus} onChange={e => onChange(e.target.value === '' ? '' : Number(e.target.value))} /></label>;
     default: return <label>{def.label}<input type={def.kind === 'url' ? 'url' : def.kind === 'date' ? 'date' : 'text'} value={String(v)} onFocus={onFocus} onChange={e => onChange(e.target.value)} /></label>;
   }
+}
+
+// ---------------------------------------------------------------- Persona
+function PersonPanel({ p }: { p: Person }) {
+  const data = useStore(s => s.data);
+  const { snapshot, select } = useStore();
+  const upd = (patch: Partial<Person>) => actions.updatePerson(p.id, patch);
+  // participaciones agrupadas por papel
+  const porPapel = new Map<string, typeof p.assignments>();
+  for (const a of p.assignments) porPapel.set(a.role, [...(porPapel.get(a.role) ?? []), a]);
+  const colegas = collaborators(data, p.id);
+  const sugerencias = [...new Set([...ROLES, ...actions.usedRoles()])];
+
+  return (
+    <>
+      <div className="insp-head" style={{ ['--c' as string]: p.color ?? '#94a3b8' }}>
+        <Avatar p={p} size={30} />
+        <h3>Persona</h3>
+      </div>
+      <label>Nombre<input value={p.name} onFocus={snapshot} onChange={e => upd({ name: e.target.value })} /></label>
+      <label>Cargo<input value={p.title ?? ''} onFocus={snapshot} onChange={e => upd({ title: e.target.value })} placeholder="Arquitecto de soluciones…" /></label>
+      <div className="row">
+        <label>Equipo / área<input value={p.team ?? ''} onFocus={snapshot} onChange={e => upd({ team: e.target.value })} /></label>
+        <label>Color<input type="color" value={p.color ?? '#94a3b8'} onFocus={snapshot} onChange={e => upd({ color: e.target.value })} /></label>
+      </div>
+      <label>Correo<input type="email" value={p.email ?? ''} onFocus={snapshot} onChange={e => upd({ email: e.target.value })} /></label>
+      <label>Notas<textarea rows={2} value={p.notes ?? ''} onFocus={snapshot} onChange={e => upd({ notes: e.target.value })} /></label>
+
+      <h4>Participa en ({p.assignments.length})</h4>
+      {p.assignments.length === 0 && <div className="muted small">Todavía no participa en nada. Asígnala desde el inspector de un componente, del diagrama, o con el clic derecho en una capa o etapa.</div>}
+      {[...porPapel.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([papel, lista]) => (
+        <div key={papel} className="role-block">
+          <div className="role-title">{papel} <small>{lista.length}</small></div>
+          {lista.map(a => {
+            const nombre = targetName(data, a);
+            const dg = targetDiagram(data, a);
+            return (
+              <div key={a.id} className="assign-row">
+                <button className="chip-btn" title={`${ASSIGN_LABEL[a.kind]}${dg ? ` · ${dg.name}` : ''}`}
+                  onClick={() => {
+                    if (dg) actions.setCurrent(dg.id);
+                    if (a.kind === 'component') select({ kind: 'component', id: a.targetId });
+                    else if (a.kind === 'type') select({ kind: 'type', id: a.targetId });
+                    else select(null);
+                  }}>
+                  <small>{ASSIGN_LABEL[a.kind]}</small> {nombre ?? '(ya no existe)'}
+                </button>
+                <input className="role-inline" list="roles-sugeridos-insp" value={a.role}
+                  onFocus={snapshot} onChange={e => actions.updateAssignment(p.id, a.id, { role: e.target.value })} />
+                <button className="btn icon danger" title="Quitar participación" onClick={() => actions.unassign(p.id, a.id)}>×</button>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      <datalist id="roles-sugeridos-insp">{sugerencias.map(r => <option key={r} value={r} />)}</datalist>
+
+      <h4>Coincide con ({colegas.length})</h4>
+      {colegas.length === 0 && <div className="muted small">Nadie más participa en las mismas partes.</div>}
+      <div className="people-row">
+        {colegas.map(({ person, shared }) => (
+          <button key={person.id} className="person-chip as-button" onClick={() => select({ kind: 'person', id: person.id })}
+            title={`Coinciden en ${shared} parte(s)`}>
+            <Avatar p={person} size={18} />{person.name}<small>{shared}</small>
+          </button>
+        ))}
+      </div>
+
+      <div className="actions">
+        <button className="btn danger" onClick={() => actions.deletePerson(p.id)}>Eliminar persona</button>
+      </div>
+    </>
+  );
 }
 
 // ---------------------------------------------------------------- Relación

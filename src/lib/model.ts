@@ -1,4 +1,4 @@
-import type { AppData, Component, ComponentType, Diagram, Library, Placement, StageGroup } from '../types';
+import type { AppData, AssignKind, Assignment, Component, ComponentType, Diagram, Library, Person, Placement, StageGroup } from '../types';
 
 export const uid = () =>
   Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
@@ -85,6 +85,7 @@ export function normalize(raw: Partial<AppData> | null | undefined): AppData {
     version: 1,
     libraries: Array.isArray(raw?.libraries) ? raw!.libraries : [],
     diagrams: Array.isArray(raw?.diagrams) ? raw!.diagrams : [],
+    people: Array.isArray(raw?.people) ? raw!.people : [],
     currentDiagramId: raw?.currentDiagramId ?? null,
   };
   for (const l of d.libraries) {
@@ -113,6 +114,20 @@ export function normalize(raw: Partial<AppData> | null | undefined): AppData {
     // limpiar referencias rotas
     const pids = new Set(g.placements.map(p => p.id));
     g.relations = g.relations.filter(r => pids.has(r.from) && pids.has(r.to));
+  }
+  // personas: ids válidos y asignaciones que sigan apuntando a algo que existe
+  const alive: Record<AssignKind, Set<string>> = {
+    component: new Set(d.libraries.flatMap(l => l.components.map(c => c.id))),
+    type: new Set(d.libraries.flatMap(l => l.types.map(t => t.id))),
+    diagram: new Set(d.diagrams.map(g => g.id)),
+    layer: new Set(d.diagrams.flatMap(g => g.layers.map(l => l.id))),
+    stage: new Set(d.diagrams.flatMap(g => g.stages.map(s => s.id))),
+  };
+  for (const p of d.people) {
+    p.id ||= uid(); p.name ||= 'Sin nombre'; p.color ||= PALETTE[0];
+    p.assignments = (Array.isArray(p.assignments) ? p.assignments : [])
+      .filter(a => a && alive[a.kind]?.has(a.targetId))
+      .map(a => ({ ...a, id: a.id || uid(), role: a.role || 'Participante' }));
   }
   if (!d.diagrams.some(g => g.id === d.currentDiagramId)) d.currentDiagramId = d.diagrams[0]?.id ?? null;
   return d;
@@ -145,4 +160,52 @@ export function stageSpans(g: Diagram): { group: StageGroup | null; count: numbe
     out.push({ group: grp, count: 1, key: grp ? `${grp.id}-${s.id}` : `s-${s.id}`, sid: s.id });
   });
   return out;
+}
+
+// ---------------------------------------------------------------- Personas
+export const findPerson = (d: AppData, id: string | null | undefined) =>
+  id ? d.people.find(p => p.id === id) ?? null : null;
+
+/** Iniciales para el avatar ("César Lama" → "CL"). */
+export const initials = (name: string) =>
+  name.trim().split(/\s+/).slice(0, 2).map(w => w[0] ?? '').join('').toUpperCase() || '?';
+
+/** Quién participa en algo, con su papel. */
+export function participants(d: AppData, kind: AssignKind, targetId: string): { person: Person; assignment: Assignment }[] {
+  const out: { person: Person; assignment: Assignment }[] = [];
+  for (const person of d.people)
+    for (const assignment of person.assignments)
+      if (assignment.kind === kind && assignment.targetId === targetId) out.push({ person, assignment });
+  return out.sort((a, b) => a.assignment.role.localeCompare(b.assignment.role) || a.person.name.localeCompare(b.person.name));
+}
+
+/** Nombre legible de aquello a lo que apunta una asignación (o null si ya no existe). */
+export function targetName(d: AppData, a: Assignment): string | null {
+  switch (a.kind) {
+    case 'component': return d.libraries.flatMap(l => l.components).find(c => c.id === a.targetId)?.name ?? null;
+    case 'type': return d.libraries.flatMap(l => l.types).find(t => t.id === a.targetId)?.name ?? null;
+    case 'diagram': return d.diagrams.find(g => g.id === a.targetId)?.name ?? null;
+    case 'layer': return d.diagrams.flatMap(g => g.layers).find(l => l.id === a.targetId)?.name ?? null;
+    case 'stage': return d.diagrams.flatMap(g => g.stages).find(s => s.id === a.targetId)?.name ?? null;
+  }
+}
+
+/** Diagrama en el que vive aquello a lo que apunta una asignación (para poder saltar allí). */
+export function targetDiagram(d: AppData, a: Assignment): Diagram | null {
+  if (a.kind === 'diagram') return d.diagrams.find(g => g.id === a.targetId) ?? null;
+  if (a.kind === 'layer') return d.diagrams.find(g => g.layers.some(l => l.id === a.targetId)) ?? null;
+  if (a.kind === 'stage') return d.diagrams.find(g => g.stages.some(s => s.id === a.targetId)) ?? null;
+  if (a.kind === 'component') return d.diagrams.find(g => g.placements.some(p => p.componentId === a.targetId)) ?? null;
+  return null;
+}
+
+/** Personas que comparten alguna asignación con ésta, y en cuántas cosas coinciden. */
+export function collaborators(d: AppData, personId: string): { person: Person; shared: number }[] {
+  const me = findPerson(d, personId); if (!me) return [];
+  const mine = new Set(me.assignments.map(a => `${a.kind}:${a.targetId}`));
+  return d.people
+    .filter(p => p.id !== personId)
+    .map(person => ({ person, shared: new Set(person.assignments.filter(a => mine.has(`${a.kind}:${a.targetId}`)).map(a => `${a.kind}:${a.targetId}`)).size }))
+    .filter(x => x.shared > 0)
+    .sort((a, b) => b.shared - a.shared || a.person.name.localeCompare(b.person.name));
 }

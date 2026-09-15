@@ -3,6 +3,7 @@ import { actions } from '../actions';
 import { curDiagram, findType } from '../lib/model';
 import { setDragData, startDrag } from './dnd';
 import { openMenu, type MenuItem } from './ContextMenu';
+import { Avatar, openAssign } from './People';
 import { copySelection, paste, targetCell } from '../clipboard';
 
 export function Sidebar() {
@@ -46,6 +47,7 @@ export function Sidebar() {
         title: diagramas < 2 ? 'Sólo se usa en este diagrama, así que no hay de qué desvincularlo. Usa “Separar sus instancias”.' : 'Las instancias de este diagrama pasan a una copia; los demás diagramas conservan el original.',
         onClick: () => actions.detachComponent(cid, undefined) },
       { label: 'Editar en el inspector', hint: 'F2', onClick: () => setUI({ inspectorOpen: true }) },
+      { label: 'Personas…', onClick: () => openAssign('component', cid, name) },
       { sep: true },
       { label: 'Eliminar de la librería', danger: true, onClick: () => actions.deleteComponent(cid) },
     ];
@@ -56,10 +58,24 @@ export function Sidebar() {
     select({ kind: 'type', id: tid });
     openMenu(e, [
       { label: 'Editar en el inspector', onClick: () => setUI({ inspectorOpen: true }) },
+      { label: 'Personas…', onClick: () => openAssign('type', tid, name) },
       { label: '+ Campos de contrato API', onClick: () => actions.addContractFields(tid) },
       { label: '+ Añadir campo', onClick: () => actions.addField(tid) },
       { sep: true },
       { label: 'Eliminar tipo', danger: true, onClick: () => actions.deleteType(tid) },
+    ], name);
+  };
+  /** Menú contextual de una persona. */
+  const personMenu = (e: React.MouseEvent, pid: string, name: string) => {
+    select({ kind: 'person', id: pid });
+    const n = data.people.find(p => p.id === pid)?.assignments.length ?? 0;
+    const d0 = curDiagram(data);
+    openMenu(e, [
+      { label: 'Editar en el inspector', onClick: () => setUI({ inspectorOpen: true }) },
+      { label: `Ver sus ${n} participación(es)`, disabled: n === 0, onClick: () => setUI({ inspectorOpen: true }) },
+      ...(d0 ? [{ label: `Asignar al diagrama «${d0.name}»`, onClick: () => openAssign('diagram', d0.id, d0.name) }] : []),
+      { sep: true },
+      { label: 'Eliminar persona', danger: true, onClick: () => actions.deletePerson(pid) },
     ], name);
   };
   /** Menú contextual del título de una librería. */
@@ -84,7 +100,9 @@ export function Sidebar() {
       <span className="caret">{collapsed.has(id) ? '▸' : '▾'}</span> {name} <small>{n}</small>
     </button>
   );
-  const total = ui.tab === 'comps' ? libs.reduce((n, l) => n + l.components.filter(matchComp).length, 0) : libs.reduce((n, l) => n + l.types.filter(t => !qn || norm(t.name).includes(qn)).length, 0);
+  const total = ui.tab === 'comps' ? libs.reduce((n, l) => n + l.components.filter(matchComp).length, 0)
+    : ui.tab === 'people' ? data.people.filter(p => !qn || [p.name, p.email, p.title, p.team].some(v => norm(v).includes(qn))).length
+    : libs.reduce((n, l) => n + l.types.filter(t => !qn || norm(t.name).includes(qn)).length, 0);
 
   return (
     <aside id="sidebar">
@@ -100,10 +118,11 @@ export function Sidebar() {
       <div className="tabs">
         <button className={'tab' + (ui.tab === 'comps' ? ' on' : '')} onClick={() => setUI({ tab: 'comps' })}>Componentes</button>
         <button className={'tab' + (ui.tab === 'types' ? ' on' : '')} onClick={() => setUI({ tab: 'types' })}>Tipos</button>
+        <button className={'tab' + (ui.tab === 'people' ? ' on' : '')} onClick={() => setUI({ tab: 'people' })}>Personas</button>
       </div>
       <div className="search-wrap">
         <span className="search-icon">🔍</span>
-        <input id="lib-search" className="search" placeholder={ui.tab === 'comps' ? 'Buscar componente, tipo, campo…' : 'Buscar tipo…'} value={ui.search}
+        <input id="lib-search" className="search" placeholder={ui.tab === 'comps' ? 'Buscar componente, tipo, campo…' : ui.tab === 'people' ? 'Buscar persona, correo, equipo…' : 'Buscar tipo…'} value={ui.search}
           onChange={e => setUI({ search: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') setUI({ search: '' }); }} />
         {ui.search && <button className="search-clear" onClick={() => setUI({ search: '' })} title="Limpiar">×</button>}
       </div>
@@ -143,6 +162,25 @@ export function Sidebar() {
             </div>
           );
         })}
+        {ui.tab === 'people' && (() => {
+          const gente = data.people.filter(p => !qn || [p.name, p.email, p.title, p.team].some(v => norm(v).includes(qn)))
+            .sort((a, b) => a.name.localeCompare(b.name));
+          return (
+            <>
+              {gente.length === 0 && <div className="empty-sm">{data.people.length ? 'Nadie coincide con la búsqueda.' : 'Aún no hay personas. Créalas con “+ Persona”.'}</div>}
+              {gente.map(p => (
+                <div key={p.id} className={'item person-item' + (sel?.kind === 'person' && sel.id === p.id ? ' selected' : '')}
+                  style={{ ['--c' as string]: p.color ?? '#94a3b8' }}
+                  onClick={() => select({ kind: 'person', id: p.id })}
+                  onContextMenu={e => personMenu(e, p.id, p.name)}>
+                  <Avatar p={p} size={26} />
+                  <span className="txt"><b>{p.name}</b><small>{[p.title, p.team].filter(Boolean).join(' · ') || 'Sin cargo'}</small></span>
+                  {p.assignments.length > 0 && <span className="uses" title="Participaciones">{p.assignments.length}</span>}
+                </div>
+              ))}
+            </>
+          );
+        })()}
         {ui.tab === 'types' && libs.map(l => {
           const types = l.types.filter(t => !qn || norm(t.name).includes(qn));
           return (
@@ -168,6 +206,8 @@ export function Sidebar() {
       <div className="side-foot">
         {ui.tab === 'comps'
           ? <><button className="btn primary" onClick={actions.addComponent}>+ Componente</button><small>Arrastra al tablero. Suelta aquí una instancia para quitarla. Ctrl+arrastrar en el tablero = clonar.</small></>
+          : ui.tab === 'people'
+          ? <><button className="btn primary" onClick={() => actions.addPerson()}>+ Persona</button><small>Asigna personas a componentes, capas, etapas o al diagrama con un papel (Owner, Líder técnico…). Clic en una persona para ver dónde participa.</small></>
           : <><div className="row"><button className="btn primary" onClick={actions.addType}>+ Tipo</button><button className="btn" onClick={actions.addApiType} title="Tipo con el contrato completo de una API">+ Tipo API</button></div><small>Un tipo define color, icono y campos propios. “Tipo API” trae método, path, URLs por entorno, request/response…</small></>}
       </div>
     </aside>

@@ -348,3 +348,37 @@ kbd { font: inherit; font-size: 11.5px; font-family: ui-monospace, Menlo, monosp
 .chk-chip input { margin: 0; width: auto; }
 .chk-chip.on { background: color-mix(in srgb, var(--accent) 18%, var(--panel)); border-color: var(--accent); }
 .chk-chip.taken { opacity: .55; }
+
+/* ---------- Personas */
+.avatar { display: inline-flex; align-items: center; justify-content: center; flex: none; border-radius: 50%;
+  background: var(--pc); color: #fff; font-weight: 700; letter-spacing: .2px; line-height: 1; user-select: none; }
+.person-item .txt small { color: var(--muted); }
+.people-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.person-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 2px 8px 2px 3px;
+  border: 1px solid var(--border); border-radius: 14px; background: var(--chip); color: var(--text); }
+.person-chip small { color: var(--muted); font-size: 10.5px; }
+.person-chip.as-button { cursor: pointer; font: inherit; font-size: 12px; }
+.person-chip.as-button:hover { background: var(--hover); border-color: var(--accent); }
+.person-chip .x { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
+.person-chip .x:hover { color: var(--danger); }
+.role-inline { width: 108px; margin: 0; padding: 1px 5px; font-size: 11px; border-radius: 10px; }
+.assign-row { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.assign-row .chip-btn { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.assign-row .chip-btn small, .role-block small { color: var(--muted); }
+.role-block { margin-bottom: 8px; }
+.role-title { font-size: 11.5px; font-weight: 600; color: var(--muted); margin: 6px 0 3px; text-transform: uppercase; letter-spacing: .3px; }
+.assigned { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.modal.narrow { width: min(560px, 94vw); }
+.picker-list { max-height: 44vh; overflow: auto; margin: 8px 0; border: 1px solid var(--border); border-radius: 8px; }
+.picker-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-bottom: 1px solid var(--border);
+  background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.picker-item:last-child { border-bottom: 0; }
+.picker-item:hover:not(:disabled) { background: var(--hover); }
+.picker-item:disabled { opacity: .5; cursor: default; }
+.picker-item .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.picker-item .txt small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-item .plus { color: var(--accent); font-weight: 700; }
+.chip-people { display: inline-flex; align-items: center; gap: 1px; }
+.chip-people .avatar { box-shadow: 0 0 0 1.5px var(--panel); margin-left: -4px; }
+.chip-people .avatar:first-child { margin-left: 0; }
+.chip-people .more { font-size: 9.5px; color: var(--muted); margin-left: 2px; }

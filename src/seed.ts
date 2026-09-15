@@ -5,7 +5,7 @@ import aliados from '../ejemplos/aliados.json';
 /** Datos iniciales (primera vez que se abre la app): la plantilla "Aliados". */
 export function seed(): AppData {
   const src = JSON.parse(JSON.stringify(aliados)) as { libraries: AppData['libraries']; diagrams: Diagram[] };
-  return normalize({ libraries: src.libraries, diagrams: src.diagrams, currentDiagramId: src.diagrams[0]?.id ?? null });
+  return normalize({ libraries: src.libraries, diagrams: src.diagrams, people: [], currentDiagramId: src.diagrams[0]?.id ?? null });
 }
 
 /** Capas por defecto para un diagrama nuevo (misma estructura que la plantilla Aliados). */

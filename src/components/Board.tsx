@@ -1,11 +1,12 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useStore, useValidSel, useHover } from '../store';
 import { actions } from '../actions';
-import { CELL_DEFAULT_W, CELL_MIN_H, CELL_MIN_W, CHIP_ROW, childrenOf, curDiagram, descendantIds, findComp, findType, rootOf, stageSpans } from '../lib/model';
+import { CELL_DEFAULT_W, CELL_MIN_H, CELL_MIN_W, CHIP_ROW, childrenOf, curDiagram, descendantIds, findComp, findType, participants, rootOf, stageSpans } from '../lib/model';
 import { rectsEqual, type Rect } from '../lib/geometry';
 import { dragKind, readDrag, setDragData, startDrag } from './dnd';
 import { Links, type LinkingState } from './Links';
 import { openMenu, type MenuItem } from './ContextMenu';
+import { Avatar, openAssign } from './People';
 import { copySelection, cutSelection, hasClip, paste } from '../clipboard';
 import type { Diagram, Layer, Placement, Stage, StageGroup } from '../types';
 
@@ -271,6 +272,7 @@ export function Board() {
           title: 'Cada instancia de este diagrama pasa a tener su propia copia.',
           onClick: () => actions.splitInstances(p.componentId) },
         { label: 'Editar en el inspector', hint: 'F2', onClick: () => st.setUI({ inspectorOpen: true }) },
+        { label: 'Personas…', onClick: () => openAssign('component', p.componentId, c?.name ?? 'Componente') },
         { label: '+ Subcomponente', onClick: () => actions.quickAddChild(pid) },
         ...(p.parentId ? [{ label: 'Sacar del contenedor', onClick: () => actions.unnest(pid) }] : []),
         { label: 'Ordenar celda', onClick: () => actions.tidyCell(p.layerId, p.stageId) },
@@ -304,6 +306,7 @@ export function Board() {
       const lid = layerEl.dataset.lid;
       openMenu(e, [
         { label: 'Renombrar', onClick: () => layerEl.querySelector<HTMLInputElement>('input.name')?.select() },
+        { label: 'Personas…', onClick: () => openAssign('layer', lid, d.layers.find(l => l.id === lid)?.name ?? 'Capa') },
         { label: 'Añadir capa', onClick: actions.addLayer },
         { label: 'Alto automático', onClick: () => { snapshot(); actions.setLayerHeight(lid, undefined); } },
         { sep: true },
@@ -319,6 +322,7 @@ export function Board() {
       const groups = d.stageGroups ?? [];
       openMenu(e, [
         { label: 'Renombrar', onClick: () => stageEl.querySelector<HTMLInputElement>('input.name')?.select() },
+        { label: 'Personas…', onClick: () => openAssign('stage', sid, st2?.name ?? 'Etapa') },
         { label: 'Añadir etapa', onClick: actions.addStage },
         { label: 'Ancho automático', onClick: () => { snapshot(); actions.setStageWidth(sid, undefined); } },
         { sep: true },
@@ -501,6 +505,7 @@ function Chip(props: ChipProps) {
   const t = findType(data, c.typeId);
   const clones = d.placements.filter(x => x.componentId === c.id).length;
   const kids = childrenOf(d, p.id);
+  const gente = participants(data, 'component', c.id);
   const top = !p.parentId || !!ghost;
   const selected = sel?.kind === 'placement' && sel.id === p.id;
   const cls = 'comp' + (selected ? ' selected' : '') + (hoverCid === c.id ? ' glow' : '') + (linkTarget === p.id ? ' link-target' : '')
@@ -519,6 +524,12 @@ function Chip(props: ChipProps) {
           <span className="label">{c.name}</span>
           {(c.fields.method || c.fields.path) ? <span className="sub">{[c.fields.method, c.fields.path].filter(Boolean).join(' ')}</span> : null}
         </span>
+        {gente.length > 0 && (
+          <span className="chip-people" title={gente.map(x => `${x.person.name} · ${x.assignment.role}`).join('\n')}>
+            {gente.slice(0, 3).map(({ person, assignment }) => <Avatar key={assignment.id} p={person} size={16} />)}
+            {gente.length > 3 && <span className="more">+{gente.length - 3}</span>}
+          </span>
+        )}
         {clones > 1 && <span className="clone-badge" title={`${clones} instancias en este diagrama`}>×{clones}</span>}
         <span className="port" title="Arrastra hasta otro componente para relacionarlos" />
       </div>

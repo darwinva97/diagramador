@@ -153,9 +153,19 @@ app.delete('/api-keys/:id', async c => {
 });
 
 // ------------------------------------------------------------------ documentos (librerías y diagramas)
-type Kind = 'library' | 'diagram';
+type Kind = 'library' | 'diagram' | 'person';
 type DocRow = { id: string; name: string; data: string; updated_at: string };
 interface Library { id: string; name: string; types: Record<string, unknown>[]; components: Record<string, unknown>[] }
+interface Person { id: string; name: string; email?: string; title?: string; team?: string; color?: string; notes?: string; assignments: Record<string, unknown>[] }
+const ASSIGN_KINDS = ['component', 'diagram', 'layer', 'stage', 'type'];
+const normPerson = (p: Partial<Person>, id?: string): Person => ({
+  ...p,
+  id: id ?? p.id ?? uid(),
+  name: String(p.name ?? 'Sin nombre'),
+  assignments: (p.assignments ?? [])
+    .filter(a => ASSIGN_KINDS.includes(a.kind as string) && typeof a.targetId === 'string')
+    .map(a => ({ ...a, id: (a.id as string) ?? uid(), role: String(a.role ?? 'Participante') })),
+});
 interface Diagram { id: string; name: string; description: string; layers: Record<string, unknown>[]; stages: Record<string, unknown>[]; stageGroups: Record<string, unknown>[]; placements: Record<string, unknown>[]; relations: Record<string, unknown>[]; stageWidths?: unknown }
 
 const DEFAULT_LAYERS = [
@@ -202,6 +212,58 @@ const normDiag = (d: Partial<Diagram>, id?: string): Diagram => {
 const summary = (d: Diagram & { updatedAt: string }) => ({
   id: d.id, name: d.name, description: d.description, updatedAt: d.updatedAt,
   counts: { layers: d.layers.length, stages: d.stages.length, placements: d.placements.length, relations: d.relations.length },
+});
+
+// ---- personas
+app.get('/people', async c => c.json({ people: await listDocs<Person>(c.get('store'), c.get('user').id, 'person') }));
+app.post('/people', async c => {
+  const body = await c.req.json<Partial<Person>>().catch(() => ({}) as never);
+  if (!body.name) return bad(c, 'Falta "name"');
+  const p = normPerson(body);
+  await putDoc(c.get('store'), c.get('user').id, 'person', p);
+  return c.json(p, 201);
+});
+app.get('/people/:id', async c => {
+  const p = await getDoc<Person>(c.get('store'), c.get('user').id, 'person', c.req.param('id'));
+  return p ? c.json(p) : c.json({ error: 'Persona no encontrada' }, 404);
+});
+app.put('/people/:id', async c => {
+  const body = await c.req.json<Partial<Person>>().catch(() => ({}) as never);
+  const p = normPerson(body, c.req.param('id'));
+  await putDoc(c.get('store'), c.get('user').id, 'person', p);
+  return c.json(p);
+});
+app.patch('/people/:id', async c => {
+  const cur = await getDoc<Person>(c.get('store'), c.get('user').id, 'person', c.req.param('id'));
+  if (!cur) return c.json({ error: 'Persona no encontrada' }, 404);
+  const body = await c.req.json<Partial<Person>>();
+  const p = normPerson({ ...cur, ...body }, cur.id);
+  await putDoc(c.get('store'), c.get('user').id, 'person', p);
+  return c.json(p);
+});
+app.delete('/people/:id', async c => (await delDoc(c.get('store'), c.get('user').id, 'person', c.req.param('id')))
+  ? c.json({ ok: true }) : c.json({ error: 'Persona no encontrada' }, 404));
+/** Añade una participación a una persona. */
+app.post('/people/:id/assignments', async c => {
+  const store = c.get('store'); const u = c.get('user').id;
+  const cur = await getDoc<Person>(store, u, 'person', c.req.param('id'));
+  if (!cur) return c.json({ error: 'Persona no encontrada' }, 404);
+  const body = await c.req.json<Record<string, unknown>>().catch(() => ({}) as never);
+  for (const f of ['kind', 'targetId', 'role']) if (body[f] === undefined) return bad(c, `Falta "${f}"`);
+  if (!ASSIGN_KINDS.includes(body.kind as string)) return bad(c, `"kind" debe ser uno de: ${ASSIGN_KINDS.join(', ')}`);
+  const item = { ...body, id: uid() };
+  const p = normPerson({ ...cur, assignments: [...cur.assignments, item] }, cur.id);
+  await putDoc(store, u, 'person', p);
+  return c.json(p.assignments.find(a => a.id === item.id), 201);
+});
+app.delete('/people/:id/assignments/:aid', async c => {
+  const store = c.get('store'); const u = c.get('user').id;
+  const cur = await getDoc<Person>(store, u, 'person', c.req.param('id'));
+  if (!cur) return c.json({ error: 'Persona no encontrada' }, 404);
+  const rest = cur.assignments.filter(a => a.id !== c.req.param('aid'));
+  if (rest.length === cur.assignments.length) return c.json({ error: 'Participación no encontrada' }, 404);
+  await putDoc(store, u, 'person', normPerson({ ...cur, assignments: rest }, cur.id));
+  return c.json({ ok: true });
 });
 
 // ---- librerías
@@ -368,7 +430,7 @@ for (const [path, { key, required }] of Object.entries(SUBS)) {
 // ---- exportar / importar / plantillas
 app.get('/export', async c => {
   const store = c.get('store'); const u = c.get('user').id;
-  return c.json({ app: 'diagramador', version: 1, exportedAt: nowIso(), libraries: await listDocs<Library>(store, u, 'library'), diagrams: await listDocs<Diagram>(store, u, 'diagram') });
+  return c.json({ app: 'diagramador', version: 1, exportedAt: nowIso(), libraries: await listDocs<Library>(store, u, 'library'), diagrams: await listDocs<Diagram>(store, u, 'diagram'), people: await listDocs<Person>(store, u, 'person') });
 });
 app.get('/diagrams/:id/export', async c => {
   const store = c.get('store'); const u = c.get('user').id;
@@ -382,12 +444,13 @@ app.get('/diagrams/:id/export', async c => {
   return c.json({ app: 'diagramador', version: 1, exportedAt: nowIso(), libraries: libs, diagrams: [d] });
 });
 app.post('/import', async c => {
-  const body = await c.req.json<{ libraries?: Partial<Library>[]; diagrams?: Partial<Diagram>[] }>().catch(() => ({}) as never);
+  const body = await c.req.json<{ libraries?: Partial<Library>[]; diagrams?: Partial<Diagram>[]; people?: Partial<Person>[] }>().catch(() => ({}) as never);
   const store = c.get('store'); const u = c.get('user').id;
-  const libs: Library[] = []; const diags: Diagram[] = [];
+  const libs: Library[] = []; const diags: Diagram[] = []; const ppl: Person[] = [];
   for (const l of body.libraries ?? []) { const lib = normLib(l); await putDoc(store, u, 'library', lib); libs.push(lib); }
   for (const d of body.diagrams ?? []) { const dg = normDiag(d); await putDoc(store, u, 'diagram', dg); diags.push(dg); }
-  return c.json({ imported: { libraries: libs.map(l => l.id), diagrams: diags.map(d => d.id) } }, 201);
+  for (const p of body.people ?? []) { const per = normPerson(p); await putDoc(store, u, 'person', per); ppl.push(per); }
+  return c.json({ imported: { libraries: libs.map(l => l.id), diagrams: diags.map(d => d.id), people: ppl.map(p => p.id) } }, 201);
 });
 app.get('/templates', c => c.json({ templates: [{ key: 'aliados', name: 'Plantilla Aliados (APIs y microservicios por capas)' }] }));
 app.post('/templates/:key/apply', async c => {

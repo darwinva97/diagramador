@@ -22,6 +22,12 @@ Library (biblioteca, global para todos los diagramas)
  └─ components[]   Component { id, name, typeId|null, description, fields: { [key]: valor } }
                     valor según kind: list → string[]; keyvalue → [{key,value}]; json → string JSON; checkbox → boolean
 
+Person (persona del espacio de trabajo, compartida por todos los diagramas)
+ └─ assignments[]  Assignment { id, kind, targetId, role, notes? }
+                    kind ∈ component | diagram | layer | stage | type
+                    targetId = id de eso · role = "Owner", "Líder técnico"… (texto libre)
+                    Responde a "quién participa en cada parte y con qué papel".
+
 Diagram
  ├─ layers[]       Layer { id, name, color, height? }          ← filas
  ├─ stages[]       Stage { id, name, width?, groupId? }        ← columnas
@@ -66,6 +72,9 @@ Atajo: `POST /templates/aliados/apply` `{ "name": "Mi copia" }` crea una bibliot
 | Recurso | Métodos |
 |---|---|
 | `/auth/me` | GET |
+| `/people` | GET (lista completa), POST `{ name, email?, title?, team?, color? }` |
+| `/people/{id}` | GET, PUT (reemplazo), PATCH (parcial), DELETE |
+| `/people/{id}/assignments` · `/people/{id}/assignments/{assignmentId}` | POST `{ kind, targetId, role }` · DELETE |
 | `/libraries` | GET (lista completa), POST |
 | `/libraries/{id}` | GET, PUT (reemplazo completo), PATCH (parcial), DELETE |
 | `/libraries/{id}/types` · `/libraries/{id}/types/{typeId}` | POST · PUT, DELETE |
@@ -78,8 +87,8 @@ Atajo: `POST /templates/aliados/apply` `{ "name": "Mi copia" }` crea una bibliot
 | `/diagrams/{id}/placements` · `/diagrams/{id}/placements/{placementId}` | POST · PUT (mover: layerId/stageId/x/y/parentId), DELETE (borra subcomponentes y relaciones) |
 | `/diagrams/{id}/relations` · `/diagrams/{id}/relations/{relationId}` | POST · PUT, DELETE |
 | `/diagrams/{id}/export` | GET → `{ libraries (sólo lo usado), diagrams: [diagrama] }` |
-| `/export` | GET → todo (bibliotecas y diagramas) |
-| `/import` | POST `{ libraries?, diagrams? }` → upsert por id (formato de exportación de la app) |
+| `/export` | GET → todo (bibliotecas, diagramas y personas) |
+| `/import` | POST `{ libraries?, diagrams?, people? }` → upsert por id (formato de exportación de la app) |
 | `/templates` · `/templates/{key}/apply` | GET · POST `{ name? }` (la plantilla incluida es `aliados`) |
 | `/api-keys` · `/api-keys/{id}` | GET, POST `{ name }` · DELETE |
 
@@ -94,6 +103,9 @@ PUT sobre `/diagrams/{id}` o `/libraries/{id}` reemplaza el documento entero: ú
 
 - Lee `GET /diagrams/{id}` antes de modificar: obtén ids reales de capas, etapas e instancias.
 - Para "el mismo componente en dos etapas" crea dos placements con el mismo `componentId`; la app los resalta como clones.
+- **Personas:** crea la persona con `POST /people` `{ "name": "Cesar Lama", "title": "Líder técnico" }` y luego
+  añade participaciones con `POST /people/{id}/assignments` `{ "kind": "component", "targetId": "<componentId>", "role": "Owner" }`.
+  Un mismo `targetId` puede tener varias personas y una persona varios papeles.
 - Colores: hex `#rrggbb`. Colores de capa sugeridos (pastel): `#fef9c3 #e0f2fe #ccfbf1 #ede9fe #fce7f3`.
 - **Agrupar etapas:** crea el grupo con `POST /diagrams/{id}/stageGroups` `{ "name": "Evaluación rápida" }` y luego
   pon `groupId` en cada etapa con `PUT /diagrams/{id}/stages/{stageId}`. Ordena las etapas de forma que las del

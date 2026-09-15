@@ -7,7 +7,7 @@
 import { create } from 'zustand';
 import { useStore } from './store';
 import { normalize } from './lib/model';
-import type { AppData, Diagram, Library } from './types';
+import type { AppData, Diagram, Library, Person } from './types';
 
 export interface CloudUser { id: string; email: string; createdAt: string; settings: Record<string, unknown> }
 export interface ApiKeyInfo { id: string; name: string; prefix: string; createdAt: string; lastUsedAt: string | null }
@@ -76,15 +76,18 @@ export const createKey = (name: string) => api<NewApiKey>('/api-keys', { method:
 export const deleteKey = (id: string) => api('/api-keys/' + id, { method: 'DELETE' });
 
 // ------------------------------------------------------------------ sincronización
-type Kind = 'library' | 'diagram';
+type Kind = 'library' | 'diagram' | 'person';
+/** Ruta REST de cada tipo de documento. */
+const PATH: Record<Kind, string> = { library: 'libraries', diagram: 'diagrams', person: 'people' };
 let snapshot = new Map<string, string>(); // `${kind}:${id}` -> JSON tal como está en la nube
 let unsub: (() => void) | null = null;
 let timer: number | null = null;
 
 const key = (k: Kind, id: string) => `${k}:${id}`;
-const docsOf = (d: AppData): { k: Kind; doc: Library | Diagram }[] => [
+const docsOf = (d: AppData): { k: Kind; doc: Library | Diagram | Person }[] => [
   ...d.libraries.map(l => ({ k: 'library' as Kind, doc: l })),
   ...d.diagrams.map(g => ({ k: 'diagram' as Kind, doc: g })),
+  ...d.people.map(p => ({ k: 'person' as Kind, doc: p })),
 ];
 const strip = (doc: object) => { const { updatedAt: _u, ...rest } = doc as { updatedAt?: string }; return JSON.stringify(rest); };
 
@@ -94,9 +97,9 @@ function takeSnapshot(d: AppData) {
 
 /** Descarga todo de la cuenta y reemplaza los datos locales. */
 export async function pullAll() {
-  const r = await api<{ libraries: Library[]; diagrams: Diagram[] }>('/export');
+  const r = await api<{ libraries: Library[]; diagrams: Diagram[]; people?: Person[] }>('/export');
   const cur = useStore.getState().data;
-  const data = normalize({ libraries: r.libraries, diagrams: r.diagrams, currentDiagramId: r.diagrams.some(g => g.id === cur.currentDiagramId) ? cur.currentDiagramId : r.diagrams[0]?.id ?? null });
+  const data = normalize({ libraries: r.libraries, diagrams: r.diagrams, people: r.people ?? [], currentDiagramId: r.diagrams.some(g => g.id === cur.currentDiagramId) ? cur.currentDiagramId : r.diagrams[0]?.id ?? null });
   takeSnapshot(data);
   useStore.setState({ data, sel: null });
   useAuth.setState({ lastSync: new Date().toISOString(), pending: 0 });
@@ -104,7 +107,7 @@ export async function pullAll() {
 /** Sube todos los datos locales a la cuenta (upsert por id). */
 export async function pushAll() {
   const d = useStore.getState().data;
-  await api('/import', { method: 'POST', json: { libraries: d.libraries, diagrams: d.diagrams } });
+  await api('/import', { method: 'POST', json: { libraries: d.libraries, diagrams: d.diagrams, people: d.people } });
   takeSnapshot(d);
   useAuth.setState({ lastSync: new Date().toISOString(), pending: 0 });
 }
@@ -116,11 +119,11 @@ async function flush() {
   const now = new Map(docsOf(d).map(({ k, doc }) => [key(k, doc.id), { k, doc, json: strip(doc) }]));
   const ops: Promise<unknown>[] = [];
   for (const [k, v] of now) if (snapshot.get(k) !== v.json) {
-    ops.push(api(`/${v.k === 'library' ? 'libraries' : 'diagrams'}/${v.doc.id}`, { method: 'PUT', json: JSON.parse(v.json) }));
+    ops.push(api(`/${PATH[v.k]}/${v.doc.id}`, { method: 'PUT', json: JSON.parse(v.json) }));
   }
   for (const k of snapshot.keys()) if (!now.has(k)) {
     const [kind, id] = k.split(':') as [Kind, string];
-    ops.push(api(`/${kind === 'library' ? 'libraries' : 'diagrams'}/${id}`, { method: 'DELETE' }).catch(() => undefined));
+    ops.push(api(`/${PATH[kind]}/${id}`, { method: 'DELETE' }).catch(() => undefined));
   }
   if (!ops.length) { useAuth.setState({ pending: 0 }); return; }
   useAuth.setState({ syncing: true, pending: ops.length });
@@ -155,10 +158,10 @@ function beforeUnload(e: BeforeUnloadEvent) { if (useAuth.getState().pending > 0
 
 /** Tras iniciar sesión: decide entre subir lo local o bajar lo de la cuenta. */
 export async function afterLogin() {
-  const cloud = await api<{ libraries: Library[]; diagrams: Diagram[] }>('/export');
+  const cloud = await api<{ libraries: Library[]; diagrams: Diagram[]; people?: Person[] }>('/export');
   const local = useStore.getState().data;
-  const cloudEmpty = cloud.libraries.length === 0 && cloud.diagrams.length === 0;
-  if (cloudEmpty && (local.libraries.length || local.diagrams.length)) {
+  const cloudEmpty = cloud.libraries.length === 0 && cloud.diagrams.length === 0 && (cloud.people?.length ?? 0) === 0;
+  if (cloudEmpty && (local.libraries.length || local.diagrams.length || local.people.length)) {
     await pushAll(); // primera vez: los datos locales pasan a la cuenta
   } else {
     await pullAll();
