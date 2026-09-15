@@ -1,9 +1,10 @@
 import { useStore, useValidSel } from '../store';
 import { actions } from '../actions';
-import { childrenOf, collaborators, curDiagram, findComp, findPerson, findType, libOfComp, libOfType, placementsOf, targetDiagram, targetName } from '../lib/model';
+import { childrenOf, collaborators, curDiagram, findComp, findPerson, findType, libOfComp, libOfType, participants, placementsOf, targetDiagram, targetName } from '../lib/model';
 import { DIRS, KINDS, STYLES, type Component, type ComponentType, type Diagram, type Dir, type FieldDef, type FieldKind, type KeyValue, type LineStyle, type Placement, type Relation } from '../types';
 import { useState } from 'react';
 import { connectableFields, parseJsonFields } from '../lib/schema';
+import { resolveStyle } from '../lib/rules';
 import { Avatar, PeopleOf } from './People';
 import { RulePanel, RulesOf } from './Rules';
 import { ASSIGN_LABEL, ROLES, type Person } from '../types';
@@ -107,6 +108,9 @@ function ComponentPanel({ comp, placement, d }: { comp: Component; placement: Pl
   const inst = placementsOf(d, comp.id);
   const usedIn = data.diagrams.filter(g => g.placements.some(p => p.componentId === comp.id));
   const rels = placement ? d.relations.filter(r => r.from === placement.id || r.to === placement.id) : [];
+  const { ui, setUI } = useStore();
+  const gente = participants(data, 'component', comp.id);
+  const { style: rstyle, rules: reglas } = resolveStyle(data, comp, d.id);
   const [addL, setAddL] = useState(d.layers[0]?.id ?? '');
   const [addS, setAddS] = useState(d.stages[0]?.id ?? '');
   const nameOf = (pid: string) => {
@@ -115,95 +119,134 @@ function ComponentPanel({ comp, placement, d }: { comp: Component; placement: Pl
     return c ? `${c.name} (${L?.name ?? '?'} · ${S?.name ?? '?'})` : '?';
   };
 
+  // el panel tenía demasiada información seguida: se agrupa en pestañas y sólo el
+  // nombre queda siempre a la vista, que es lo que identifica al componente
+  const tabs: { key: string; label: string; n?: number }[] = [
+    { key: 'datos', label: '📋 Datos', n: t?.fields.length },
+    { key: 'sitio', label: '◫ Sitio', n: inst.length },
+    { key: 'personas', label: '👥 Personas', n: gente.length },
+    { key: 'estilo', label: '🎨 Estilo', n: reglas.length },
+    { key: 'mas', label: '⚙ Más' },
+  ];
+  const tab = tabs.some(x => x.key === ui.compTab) ? ui.compTab : 'datos';
+
   return (
     <>
       <div className="insp-head" style={{ ['--c' as string]: t?.color ?? '#94a3b8' }}>
-        <span className="icon big">{t?.icon ?? '▫️'}</span>
+        <span className="icon big">{rstyle.icon || t?.icon || '▫️'}</span>
         <h3>{placement ? 'Componente en celda' : 'Componente'}</h3>
       </div>
       <label>Nombre<input value={comp.name} onFocus={snapshot} onChange={e => actions.updateComponent(comp.id, { name: e.target.value })} /></label>
-      <label>Tipo
-        <select value={comp.typeId ?? ''} onChange={e => actions.updateComponent(comp.id, { typeId: e.target.value || null }, true)}>
-          <option value="">Sin tipo</option>
-          {data.libraries.map(l => l.types.length > 0 && (
-            <optgroup key={l.id} label={l.name}>{l.types.map(tt => <option key={tt.id} value={tt.id}>{tt.icon} {tt.name}</option>)}</optgroup>
-          ))}
-        </select>
-      </label>
-      <label>Librería
-        <select value={lib?.id ?? ''} onChange={e => actions.moveComponentToLib(comp.id, e.target.value)}>
-          {data.libraries.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-        </select>
-      </label>
-      <label>Descripción<textarea rows={2} value={comp.description} onFocus={snapshot} onChange={e => actions.updateComponent(comp.id, { description: e.target.value })} /></label>
 
-      {t && t.fields.length > 0 && (
+      <div className="insp-tabs">
+        {tabs.map(x => (
+          <button key={x.key} className={'itab' + (tab === x.key ? ' on' : '')} onClick={() => setUI({ compTab: x.key })} title={x.label.replace(/^\S+\s/, '')}>
+            {x.label}{x.n ? <small>{x.n}</small> : null}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'datos' && (
         <>
-          <h4>Campos de “{t.name}”</h4>
-          {t.fields.map(f => <FieldInput key={f.key} def={f} value={comp.fields[f.key]} onFocus={snapshot} onChange={v => actions.setField(comp.id, f.key, v)} />)}
+          <label>Tipo
+            <select value={comp.typeId ?? ''} onChange={e => actions.updateComponent(comp.id, { typeId: e.target.value || null }, true)}>
+              <option value="">Sin tipo</option>
+              {data.libraries.map(l => l.types.length > 0 && (
+                <optgroup key={l.id} label={l.name}>{l.types.map(tt => <option key={tt.id} value={tt.id}>{tt.icon} {tt.name}</option>)}</optgroup>
+              ))}
+            </select>
+          </label>
+          <label>Descripción<textarea rows={2} value={comp.description} onFocus={snapshot} onChange={e => actions.updateComponent(comp.id, { description: e.target.value })} /></label>
+          {t && t.fields.length > 0 && (
+            <>
+              <h4>Campos de “{t.name}” <button className="link" onClick={() => select({ kind: 'type', id: t.id })}>editar tipo</button></h4>
+              {t.fields.map(f => <FieldInput key={f.key} def={f} value={comp.fields[f.key]} onFocus={snapshot} onChange={v => actions.setField(comp.id, f.key, v)} />)}
+            </>
+          )}
+          {t && t.fields.length === 0 && <div className="muted">El tipo “{t.name}” no define campos. <button className="link" onClick={() => select({ kind: 'type', id: t.id })}>Editar tipo</button></div>}
+          {!t && <div className="muted">Sin tipo: elige uno arriba para tener campos propios.</div>}
         </>
       )}
-      {t && t.fields.length === 0 && <div className="muted">El tipo “{t.name}” no define campos. <button className="link" onClick={() => select({ kind: 'type', id: t.id })}>Editar tipo</button></div>}
 
-      <RulesOf componentId={comp.id} />
-
-      <PeopleOf kind="component" targetId={comp.id} label={comp.name} />
-
-      <h4>Uso en diagramas ({usedIn.length})</h4>
-      <div className="inst-list">
-        {usedIn.length === 0 && <span className="muted">No está colocado en ningún diagrama.</span>}
-        {usedIn.map(g => <button key={g.id} className={'chip-btn' + (g.id === d.id ? ' on' : '')} onClick={() => actions.setCurrent(g.id)} title="Ir al diagrama">{g.name}</button>)}
-      </div>
-      {usedIn.length > 1 && <div className="notice">Este componente es <b>compartido</b>: editarlo aquí cambia también los otros {usedIn.length - 1} diagrama(s). Si no lo quieres, desvincúlalo.</div>}
-      <div className="row" style={{ marginTop: 6 }}>
-        <button className="btn" onClick={() => actions.duplicateComponent(comp.id)} title="Crea una copia independiente en la librería">⧉ Duplicar componente</button>
-        <button className="btn" onClick={() => actions.splitInstances(comp.id)} disabled={inst.length < 2}
-          title="Cada instancia de este diagrama pasa a tener su propia copia y dejan de ser clones entre sí">⧉ Separar sus {inst.length} instancias</button>
-        <button className="btn" onClick={() => actions.detachComponent(comp.id, undefined)} disabled={usedIn.length < 2}
-          title={usedIn.length < 2 ? 'Sólo se usa en este diagrama: no hay de qué desvincularlo' : 'Las instancias de este diagrama pasan a una copia independiente; los demás diagramas conservan el original'}>⛓ Desvincular en este diagrama</button>
-      </div>
-      {placement && inst.length > 1 && <div className="row" style={{ marginTop: 6 }}>
-        <button className="btn" onClick={() => actions.detachComponent(comp.id, placement.id)} title="Sólo esta instancia pasa a una copia independiente">⛓ Desvincular sólo esta instancia</button>
-      </div>}
-      <h4>Instancias en este diagrama ({inst.length})</h4>
-      <div className="inst-list">
-        {inst.length === 0 && <span className="muted">Ninguna todavía.</span>}
-        {inst.map(x => {
-          const L = d.layers.find(l => l.id === x.layerId), S = d.stages.find(s => s.id === x.stageId);
-          return <button key={x.id} className={'chip-btn' + (placement?.id === x.id ? ' on' : '')} onClick={() => select({ kind: 'placement', id: x.id })}>{L?.name ?? '?'} · {S?.name ?? '?'}</button>;
-        })}
-      </div>
-      <div className="row">
-        <select value={addL} onChange={e => setAddL(e.target.value)}>{d.layers.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
-        <select value={addS} onChange={e => setAddS(e.target.value)}>{d.stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
-        <button className="btn" disabled={!addL || !addS} onClick={() => actions.place(comp.id, addL, addS)}>Colocar</button>
-      </div>
-
-      {placement && (
+      {tab === 'sitio' && (
         <>
-          <h4>Subcomponentes ({childrenOf(d, placement.id).length})</h4>
-          {placement.parentId && (() => { const par = d.placements.find(x => x.id === placement.parentId); const pc = par && findComp(data, par.componentId);
-            return <div className="muted" style={{ marginBottom: 6 }}>Dentro de <button className="chip-btn" onClick={() => select({ kind: 'placement', id: par!.id })}>{pc?.name ?? '?'}</button> <button className="btn" onClick={() => actions.unnest(placement.id)}>Sacar del contenedor</button></div>; })()}
+          <h4>Instancias en este diagrama ({inst.length})</h4>
           <div className="inst-list">
-            {childrenOf(d, placement.id).map(k => { const kc = findComp(data, k.componentId); return <button key={k.id} className="chip-btn" onClick={() => select({ kind: 'placement', id: k.id })}>{kc?.name ?? '?'}</button>; })}
-            <button className="btn" onClick={() => actions.quickAddChild(placement.id)}>+ Nuevo subcomponente</button>
+            {inst.length === 0 && <span className="muted">Ninguna todavía.</span>}
+            {inst.map(x => {
+              const L = d.layers.find(l => l.id === x.layerId), S = d.stages.find(s => s.id === x.stageId);
+              return <button key={x.id} className={'chip-btn' + (placement?.id === x.id ? ' on' : '')} onClick={() => select({ kind: 'placement', id: x.id })}>{L?.name ?? '?'} · {S?.name ?? '?'}</button>;
+            })}
           </div>
-          <div className="muted">Arrastra un componente (de la librería o del tablero) encima de este para meterlo dentro; arrástralo a la celda para sacarlo.</div>
-          {!placement.parentId && <h4>Posición en la celda</h4>}
-          {!placement.parentId && <div className="row">
-            <label>X<input type="number" min={0} step={8} value={placement.x} onFocus={snapshot} onChange={e => actions.setPos(placement.id, Number(e.target.value) || 0, placement.y)} /></label>
-            <label>Y<input type="number" min={0} step={8} value={placement.y} onFocus={snapshot} onChange={e => actions.setPos(placement.id, placement.x, Number(e.target.value) || 0)} /></label>
-            <button className="btn" onClick={() => actions.tidyCell(placement.layerId, placement.stageId)} title="Apilar todos los componentes de la celda">⊞ Ordenar celda</button>
-          </div>}
-          {!placement.parentId && <div className="muted">Arrastra el componente para colocarlo; flechas del teclado lo mueven 8 px (Shift = 1 px).</div>}
-          <h4>Relaciones de esta instancia ({rels.length})</h4>
-          <div className="rel-list">
-            {rels.length === 0 && <span className="muted">Ninguna. Arrastra desde el punto ● hacia otro componente.</span>}
-            {rels.map(r => (
-              <button key={r.id} className="chip-btn" onClick={() => select({ kind: 'relation', id: r.id })}>
-                {r.from === placement.id ? `→ ${nameOf(r.to)}` : `← ${nameOf(r.from)}`}{r.label ? ` · “${r.label}”` : ''}
-              </button>
-            ))}
+          <div className="row">
+            <select value={addL} onChange={e => setAddL(e.target.value)}>{d.layers.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
+            <select value={addS} onChange={e => setAddS(e.target.value)}>{d.stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+            <button className="btn" disabled={!addL || !addS} onClick={() => actions.place(comp.id, addL, addS)}>Colocar</button>
+          </div>
+
+          {placement && (
+            <>
+              <h4>Subcomponentes ({childrenOf(d, placement.id).length})</h4>
+              {placement.parentId && (() => { const par = d.placements.find(x => x.id === placement.parentId); const pc = par && findComp(data, par.componentId);
+                return <div className="muted" style={{ marginBottom: 6 }}>Dentro de <button className="chip-btn" onClick={() => select({ kind: 'placement', id: par!.id })}>{pc?.name ?? '?'}</button> <button className="btn" onClick={() => actions.unnest(placement.id)}>Sacar del contenedor</button></div>; })()}
+              <div className="inst-list">
+                {childrenOf(d, placement.id).map(k => { const kc = findComp(data, k.componentId); return <button key={k.id} className="chip-btn" onClick={() => select({ kind: 'placement', id: k.id })}>{kc?.name ?? '?'}</button>; })}
+                <button className="btn" onClick={() => actions.quickAddChild(placement.id)}>+ Nuevo subcomponente</button>
+              </div>
+              <div className="muted">Arrastra un componente encima de este para meterlo dentro; arrástralo a la celda para sacarlo.</div>
+              {!placement.parentId && <h4>Posición en la celda</h4>}
+              {!placement.parentId && <div className="row">
+                <label>X<input type="number" min={0} step={8} value={placement.x} onFocus={snapshot} onChange={e => actions.setPos(placement.id, Number(e.target.value) || 0, placement.y)} /></label>
+                <label>Y<input type="number" min={0} step={8} value={placement.y} onFocus={snapshot} onChange={e => actions.setPos(placement.id, placement.x, Number(e.target.value) || 0)} /></label>
+                <button className="btn" onClick={() => actions.tidyCell(placement.layerId, placement.stageId)} title="Apilar todos los componentes de la celda">⊞ Ordenar celda</button>
+              </div>}
+              <h4>Relaciones de esta instancia ({rels.length})</h4>
+              <div className="rel-list">
+                {rels.length === 0 && <span className="muted">Ninguna. Arrastra desde el punto ● hacia otro componente.</span>}
+                {rels.map(r => (
+                  <button key={r.id} className="chip-btn" onClick={() => select({ kind: 'relation', id: r.id })}>
+                    {r.from === placement.id ? `→ ${nameOf(r.to)}` : `← ${nameOf(r.from)}`}{r.label ? ` · “${r.label}”` : ''}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {tab === 'personas' && <PeopleOf kind="component" targetId={comp.id} label={comp.name} />}
+
+      {tab === 'estilo' && (
+        reglas.length > 0
+          ? <RulesOf componentId={comp.id} />
+          : <div className="muted">Ninguna regla de estilo pinta este componente. Créalas en la pestaña <b>Reglas</b> de la librería.</div>
+      )}
+
+      {tab === 'mas' && (
+        <>
+          <label>Librería
+            <select value={lib?.id ?? ''} onChange={e => actions.moveComponentToLib(comp.id, e.target.value)}>
+              {data.libraries.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          </label>
+          <h4>Uso en diagramas ({usedIn.length})</h4>
+          <div className="inst-list">
+            {usedIn.length === 0 && <span className="muted">No está colocado en ningún diagrama.</span>}
+            {usedIn.map(g => <button key={g.id} className={'chip-btn' + (g.id === d.id ? ' on' : '')} onClick={() => actions.setCurrent(g.id)} title="Ir al diagrama">{g.name}</button>)}
+          </div>
+          {usedIn.length > 1 && <div className="notice">Este componente es <b>compartido</b>: editarlo aquí cambia también los otros {usedIn.length - 1} diagrama(s). Si no lo quieres, desvincúlalo.</div>}
+          <h4>Copias y vínculos</h4>
+          <div className="row">
+            <button className="btn" onClick={() => actions.duplicateComponent(comp.id)} title="Crea una copia independiente en la librería">⧉ Duplicar componente</button>
+            <button className="btn" onClick={() => actions.splitInstances(comp.id)} disabled={inst.length < 2}
+              title="Cada instancia de este diagrama pasa a tener su propia copia y dejan de ser clones entre sí">⧉ Separar sus {inst.length} instancias</button>
+          </div>
+          <div className="row" style={{ marginTop: 6 }}>
+            <button className="btn" onClick={() => actions.detachComponent(comp.id, undefined)} disabled={usedIn.length < 2}
+              title={usedIn.length < 2 ? 'Sólo se usa en este diagrama: no hay de qué desvincularlo' : 'Las instancias de este diagrama pasan a una copia independiente; los demás diagramas conservan el original'}>⛓ Desvincular en este diagrama</button>
+            {placement && inst.length > 1 && (
+              <button className="btn" onClick={() => actions.detachComponent(comp.id, placement.id)} title="Sólo esta instancia pasa a una copia independiente">⛓ Desvincular sólo esta instancia</button>
+            )}
           </div>
         </>
       )}

@@ -24,6 +24,8 @@ export interface UIState {
   /** Cabeceras fijas: la columna de capas y la fila de etapas no se desplazan al hacer scroll. */
   pinLayers: boolean;
   pinStages: boolean;
+  /** Pestaña abierta en el inspector de un componente. */
+  compTab: string;
   /** Zoom del tablero (sólo del diagrama, no del resto de la interfaz). 1 = 100 %. */
   zoom: number;
 }
@@ -60,7 +62,7 @@ export const useStore = create<Store>()(
       cell: null,
       past: [],
       future: [],
-      ui: { libFilter: 'all', tab: 'comps', search: '', link: { style: 'solid', dir: 'fwd', color: '#475569', width: 2 }, sidebarW: 280, inspectorW: 320, sidebarOpen: true, inspectorOpen: true, theme: 'system', zen: false, collapsedLibs: [], pinLayers: true, pinStages: true, zoom: 1 },
+      ui: { libFilter: 'all', tab: 'comps', search: '', link: { style: 'solid', dir: 'fwd', color: '#475569', width: 2 }, sidebarW: 280, inspectorW: 320, sidebarOpen: true, inspectorOpen: true, theme: 'system', zen: false, collapsedLibs: [], pinLayers: true, pinStages: true, zoom: 1, compTab: 'datos' },
       mutate(fn, snap = true) {
         const snapStr = snap ? JSON.stringify(get().data) : null;
         set(s => {

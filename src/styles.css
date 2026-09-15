@@ -467,3 +467,12 @@ body.zen .zoom-bar:hover { opacity: 1; }
 body.zen .zoom-bar { opacity: .55; }
 body.zen .zoom-bar:hover { opacity: 1; }
 .zoom-bar.warn-pin .zoom-val { color: var(--accent); }
+
+/* ---------- Pestañas del inspector */
+.insp-tabs { display: flex; flex-wrap: wrap; gap: 3px; margin: 8px 0 10px; }
+.itab { display: inline-flex; align-items: center; gap: 3px; flex: none; padding: 4px 8px; border: 1px solid var(--border);
+  border-radius: 14px; background: var(--chip); color: var(--text-2); font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.itab:hover { background: var(--hover); }
+.itab.on { background: var(--soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.itab small { background: var(--border); color: var(--text-2); border-radius: 8px; padding: 0 5px; font-size: 10.5px; }
+.itab.on small { background: var(--accent); color: #fff; }

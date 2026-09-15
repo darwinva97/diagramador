@@ -24,6 +24,7 @@ como plataforma con sincronización y API REST.
   - `ContextMenu.tsx` menú de clic derecho (instancia, celda, capa, etapa, flecha, componente, tipo y librería); cada zona arma sus acciones con `openMenu`.
   - Tablero: zoom propio (`ui.zoom`, `zoom` de CSS sobre `#grid`); las conversiones de pantalla a coordenadas del diagrama dividen por el zoom (arrastre, soltar y redimensionar).
   - Tablero: cabeceras fijas opcionales (`ui.pinLayers` / `ui.pinStages`, clases `pin-cols` / `pin-rows` en `#grid`) y nombres pegajosos dentro de su propio bloque (`.lh-stick`, `.sh-stick`); `--band-h`, `--head-h` y `--lane-w` se miden en vivo para escalonarlos.
+  - Inspector de componente en pestañas (`ui.compTab`): datos · sitio · personas · estilo · más.
   - `Rules.tsx` editor de reglas (condiciones, qué se pinta, prioridad y qué reglas la pisan) · `lib/rules.ts` evaluación y resolución del estilo.
   - `People.tsx` avatar, chips de participación y el diálogo de asignación (`openAssign`).
   - `clipboard.ts` copiar/cortar/pegar instancias y componentes en la celda activa (`store.cell`); `paste(true)` pega ya desvinculado · `lib/schema.ts` reconocimiento de la estructura de un JSON y campos conectables de un componente.
