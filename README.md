@@ -38,6 +38,22 @@ npm run build      # genera dist/index.html (un único archivo, se abre directam
 - Exportar todo, exportar sólo el diagrama actual (con los componentes/tipos que usa) e importar JSON (fusiona).
 - Deshacer (Ctrl+Z), Supr borra la instancia o relación seleccionada, Esc deselecciona, impresión sólo del tablero.
 
+## Plataforma: cuentas, sincronización y API
+
+- **Cuenta** (botón 👤 de la barra superior): registro e inicio de sesión con correo y contraseña. Con sesión, los
+  diagramas y bibliotecas se guardan en la nube y se sincronizan (cada cambio local se sube automáticamente).
+  Al entrar por primera vez, si la cuenta está vacía se suben los datos del navegador; si no, se cargan los de la cuenta.
+- **Páginas de administración**: perfil, API keys, diagramas, bibliotecas, tipos, configuración y guía para agentes.
+- **API REST** en `/api/v1` (Hono en el Worker). Autenticación por cookie o `Authorization: Bearer dgk_…` (API key).
+  Todo lo que hace la app se puede hacer por API: bibliotecas, tipos, componentes, diagramas, capas, etapas, instancias,
+  relaciones, import/export y plantillas.
+  - Guía para agentes: [`public/agent.md`](public/agent.md) → https://draw.bezenti.com/agent.md
+  - OpenAPI: [`public/openapi.json`](public/openapi.json) → https://draw.bezenti.com/openapi.json
+  - Skill para agentes: [`SKILL.md`](SKILL.md) · contexto del dominio: [`CONTEXT.md`](CONTEXT.md)
+- **Persistencia**: Durable Object con SQLite (`worker/store.ts`): tablas `users`, `api_keys` y `docs` (JSON por usuario).
+  Contraseñas con PBKDF2, sesiones firmadas con HMAC (`SESSION_SECRET`, secreto del Worker) y API keys guardadas como hash.
+- Desarrollo local del backend: `npm run dev:worker` (compila y levanta `wrangler dev` con `.dev.vars`).
+
 ## Despliegue (draw.bezenti.com)
 
 La app se publica como **Cloudflare Worker de archivos estáticos** (`wrangler.jsonc`) con dominio propio
@@ -49,7 +65,7 @@ La app se publica como **Cloudflare Worker de archivos estáticos** (`wrangler.j
   - `CLOUDFLARE_API_TOKEN`: token de API creado en <https://dash.cloudflare.com/profile/api-tokens>
     con la plantilla **“Edit Cloudflare Workers”** (incluye Workers Scripts, Workers Routes, Account Settings y Zone/DNS de la zona).
     Si falta, el job de deploy se omite con un aviso.
-- **Despliegue manual:** `npm run deploy` (requiere `npx wrangler login`).
+- **Despliegue manual:** `npm run deploy` (requiere `npx wrangler login`). El secreto `SESSION_SECRET` se crea una vez con `wrangler secret put SESSION_SECRET`.
 
 ## Ejemplos
 
@@ -70,5 +86,8 @@ src/
   lib/model.ts        búsquedas, normalización, clonado
   lib/geometry.ts     anclajes y curvas de las flechas
   lib/io.ts           exportar / importar JSON
-  components/         TopBar, Sidebar (librerías), Board (tablero + DnD + enlaces), Links (SVG), Inspector
+  components/         TopBar, Sidebar (librerías), Board (tablero + DnD + enlaces), Links (SVG), Inspector, Account (plataforma)
+  cloud.ts            cuenta y sincronización con la API · sync.ts ventanas separadas
+worker/
+  index.ts            API REST (Hono) · store.ts Durable Object SQLite · auth.ts PBKDF2 / HMAC / API keys
 ```

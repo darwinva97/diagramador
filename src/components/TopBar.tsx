@@ -3,6 +3,7 @@ import { actions } from '../actions';
 import { openPopout, toggleFullscreen } from '../sync';
 import aliados from '../../ejemplos/aliados.json';
 import { pedidoExample } from '../seed';
+import { useAuth } from '../cloud';
 
 const EXAMPLES: { key: string; name: string; data: unknown }[] = [
   { key: 'aliados', name: 'Plantilla Aliados (APIs y microservicios por capas)', data: aliados },
@@ -15,6 +16,7 @@ export function TopBar() {
   const canUndo = useStore(s => s.past.length > 0);
   const ui = useStore(s => s.ui);
   const setUI = useStore(s => s.setUI);
+  const auth = useAuth();
   const themeNext = { system: 'light', light: 'dark', dark: 'system' } as const;
   const themeIcon = { system: '◐', light: '☀', dark: '☾' }[ui.theme];
   const themeLabel = { system: 'Tema: sistema', light: 'Tema: claro', dark: 'Tema: oscuro' }[ui.theme];
@@ -53,6 +55,10 @@ export function TopBar() {
       <button className="btn icon" onClick={() => setUI({ zen: true })} title="Modo zen: sólo el tablero (Ctrl+Shift+F, Esc para salir)">◻ Zen</button>
       <button className="btn icon" onClick={toggleFullscreen} title="Pantalla completa">⤢</button>
       <button className="btn icon" onClick={() => setUI({ theme: themeNext[ui.theme] })} title={themeLabel + ' · clic para cambiar'}>{themeIcon}</button>
+      <button className={'btn account-btn' + (ui.page === 'cuenta' ? ' on' : '')} onClick={() => setUI({ page: ui.page === 'cuenta' ? null : 'cuenta' })}
+        title={auth.status === 'auth' ? `Cuenta: ${auth.user?.email}` : 'Cuenta, API keys, bibliotecas, diagramas y configuración'}>
+        👤 {auth.status === 'auth' ? (auth.user?.email.split('@')[0] ?? 'Cuenta') : 'Cuenta'}{auth.status === 'auth' && auth.pending > 0 ? ' ●' : ''}
+      </button>
     </header>
   );
 }

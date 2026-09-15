@@ -138,6 +138,39 @@ body.zen #canvasWrap { padding: 12px; }
 .btn-group .btn:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; }
 #topbar .btn.icon { padding: 5px 8px; }
 
+/* ---------- Página de cuenta / administración */
+.account { flex: 1; display: flex; min-height: 0; }
+.account-nav { width: 240px; flex: none; border-right: 1px solid var(--border); background: var(--panel); padding: 12px; display: flex; flex-direction: column; gap: 4px; overflow: auto; }
+.account-user { font-size: 12px; color: var(--muted); padding: 8px 4px 10px; word-break: break-all; }
+.nav-item { text-align: left; font: inherit; background: none; border: 0; padding: 8px 10px; border-radius: 6px; cursor: pointer; color: var(--text); }
+.nav-item:hover { background: var(--hover); }
+.nav-item.on { background: var(--soft); color: var(--accent); font-weight: 600; }
+.account-nav .sync { margin-top: auto; font-size: 12px; padding: 8px 4px; }
+.sync .ok { color: #16a34a; }
+.account-body { flex: 1; overflow: auto; padding: 20px 28px; max-width: 1100px; }
+.account-body h2 { margin: 0 0 12px; font-size: 20px; }
+.account-body h3 { margin: 20px 0 8px; font-size: 14px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+.card label { max-width: 420px; }
+.row.between { justify-content: space-between; align-items: center; }
+.row.between > * { flex: none; }
+.auth-box { max-width: 440px; }
+.auth-box form { display: flex; flex-direction: column; gap: 4px; }
+.auth-box form .btn { align-self: flex-start; margin-top: 6px; }
+.table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.table th, .table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 13px; }
+.table th { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--hover); }
+.table tr.on td { background: var(--soft); }
+.table .actions-cell { white-space: nowrap; text-align: right; }
+.table .actions-cell .btn { margin-left: 4px; }
+.small { font-size: 11px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+.keybox { border-color: #16a34a; }
+.keybox input.code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.code-block { background: var(--field); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 12px; overflow: auto; white-space: pre; }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background: var(--chip); padding: 1px 5px; border-radius: 4px; }
+.account-btn.on { background: var(--soft); border-color: var(--accent); color: var(--accent); }
+
 /* ---------- Tablero */
 #canvasWrap { flex: 1; overflow: auto; position: relative; padding: 16px; }
 #board { position: relative; display: inline-block; min-width: 100%; }
@@ -237,7 +270,7 @@ body.linking #links .rel .hit { pointer-events: none; }
 
 /* ---------- Impresión: sólo el tablero */
 @media print {
-  #topbar, #sidebar, #inspector, .splitter, .edge-tab, .zen-bar, .quick, .add-col, .add-row, .handle, .btn.ghost, .lcolor, .rs-x, .rs-y { display: none !important; }
+  #topbar, #sidebar, #inspector, .splitter, .edge-tab, .zen-bar, .account-nav, .quick, .add-col, .add-row, .handle, .btn.ghost, .lcolor, .rs-x, .rs-y { display: none !important; }
   main { display: block; }
   #canvasWrap { overflow: visible; padding: 0; }
   body { background: #fff; color: #0f172a; }

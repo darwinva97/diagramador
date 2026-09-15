@@ -3,11 +3,19 @@
   "name": "draw-bezenti",
   "account_id": "39f3db3a2ce79188fddf0cb83e72f8be",
   "compatibility_date": "2025-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "worker/index.ts",
   // Worker sólo de archivos estáticos: sirve el build de Vite (dist/)
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS",
+    // la API la atiende el Worker; el resto son archivos estáticos (la app)
+    "run_worker_first": ["/api/*"]
   },
+  // Base de datos: un Durable Object con SQLite (usuarios, API keys, librerías y diagramas)
+  "durable_objects": { "bindings": [{ "name": "STORE", "class_name": "Store" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Store"] }],
   // Dominio propio: wrangler crea/actualiza el DNS en la zona bezenti.com al desplegar
   "routes": [{ "pattern": "draw.bezenti.com", "custom_domain": true }],
   "observability": { "enabled": true }

@@ -6,6 +6,8 @@ import { Inspector } from './components/Inspector';
 import { PANEL_MAX, PANEL_MIN, useStore } from './store';
 import { actions } from './actions';
 import { currentView, initSync, toggleFullscreen } from './sync';
+import { initCloud } from './cloud';
+import { Account } from './components/Account';
 
 /** Tirador vertical entre paneles: arrastra para cambiar el ancho del panel indicado. */
 function Splitter({ panel }: { panel: 'sidebar' | 'inspector' }) {
@@ -35,7 +37,7 @@ export default function App() {
   const setUI = useStore(s => s.setUI);
 
   // sincronización entre ventanas + tema + título
-  useEffect(() => { initSync(); }, []);
+  useEffect(() => { initSync(); void initCloud(); }, []);
   useEffect(() => {
     const root = document.documentElement;
     if (ui.theme === 'system') delete root.dataset.theme; else root.dataset.theme = ui.theme;
@@ -52,6 +54,7 @@ export default function App() {
       const mod = e.ctrlKey || e.metaKey;
       if (e.key === 'Escape') {
         if (inField) { tgt.blur(); return; }
+        if (useStore.getState().ui.page) { useStore.getState().setUI({ page: null }); return; }
         if (useStore.getState().ui.zen) { useStore.getState().setUI({ zen: false }); return; }
         useStore.getState().select(null); return;
       }
@@ -84,6 +87,8 @@ export default function App() {
   if (VIEW === 'sidebar') return <div className="popout"><Sidebar /></div>;
   if (VIEW === 'inspector') return <div className="popout"><Inspector /></div>;
   if (VIEW === 'board') return <div className="popout"><Board /></div>;
+
+  if (ui.page === 'cuenta') return <><TopBar /><Account /></>;
 
   return (
     <>

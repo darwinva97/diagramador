@@ -2,7 +2,7 @@
  * - HTML (la app es un único index.html): red primero y, si falla, caché.
  * - Resto (manifest, iconos): caché primero.
  */
-const CACHE = 'diagramador-v1';
+const CACHE = 'diagramador-v2';
 const PRECACHE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -13,12 +13,14 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  const url = new URL(req.url);
+  // La API nunca pasa por caché (sesiones, datos en vivo)
+  if (req.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
   const isHtml = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
   if (isHtml) {
-    e.respondWith(fetch(req).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => { c.put('./index.html', copy); c.put('./', copy.clone()); }); return res; })
+    e.respondWith(fetch(req).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => { c.put('./index.html', copy); c.put('./', copy.clone()); }); } return res; })
       .catch(() => caches.match('./index.html')));
   } else {
-    e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res; })));
+    e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); } return res; })));
   }
 });
