@@ -23,6 +23,7 @@ export function Board() {
   const hover = useHover();
   const d = curDiagram(data);
 
+  const wrapRef = useRef<HTMLElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const [rects, setRects] = useState<Record<string, Rect>>({});
@@ -31,6 +32,23 @@ export function Board() {
   const [drag, setDrag] = useState<ChipDrag | null>(null);
   const overRef = useRef<HTMLElement | null>(null);
   const suppressClick = useRef(false); // el click que sigue a un arrastre/enlace no debe cambiar la selección
+  const [space, setSpace] = useState(false); // barra espaciadora mantenida = mover el lienzo
+
+  // ---- barra espaciadora: pasa a modo "mover el lienzo", como en Figma
+  useEffect(() => {
+    const enCampo = (t: EventTarget | null) => {
+      const el = t as HTMLElement | null;
+      return !!el?.matches?.('input, textarea, select') || !!el?.isContentEditable;
+    };
+    const down = (e: KeyboardEvent) => { if (e.code === 'Space' && !enCampo(e.target)) { e.preventDefault(); setSpace(true); } };
+    const up = (e: KeyboardEvent) => { if (e.code === 'Space') setSpace(false); };
+    const blur = () => setSpace(false);
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    window.addEventListener('blur', blur);
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur); };
+  }, []);
+  useEffect(() => { document.body.classList.toggle('pan-ready', space); return () => document.body.classList.remove('pan-ready'); }, [space]);
 
   // ---- medir posiciones de los chips para dibujar las flechas
   const measure = useCallback(() => {
@@ -114,7 +132,7 @@ export function Board() {
    * recorridas; desde el borde de un grupo lo extiende o lo reduce.
    */
   const onBandPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || space) return;
     const el = e.target as HTMLElement;
     const edge = el.closest<HTMLElement>('.sg-edge');
     const gap = el.closest<HTMLElement>('.group-gap');
@@ -153,7 +171,7 @@ export function Board() {
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || space) return; // con espacio se mueve el lienzo
     const el = e.target as HTMLElement;
     if (el.closest('.stage-group, .group-gap')) return; // lo gestiona onBandPointerDown
 
@@ -370,6 +388,42 @@ export function Board() {
     ], r.label || 'Relación');
   };
 
+  /**
+   * Mover el lienzo arrastrando, como en Figma: con la barra espaciadora, con el botón
+   * central, o arrastrando sobre una zona libre (un clic sin mover sigue deseleccionando).
+   */
+  const onWrapPointerDown = (e: React.PointerEvent) => {
+    const el = e.target as HTMLElement;
+    const central = e.button === 1;
+    // sobre elementos que ya tienen su propio arrastre no se panea salvo con espacio o botón central
+    const ocupado = el.closest('.comp, .handle, .rs-x, .rs-y, .sg-edge, .stage-group, .group-gap, button, input, select, textarea, .splitter');
+    if (!central && !space && ocupado) return;
+    if (e.button !== 0 && !central) return;
+    const wrap = wrapRef.current; if (!wrap) return;
+    e.preventDefault();
+    if (central || space) e.stopPropagation();
+
+    const x0 = e.clientX, y0 = e.clientY;
+    const left0 = wrap.scrollLeft, top0 = wrap.scrollTop;
+    let movido = false;
+    const move = (ev: PointerEvent) => {
+      const dx = ev.clientX - x0, dy = ev.clientY - y0;
+      if (!movido) {
+        if (Math.hypot(dx, dy) < 4) return;
+        movido = true; document.body.classList.add('panning');
+      }
+      wrap.scrollLeft = left0 - dx;
+      wrap.scrollTop = top0 - dy;
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      document.body.classList.remove('panning');
+      if (movido) suppressClick.current = true;
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+  };
+
   const onGridDoubleClick = (e: React.MouseEvent) => {
     const comp = (e.target as HTMLElement).closest<HTMLElement>('.comp');
     if (comp) { select({ kind: 'placement', id: comp.dataset.pid! }); useStore.getState().setUI({ inspectorOpen: true }); return; }
@@ -381,6 +435,7 @@ export function Board() {
 
   const onGridClick = (e: React.MouseEvent) => {
     if (suppressClick.current) { suppressClick.current = false; return; }
+    if (space) return;
     const el = e.target as HTMLElement;
     const comp = el.closest<HTMLElement>('.comp');
     if (comp) { select({ kind: 'placement', id: comp.dataset.pid! }); return; }
@@ -393,7 +448,8 @@ export function Board() {
   const cols = `210px ${d.stages.map(s => s.width ? `${s.width}px` : `minmax(${CELL_DEFAULT_W}px, 1fr)`).join(' ')} 44px`;
   const spans = stageSpans(d);
   return (
-    <section id="canvasWrap" onClick={e => { if (e.target === e.currentTarget) { select(null); setCell(null); } }}>
+    <section id="canvasWrap" ref={wrapRef} onPointerDown={onWrapPointerDown} onAuxClick={e => e.preventDefault()}
+      onClick={e => { if (e.target === e.currentTarget) { select(null); setCell(null); } }}>
       <div id="board" ref={boardRef}>
         <div id="grid" ref={gridRef} style={{ gridTemplateColumns: cols }}
           onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}

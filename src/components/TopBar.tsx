@@ -27,7 +27,7 @@ export function TopBar() {
   const themeLabel = { system: 'Tema: sistema', light: 'Tema: claro', dark: 'Tema: oscuro' }[ui.theme];
   return (
     <header id="topbar">
-      <div className="brand">◫ Diagramador</div>
+      <div className="brand">◫ Drawer</div>
       <select value={current ?? ''} onChange={e => actions.setCurrent(e.target.value)} title="Diagrama actual">
         {diagrams.length === 0 && <option value="">(sin diagramas)</option>}
         {diagrams.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}

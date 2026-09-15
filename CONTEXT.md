@@ -1,4 +1,4 @@
-# CONTEXT — Diagramador
+# CONTEXT — Drawer
 
 Editor web de diagramas de arquitectura organizados en una cuadrícula de **capas (filas) × etapas (columnas)**,
 con componentes reutilizables, subcomponentes y relaciones. Funciona en modo local (localStorage) y, con cuenta,

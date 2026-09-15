@@ -18,6 +18,7 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
     ['Clic derecho', 'Menú contextual del componente, celda, capa, etapa o flecha'],
     [`${MOD}+arrastrar`, 'Clonar la instancia al soltarla'],
     ['Arrastrar desde ●', 'Crear una relación hasta otro componente'],
+    ['Espacio + arrastrar', 'Mover el lienzo (también con el botón central o arrastrando en zona libre)'],
     ['Esc', 'Quitar selección · cerrar ayuda / cuenta / zen'],
   ] },
   { title: 'Edición', items: [

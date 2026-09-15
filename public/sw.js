@@ -2,7 +2,7 @@
  * - Navegaciones (cualquier ruta del router sirve el mismo index.html): red primero y, si falla, caché.
  * - Resto (manifest, iconos): caché primero.
  */
-const CACHE = 'diagramador-v3';
+const CACHE = 'drawer-v4';
 const PRECACHE = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', e => {

@@ -414,3 +414,8 @@ kbd { font: inherit; font-size: 11.5px; font-family: ui-monospace, Menlo, monosp
 .style-row input, .style-row select { margin: 0; width: 92px; flex: none; font-size: 12px; }
 .style-row input[type="color"] { width: 44px; }
 .notice.ok { background: color-mix(in srgb, #16a34a 12%, var(--panel)); border-color: color-mix(in srgb, #16a34a 45%, var(--border)); }
+
+/* ---------- Mover el lienzo (barra espaciadora, botón central o arrastre libre) */
+body.pan-ready #canvasWrap { cursor: grab; }
+body.panning, body.panning #canvasWrap { cursor: grabbing !important; user-select: none; }
+body.panning .comp, body.panning .cell { pointer-events: none; }

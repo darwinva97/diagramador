@@ -80,6 +80,7 @@ function DiagramPanel({ d }: { d: Diagram }) {
         <li>Dentro de la celda colócalo <b>donde quieras</b> arrastrándolo (se ajusta a una rejilla de 8 px). Con el componente seleccionado, las flechas del teclado lo mueven; ⊞ apila los de una celda.</li>
         <li><b>Subcomponentes:</b> suelta un componente encima de otro para meterlo dentro (p. ej. un microservicio dentro de su API). Arrástralo fuera, a la celda, para sacarlo. Las relaciones pueden salir de o llegar a un subcomponente.</li>
         <li><b>Componentes compartidos:</b> un mismo componente puede estar en varios diagramas y al editarlo cambia en todos. Al <b>duplicar un diagrama</b> puedes pedir copias independientes; y en el inspector tienes “Duplicar componente” y “Desvincular” para separar uno cuando quieras.</li>
+        <li><b>Mover el lienzo:</b> mantén la <b>barra espaciadora</b> y arrastra, usa el <b>botón central</b> del ratón, o arrastra desde una zona libre del tablero.</li>
         <li><b>Agrupar etapas:</b> arrastra sobre la franja gris que hay encima de las cabeceras de etapa para crear un grupo (“Evaluación rápida” sobre varias columnas) y escribe su nombre; arrastra los bordes de la banda para abarcar más o menos columnas.</li>
         <li><b>Contrato de API:</b> crea un tipo con “+ Tipo API” en la pestaña Tipos. Trae método, path, base URL por entorno, cabeceras, parámetros, request/response en JSON y códigos de respuesta. Los campos se editan al seleccionar el componente; los JSON válidos muestran su estructura (campos, tipos y ejemplos).</li>
         <li>Arrastra desde el punto <b>●</b> de un componente hasta otro para crear una relación (puede saltar capas y etapas).</li>
@@ -88,7 +89,7 @@ function DiagramPanel({ d }: { d: Diagram }) {
         <li><b>Copiar y pegar:</b> selecciona una instancia (o un componente de la librería), <b>Ctrl+C</b>, haz clic en la celda destino y <b>Ctrl+V</b>. <b>Ctrl+D</b> duplica en la misma celda y <b>Ctrl+Shift+D</b> desvincula (copia independiente); <b>Ctrl+Shift+V</b> pega ya desvinculado. <b>Clic derecho</b> abre el menú de acciones. Pulsa <b>?</b> para ver todos los atajos.</li>
         <li><b>Más espacio:</b> los botones ◧ ◨ de la barra superior (o Ctrl+J para la librería y Ctrl+B para el inspector) los ocultan; la pestaña del borde o un doble clic en un componente los vuelven a mostrar. <b>Zen</b> (Ctrl+Shift+F) deja sólo el tablero; ⤢ pone pantalla completa.</li>
         <li><b>Ventanas separadas:</b> con ⧉ abres la librería, el inspector o el tablero en otra ventana del navegador. Comparten datos y selección al instante, y puedes arrastrar componentes de una ventana a otra.</li>
-        <li><b>Instalable:</b> el navegador ofrece “Instalar Diagramador” como aplicación; funciona sin conexión. Tema claro/oscuro con ☀ ☾ ◐.</li>
+        <li><b>Instalable:</b> el navegador ofrece “Instalar Drawer” como aplicación; funciona sin conexión. Tema claro/oscuro con ☀ ☾ ◐.</li>
         <li>Todo se guarda automáticamente en este navegador. Usa Exportar/Importar JSON para respaldar o compartir.</li>
       </ul>
     </>

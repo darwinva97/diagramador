@@ -22,7 +22,7 @@ export function download(name: string, obj: unknown) {
 
 export function exportAll(data: AppData) {
   const f: ExportFile = { app: 'diagramador', version: 1, exportedAt: new Date().toISOString(), libraries: data.libraries, diagrams: data.diagrams, people: data.people, rules: data.rules };
-  download(`diagramador-todo-${stamp()}.json`, f);
+  download(`drawer-todo-${stamp()}.json`, f);
 }
 
 /** Exporta un diagrama con sólo los componentes y tipos que usa. */
@@ -53,7 +53,7 @@ export function pickFile(): Promise<unknown> {
 export function mergeImport(data: AppData, raw: unknown): string | null {
   const obj = raw as Partial<ExportFile> & { diagram?: Diagram };
   if (!obj || typeof obj !== 'object' || (!Array.isArray(obj.libraries) && !Array.isArray(obj.diagrams) && !obj.diagram))
-    throw new Error('Formato no reconocido: se esperaba un JSON exportado por Diagramador.');
+    throw new Error('Formato no reconocido: se esperaba un JSON exportado por Drawer.');
   const inc = normalize({ libraries: obj.libraries ?? [], diagrams: obj.diagrams ?? (obj.diagram ? [obj.diagram] : []), people: obj.people ?? [], rules: obj.rules ?? [] });
 
   for (const l of inc.libraries) {

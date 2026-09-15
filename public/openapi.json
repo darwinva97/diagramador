@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Diagramador API",
+    "title": "Drawer API",
     "version": "1.0.0",
-    "description": "API REST de Diagramador: diagramas por capas × etapas, bibliotecas de componentes, tipos, instancias y relaciones. Autentica con `Authorization: Bearer <api key>`. Guía para agentes: /agent.md"
+    "description": "API REST de Drawer: diagramas por capas × etapas, bibliotecas de componentes, tipos, instancias y relaciones. Autentica con `Authorization: Bearer <api key>`. Guía para agentes: /agent.md"
   },
   "servers": [
     {

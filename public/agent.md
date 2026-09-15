@@ -1,6 +1,7 @@
-# Diagramador — guía para agentes (API REST)
+# Drawer — guía para agentes (API REST)
 
-Diagramador es un editor de diagramas de arquitectura por **capas (filas) × etapas (columnas)**.
+Drawer (antes “Diagramador”) es un editor de diagramas de arquitectura por **capas (filas) × etapas (columnas)**.
+El identificador técnico no cambió: el fichero de exportación sigue llevando `"app": "diagramador"` y la base URL es la misma.
 Toda la funcionalidad de la app está disponible por API. Sólo necesitas una **API key** del usuario.
 
 - **Base URL:** `https://draw.bezenti.com/api/v1`

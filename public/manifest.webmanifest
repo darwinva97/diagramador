@@ -1,6 +1,6 @@
 {
-  "name": "Diagramador",
-  "short_name": "Diagramador",
+  "name": "Drawer",
+  "short_name": "Drawer",
   "description": "Editor de diagramas por capas y etapas: componentes, subcomponentes, relaciones y librerías. Funciona sin conexión.",
   "id": "/",
   "start_url": "/",

@@ -91,7 +91,7 @@ function Editor() {
     navigate(diagramPath(current), { replace: !exists });
   }, [id, current, exists, navigate]);
 
-  useEffect(() => { document.title = name ? `${name} · Diagramador` : 'Diagramador'; }, [name]);
+  useEffect(() => { document.title = name ? `${name} · Drawer` : 'Drawer'; }, [name]);
 
   return (
     <>
@@ -120,7 +120,7 @@ const POPOUT_TITLE: Record<View, string> = { sidebar: 'Librería', inspector: 'I
 function Popout() {
   const { view } = useParams<{ view: string }>();
   const v = view === 'sidebar' || view === 'inspector' || view === 'board' ? view : null;
-  useEffect(() => { if (v) document.title = `Diagramador · ${POPOUT_TITLE[v]}`; }, [v]);
+  useEffect(() => { if (v) document.title = `Drawer · ${POPOUT_TITLE[v]}`; }, [v]);
   if (!v) return <Navigate to="/" replace />;
   return (
     <div className="popout">

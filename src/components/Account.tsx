@@ -353,7 +353,7 @@ curl -H "Authorization: Bearer $DIAGRAMADOR_API_KEY" ${base}/diagrams`}</pre>
         <li><code>/diagrams</code> · <code>/diagrams/:id/layers</code> · <code>/stages</code> · <code>/placements</code> · <code>/relations</code></li>
         <li><code>/export</code>, <code>/diagrams/:id/export</code>, <code>/import</code>, <code>/templates/aliados/apply</code>, <code>/api-keys</code></li>
       </ul>
-      <p className="muted">Instrucciones típicas para un agente: “Usa la API de Diagramador en {base} con la key X. Lee primero {location.origin}/agent.md.”</p>
+      <p className="muted">Instrucciones típicas para un agente: “Usa la API de Drawer en {base} con la key X. Lee primero {location.origin}/agent.md.”</p>
     </>
   );
 }
