@@ -36,8 +36,9 @@ export default function App() {
       }
       // atajos que valen también dentro de un campo
       if (mod && k === 'k') { e.preventDefault(); if (!st.ui.sidebarOpen) st.setUI({ sidebarOpen: true }); setTimeout(() => { const i = document.querySelector<HTMLInputElement>('#lib-search'); i?.focus(); i?.select(); }, 0); return; }
-      if (mod && k === 'b') { e.preventDefault(); st.setUI({ sidebarOpen: !st.ui.sidebarOpen }); return; }
-      if (mod && k === 'j') { e.preventDefault(); st.setUI({ inspectorOpen: !st.ui.inspectorOpen }); return; }
+      // Ctrl+B: inspector · Ctrl+J: librería
+      if (mod && k === 'b') { e.preventDefault(); st.setUI({ inspectorOpen: !st.ui.inspectorOpen }); return; }
+      if (mod && k === 'j') { e.preventDefault(); st.setUI({ sidebarOpen: !st.ui.sidebarOpen }); return; }
       if (mod && e.key === '\\') { e.preventDefault(); const both = st.ui.sidebarOpen || st.ui.inspectorOpen; st.setUI({ sidebarOpen: !both, inspectorOpen: !both }); return; }
       if (mod && e.shiftKey && k === 'f') { e.preventDefault(); st.setUI({ zen: !st.ui.zen }); return; }
       if (inField) return;
@@ -49,7 +50,8 @@ export default function App() {
       if (mod && k === 'y') { e.preventDefault(); actions.redo(); return; }
       if (mod && k === 'c') { if (copySelection()) e.preventDefault(); return; }
       if (mod && k === 'x') { if (cutSelection()) e.preventDefault(); return; }
-      if (mod && k === 'v') { if (paste()) e.preventDefault(); return; }
+      if (mod && k === 'v') { if (paste(e.shiftKey)) e.preventDefault(); return; }
+      if (mod && e.shiftKey && k === 'd') { e.preventDefault(); actions.detachSelected(); return; }
       if (mod && k === 'd') { e.preventDefault(); const sel = st.sel; const cell = targetCell(); if (sel?.kind === 'placement' && cell) actions.clonePlacement(sel.id, cell.layerId, cell.stageId); return; }
       if (mod && e.key === 'Enter') { e.preventDefault(); const cell = targetCell(); if (cell) actions.quickAdd(cell.layerId, cell.stageId); else actions.addComponent(); return; }
       if (e.key === 'F2') { e.preventDefault(); if (!st.sel) return; if (!st.ui.inspectorOpen) st.setUI({ inspectorOpen: true }); setTimeout(() => { const i = document.querySelector<HTMLInputElement>('#inspector input'); i?.focus(); i?.select(); }, 0); return; }

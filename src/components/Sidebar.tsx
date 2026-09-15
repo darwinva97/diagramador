@@ -2,6 +2,8 @@ import { useStore, useHover } from '../store';
 import { actions } from '../actions';
 import { curDiagram, findType } from '../lib/model';
 import { setDragData, startDrag } from './dnd';
+import { openMenu, type MenuItem } from './ContextMenu';
+import { copySelection, paste, targetCell } from '../clipboard';
 
 export function Sidebar() {
   const data = useStore(s => s.data);
@@ -24,9 +26,55 @@ export function Sidebar() {
     return Object.values(c.fields).some(v => norm(typeof v === 'object' ? JSON.stringify(v) : v).includes(qn));
   };
   const collapsed = new Set(ui.collapsedLibs);
+  /** Menú contextual de un componente de la librería. */
+  const compMenu = (e: React.MouseEvent, cid: string, name: string) => {
+    select({ kind: 'component', id: cid });
+    const cell = targetCell();
+    const items: MenuItem[] = [
+      { label: 'Copiar', hint: 'Ctrl+C', onClick: () => { select({ kind: 'component', id: cid }); copySelection(); } },
+      { label: cell ? 'Colocar en la celda activa' : 'Colocar (elige antes una celda)', hint: 'Ctrl+V', disabled: !cell,
+        onClick: () => { select({ kind: 'component', id: cid }); copySelection(); paste(); } },
+      { label: 'Colocar como copia independiente', disabled: !cell,
+        onClick: () => { select({ kind: 'component', id: cid }); copySelection(); paste(true); } },
+      { sep: true },
+      { label: 'Duplicar componente', onClick: () => actions.duplicateComponent(cid) },
+      { label: 'Desvincular en este diagrama', disabled: !actions.canDetach(cid), onClick: () => actions.detachComponent(cid, undefined) },
+      { label: 'Editar en el inspector', hint: 'F2', onClick: () => setUI({ inspectorOpen: true }) },
+      { sep: true },
+      { label: 'Eliminar de la librería', danger: true, onClick: () => actions.deleteComponent(cid) },
+    ];
+    openMenu(e, items, name);
+  };
+  /** Menú contextual de un tipo. */
+  const typeMenu = (e: React.MouseEvent, tid: string, name: string) => {
+    select({ kind: 'type', id: tid });
+    openMenu(e, [
+      { label: 'Editar en el inspector', onClick: () => setUI({ inspectorOpen: true }) },
+      { label: '+ Campos de contrato API', onClick: () => actions.addContractFields(tid) },
+      { label: '+ Añadir campo', onClick: () => actions.addField(tid) },
+      { sep: true },
+      { label: 'Eliminar tipo', danger: true, onClick: () => actions.deleteType(tid) },
+    ], name);
+  };
+  /** Menú contextual del título de una librería. */
+  const libMenu = (e: React.MouseEvent, lid: string, name: string) => {
+    const allIds = data.libraries.map(l => l.id);
+    openMenu(e, [
+      { label: collapsed.has(lid) ? 'Desplegar' : 'Plegar', onClick: () => toggleLib(lid) },
+      { label: 'Plegar todas', onClick: () => setUI({ collapsedLibs: allIds }) },
+      { label: 'Desplegar todas', onClick: () => setUI({ collapsedLibs: [] }) },
+      { sep: true },
+      { label: 'Ver sólo esta librería', onClick: () => setUI({ libFilter: lid }) },
+      { label: 'Renombrar librería', onClick: () => actions.renameLibrary(lid) },
+      { label: 'Nueva librería', onClick: actions.newLibrary },
+      { sep: true },
+      { label: 'Eliminar librería', danger: true, onClick: () => actions.deleteLibrary(lid) },
+    ], name);
+  };
   const toggleLib = (id: string) => setUI({ collapsedLibs: collapsed.has(id) ? ui.collapsedLibs.filter(x => x !== id) : [...ui.collapsedLibs, id] });
   const GroupHead = ({ id, name, n }: { id: string; name: string; n: number }) => (
-    <button className={'group' + (collapsed.has(id) ? ' closed' : '')} onClick={() => toggleLib(id)} title={collapsed.has(id) ? 'Desplegar' : 'Plegar'}>
+    <button className={'group' + (collapsed.has(id) ? ' closed' : '')} onClick={() => toggleLib(id)}
+      onContextMenu={e => libMenu(e, id, name)} title={collapsed.has(id) ? 'Desplegar' : 'Plegar'}>
       <span className="caret">{collapsed.has(id) ? '▸' : '▾'}</span> {name} <small>{n}</small>
     </button>
   );
@@ -75,6 +123,7 @@ export function Sidebar() {
                     onDragStart={e => startDrag(e, { t: 'comp', id: c.id }, 'copy')}
                     onDragEnd={() => setDragData(null)}
                     onClick={() => select({ kind: 'component', id: c.id })}
+                    onContextMenu={e => compMenu(e, c.id, c.name)}
                     onMouseEnter={() => setHover(c.id)}
                     onMouseLeave={() => setHover(null)}
                     title="Arrastra a una celda del tablero"
@@ -99,6 +148,7 @@ export function Sidebar() {
                   className={'item type-item' + (sel?.kind === 'type' && sel.id === t.id ? ' selected' : '')}
                   style={{ ['--c' as string]: t.color }}
                   onClick={() => select({ kind: 'type', id: t.id })}
+                  onContextMenu={e => typeMenu(e, t.id, t.name)}
                 >
                   <span className="icon">{t.icon}</span>
                   <span className="txt"><b>{t.name}</b><small>{t.fields.length} campo(s)</small></span>

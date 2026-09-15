@@ -1,7 +1,7 @@
 import { useStore } from './store';
 import { API_CONTRACT_FIELDS, type AppData, type Component, type ComponentType, type Diagram, type FieldDef, type Placement, type Relation } from './types';
 import type { Library } from './types';
-import { LAYER_COLORS, PALETTE, cloneDiagram, curDiagram, descendantIds, findComp, findLib, findType, libOfComp, libOfType, nextStackPos, setCell, snap, tidyCell, uid } from './lib/model';
+import { LAYER_COLORS, PALETTE, cloneDiagram, curDiagram, descendantIds, findComp, findLib, findType, instanceCount, libOfComp, libOfType, nextStackPos, setCell, snap, tidyCell, uid } from './lib/model';
 import { exportAll, exportDiagram, mergeImport, pickFile } from './lib/io';
 import { DEFAULT_LAYERS, DEFAULT_STAGES } from './seed';
 
@@ -320,6 +320,29 @@ export const actions = {
       for (const p of g.placements) if (p.componentId === id && (!pid || p.id === pid)) p.componentId = nid;
     });
     select(pid ? { kind: 'placement', id: pid } : { kind: 'component', id: nid });
+  },
+  /** ¿Merece la pena desvincular? Sólo si el componente tiene más de una instancia en algún diagrama. */
+  canDetach(componentId: string) { return instanceCount(S().data, componentId) > 1; },
+  /**
+   * Desvincula lo seleccionado sin preguntar: si hay una instancia seleccionada, sólo esa;
+   * si hay un componente, todas sus instancias del diagrama actual. Devuelve el nombre o null.
+   */
+  detachSelected(): string | null {
+    const s = S(); const sel = s.sel; const d = curDiagram(s.data); if (!sel || !d) return null;
+    if (sel.kind === 'placement') {
+      const p = d.placements.find(x => x.id === sel.id); if (!p) return null;
+      if (!actions.canDetach(p.componentId)) return null;
+      const name = findComp(s.data, p.componentId)?.name ?? null;
+      actions.detachComponent(p.componentId, p.id);
+      return name;
+    }
+    if (sel.kind === 'component') {
+      if (!actions.canDetach(sel.id)) return null;
+      const name = findComp(s.data, sel.id)?.name ?? null;
+      actions.detachComponent(sel.id);
+      return name;
+    }
+    return null;
   },
   moveComponentToLib(id: string, libId: string) {
     mutate(d => {

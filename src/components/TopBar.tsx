@@ -49,12 +49,12 @@ export function TopBar() {
       <button className="btn" onClick={() => window.print()} disabled={!current} title="Imprimir el tablero">🖨</button>
       <span className="sep" />
       {/* vista */}
-      <span className="btn-group" title="Librería: mostrar/ocultar (Ctrl+B) · abrir en otra ventana">
-        <button className={'btn icon toggle' + (ui.sidebarOpen ? ' on' : '')} onClick={() => setUI({ sidebarOpen: !ui.sidebarOpen })} title={(ui.sidebarOpen ? 'Ocultar' : 'Mostrar') + ' librería (Ctrl+B)'}>◧</button>
+      <span className="btn-group" title="Librería: mostrar/ocultar (Ctrl+J) · abrir en otra ventana">
+        <button className={'btn icon toggle' + (ui.sidebarOpen ? ' on' : '')} onClick={() => setUI({ sidebarOpen: !ui.sidebarOpen })} title={(ui.sidebarOpen ? 'Ocultar' : 'Mostrar') + ' librería (Ctrl+J)'}>◧</button>
         <button className="btn icon" onClick={() => openPopout('sidebar')} title="Abrir la librería en otra ventana">⧉</button>
       </span>
-      <span className="btn-group" title="Inspector: mostrar/ocultar (Ctrl+J) · abrir en otra ventana">
-        <button className={'btn icon toggle' + (ui.inspectorOpen ? ' on' : '')} onClick={() => setUI({ inspectorOpen: !ui.inspectorOpen })} title={(ui.inspectorOpen ? 'Ocultar' : 'Mostrar') + ' inspector (Ctrl+J)'}>◨</button>
+      <span className="btn-group" title="Inspector: mostrar/ocultar (Ctrl+B) · abrir en otra ventana">
+        <button className={'btn icon toggle' + (ui.inspectorOpen ? ' on' : '')} onClick={() => setUI({ inspectorOpen: !ui.inspectorOpen })} title={(ui.inspectorOpen ? 'Ocultar' : 'Mostrar') + ' inspector (Ctrl+B)'}>◨</button>
         <button className="btn icon" onClick={() => openPopout('inspector')} title="Abrir el inspector en otra ventana">⧉</button>
       </span>
       <button className="btn icon" onClick={() => openPopout('board')} title="Abrir el tablero en otra ventana">▣⧉</button>

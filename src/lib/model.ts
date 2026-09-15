@@ -50,6 +50,10 @@ export function descendantIds(dg: Diagram, pid: string): string[] {
 }
 export const childrenOf = (dg: Diagram, pid: string): Placement[] => dg.placements.filter(p => p.parentId === pid);
 /** Instancia raíz (nivel de celda) de una instancia posiblemente anidada. */
+/** Instancias de un componente en todos los diagramas (para saber si está compartido). */
+export const instanceCount = (d: AppData, componentId: string) =>
+  d.diagrams.reduce((n, g) => n + g.placements.filter(p => p.componentId === componentId).length, 0);
+
 export function rootOf(dg: Diagram, pid: string): Placement | null {
   let p = dg.placements.find(x => x.id === pid) ?? null; const seen = new Set<string>();
   while (p && p.parentId && !seen.has(p.id)) { seen.add(p.id); p = dg.placements.find(x => x.id === p!.parentId) ?? null; }

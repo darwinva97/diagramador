@@ -11,6 +11,7 @@ interface Props {
   hoverPid: string | null;
   linking: LinkingState | null;
   onSelect(id: string): void;
+  onContext?(id: string, e: React.MouseEvent): void;
 }
 
 const DASH: Record<Relation['style'], string | undefined> = { solid: undefined, dashed: '9 6', dotted: '2 6' };
@@ -18,7 +19,7 @@ const mid = (c: string) => 'm-' + c.replace('#', '');
 /** Último tramo de la ruta de un campo, para que quepa sobre la flecha. */
 const short = (p?: string) => !p ? '*' : p.split('.').slice(-2).join('.');
 
-export function Links({ rects, size, relations, sel, hoverPid, linking, onSelect }: Props) {
+export function Links({ rects, size, relations, sel, hoverPid, linking, onSelect, onContext }: Props) {
   const colors = new Set(relations.map(r => r.color));
   const anchors = layoutAnchors(relations, rects);
   return (
@@ -38,7 +39,8 @@ export function Links({ rects, size, relations, sel, hoverPid, linking, onSelect
         const hot = hoverPid !== null && (r.from === hoverPid || r.to === hoverPid);
         return (
           <g key={r.id} className={'rel' + (isSel ? ' selected' : '') + (hot ? ' hot' : '')}
-            onClick={e => { e.stopPropagation(); onSelect(r.id); }}>
+            onClick={e => { e.stopPropagation(); onSelect(r.id); }}
+            onContextMenu={e => onContext?.(r.id, e)}>
             <path className="hit" d={d} />
             <path className="line" d={d} stroke={r.color} strokeWidth={r.width}
               strokeDasharray={DASH[r.style]}

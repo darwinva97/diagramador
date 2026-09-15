@@ -5,6 +5,8 @@ import { CELL_DEFAULT_W, CELL_MIN_H, CELL_MIN_W, CHIP_ROW, childrenOf, curDiagra
 import { rectsEqual, type Rect } from '../lib/geometry';
 import { dragKind, readDrag, setDragData, startDrag } from './dnd';
 import { Links, type LinkingState } from './Links';
+import { openMenu, type MenuItem } from './ContextMenu';
+import { copySelection, cutSelection, hasClip, paste } from '../clipboard';
 import type { Diagram, Layer, Placement, Stage } from '../types';
 
 /** Arrastre libre de una instancia (posición en vivo, relativa a su celda de origen). */
@@ -187,6 +189,96 @@ export function Board() {
     window.addEventListener('pointerup', up, { once: true });
   };
 
+  /** Menú contextual del tablero: instancia, celda, capa o etapa según dónde se haga clic derecho. */
+  const onGridContextMenu = (e: React.MouseEvent) => {
+    const el = e.target as HTMLElement;
+    const st = useStore.getState();
+    const comp = el.closest<HTMLElement>('.comp');
+    const cellEl = el.closest<HTMLElement>('.cell');
+
+    if (comp?.dataset.pid) {
+      const pid = comp.dataset.pid;
+      const p = d.placements.find(x => x.id === pid); if (!p) return;
+      const c = findComp(data, p.componentId);
+      select({ kind: 'placement', id: pid });
+      setCell({ layerId: p.layerId, stageId: p.stageId });
+      const items: MenuItem[] = [
+        { label: 'Copiar', hint: 'Ctrl+C', onClick: () => copySelection() },
+        { label: 'Cortar', hint: 'Ctrl+X', onClick: () => cutSelection() },
+        { label: 'Duplicar aquí', hint: 'Ctrl+D', onClick: () => actions.clonePlacement(pid, p.layerId, p.stageId) },
+        { label: 'Pegar en esta celda', hint: 'Ctrl+V', disabled: !hasClip(), onClick: () => paste() },
+        { sep: true },
+        { label: 'Desvincular esta instancia', hint: 'Ctrl+Shift+D', disabled: !actions.canDetach(p.componentId),
+          onClick: () => actions.detachSelected() },
+        { label: 'Editar en el inspector', hint: 'F2', onClick: () => st.setUI({ inspectorOpen: true }) },
+        { label: '+ Subcomponente', onClick: () => actions.quickAddChild(pid) },
+        ...(p.parentId ? [{ label: 'Sacar del contenedor', onClick: () => actions.unnest(pid) }] : []),
+        { label: 'Ordenar celda', onClick: () => actions.tidyCell(p.layerId, p.stageId) },
+        { sep: true },
+        { label: 'Quitar de la celda', hint: 'Supr', danger: true, onClick: () => actions.removePlacement(pid) },
+        { label: 'Eliminar de la librería', danger: true, onClick: () => actions.deleteComponent(p.componentId) },
+      ];
+      openMenu(e, items, c?.name);
+      return;
+    }
+
+    if (cellEl?.dataset.lid) {
+      const lid = cellEl.dataset.lid, sid = cellEl.dataset.sid!;
+      setCell({ layerId: lid, stageId: sid });
+      const L = d.layers.find(l => l.id === lid), S = d.stages.find(s => s.id === sid);
+      const n = d.placements.filter(p => p.layerId === lid && p.stageId === sid && !p.parentId).length;
+      openMenu(e, [
+        { label: 'Pegar aquí', hint: 'Ctrl+V', disabled: !hasClip(), onClick: () => paste() },
+        { label: 'Pegar aquí como copia independiente', hint: 'Ctrl+Shift+V', disabled: !hasClip(), onClick: () => paste(true) },
+        { label: 'Nuevo componente aquí', hint: 'Ctrl+Entrar', onClick: () => actions.quickAdd(lid, sid) },
+        { sep: true },
+        { label: 'Ordenar celda', disabled: n < 2, onClick: () => actions.tidyCell(lid, sid) },
+        { label: 'Ancho de la etapa automático', onClick: () => { snapshot(); actions.setStageWidth(sid, undefined); } },
+        { label: 'Alto de la capa automático', onClick: () => { snapshot(); actions.setLayerHeight(lid, undefined); } },
+      ], `${L?.name ?? '?'} · ${S?.name ?? '?'}`);
+      return;
+    }
+
+    const layerEl = el.closest<HTMLElement>('.layer-h');
+    if (layerEl?.dataset.lid) {
+      const lid = layerEl.dataset.lid;
+      openMenu(e, [
+        { label: 'Renombrar', onClick: () => layerEl.querySelector<HTMLInputElement>('input.name')?.select() },
+        { label: 'Añadir capa', onClick: actions.addLayer },
+        { label: 'Alto automático', onClick: () => { snapshot(); actions.setLayerHeight(lid, undefined); } },
+        { sep: true },
+        { label: 'Eliminar capa', danger: true, onClick: () => actions.deleteLayer(lid) },
+      ], d.layers.find(l => l.id === lid)?.name);
+      return;
+    }
+
+    const stageEl = el.closest<HTMLElement>('.stage-h');
+    if (stageEl?.dataset.sid) {
+      const sid = stageEl.dataset.sid;
+      openMenu(e, [
+        { label: 'Renombrar', onClick: () => stageEl.querySelector<HTMLInputElement>('input.name')?.select() },
+        { label: 'Añadir etapa', onClick: actions.addStage },
+        { label: 'Ancho automático', onClick: () => { snapshot(); actions.setStageWidth(sid, undefined); } },
+        { sep: true },
+        { label: 'Eliminar etapa', danger: true, onClick: () => actions.deleteStage(sid) },
+      ], d.stages.find(s => s.id === sid)?.name);
+    }
+  };
+
+  /** Menú contextual de una flecha. */
+  const onRelationContextMenu = (id: string, e: React.MouseEvent) => {
+    const r = d.relations.find(x => x.id === id); if (!r) return;
+    select({ kind: 'relation', id });
+    openMenu(e, [
+      { label: 'Editar en el inspector', onClick: () => useStore.getState().setUI({ inspectorOpen: true }) },
+      { label: 'Invertir sentido', onClick: () => actions.swapRelation(id) },
+      { label: 'Quitar conexión por campos', disabled: !r.fromField && !r.toField,
+        onClick: () => actions.updateRelation(id, { fromField: undefined, toField: undefined }, true) },
+      { sep: true },
+      { label: 'Eliminar flecha', danger: true, onClick: () => actions.deleteRelation(id) },
+    ], r.label || 'Relación');
+  };
+
   const onGridDoubleClick = (e: React.MouseEvent) => {
     const comp = (e.target as HTMLElement).closest<HTMLElement>('.comp');
     if (comp) { select({ kind: 'placement', id: comp.dataset.pid! }); useStore.getState().setUI({ inspectorOpen: true }); return; }
@@ -213,7 +305,7 @@ export function Board() {
       <div id="board" ref={boardRef}>
         <div id="grid" ref={gridRef} style={{ gridTemplateColumns: cols }}
           onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}
-          onPointerDown={onPointerDown} onClick={onGridClick} onDoubleClick={onGridDoubleClick}>
+          onPointerDown={onPointerDown} onClick={onGridClick} onDoubleClick={onGridDoubleClick} onContextMenu={onGridContextMenu}>
           <div className="corner"><span>Capas ╲ Etapas</span></div>
           {d.stages.map(s => <StageHeader key={s.id} s={s} snapshot={snapshot} />)}
           <div className="add-col"><button className="btn icon" onClick={actions.addStage} title="Añadir etapa">+</button></div>
@@ -230,7 +322,7 @@ export function Board() {
           <div className="add-row"><button className="btn" onClick={actions.addLayer}>+ Capa</button></div>
         </div>
         <Links rects={rects} size={size} relations={d.relations} sel={sel} hoverPid={hover.pid} linking={linking}
-          onSelect={id => select({ kind: 'relation', id })} />
+          onSelect={id => select({ kind: 'relation', id })} onContext={onRelationContextMenu} />
       </div>
     </section>
   );

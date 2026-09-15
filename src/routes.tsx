@@ -14,6 +14,7 @@ import { Board } from './components/Board';
 import { Inspector } from './components/Inspector';
 import { Account } from './components/Account';
 import { Shortcuts } from './components/Shortcuts';
+import { ContextMenu } from './components/ContextMenu';
 import { PANEL_MAX, PANEL_MIN, useStore } from './store';
 import { actions } from './actions';
 import { toggleFullscreen, type View } from './sync';
@@ -41,7 +42,7 @@ export function AppRoutes() {
 function Shell() {
   const zen = useStore(s => s.ui.zen);
   useEffect(() => { document.body.classList.toggle('zen', zen); return () => document.body.classList.remove('zen'); }, [zen]);
-  return <><TopBar /><Outlet /><Shortcuts /></>;
+  return <><TopBar /><Outlet /><Shortcuts /><ContextMenu /></>;
 }
 
 /** Tirador vertical entre paneles: arrastra para cambiar el ancho del panel indicado. */
@@ -96,11 +97,11 @@ function Editor() {
       <main style={{ ['--sidebar-w' as string]: `${ui.sidebarW}px`, ['--inspector-w' as string]: `${ui.inspectorW}px` }}>
         {ui.sidebarOpen
           ? <><Sidebar /><Splitter panel="sidebar" /></>
-          : <button className="edge-tab left" onClick={() => setUI({ sidebarOpen: true })} title="Mostrar librería (Ctrl+B)">▸ Librería</button>}
+          : <button className="edge-tab left" onClick={() => setUI({ sidebarOpen: true })} title="Mostrar librería (Ctrl+J)">▸ Librería</button>}
         <Board />
         {ui.inspectorOpen
           ? <><Splitter panel="inspector" /><Inspector /></>
-          : <button className="edge-tab right" onClick={() => setUI({ inspectorOpen: true })} title="Mostrar inspector (Ctrl+J)">◂ Inspector</button>}
+          : <button className="edge-tab right" onClick={() => setUI({ inspectorOpen: true })} title="Mostrar inspector (Ctrl+B)">◂ Inspector</button>}
       </main>
       {ui.zen && (
         <div className="zen-bar">
@@ -125,6 +126,7 @@ function Popout() {
       {v === 'sidebar' && <Sidebar />}
       {v === 'inspector' && <Inspector />}
       {v === 'board' && <Board />}
+      <ContextMenu />
     </div>
   );
 }

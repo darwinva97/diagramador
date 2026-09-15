@@ -32,7 +32,7 @@ npm run build      # genera dist/index.html (un único archivo; necesita un serv
 - **Tema** claro / oscuro / sistema (botón ☀ ☾ ◐ de la barra superior).
 - **Modo zen** (botón Zen o Ctrl+Shift+F): sólo el tablero; Esc para salir. Botón ⤢ de pantalla completa.
 - **Ventanas separadas**: botones ⧉ abren la librería, el inspector o el tablero en otra ventana del navegador (`/ventana/sidebar|inspector|board`). Todas las ventanas comparten datos y selección en tiempo real (localStorage + BroadcastChannel) y se puede arrastrar de una ventana a otra.
-- Paneles laterales plegables: botones ◧ ◨ en la barra superior, Ctrl+B (librería) y Ctrl+J (inspector); doble clic en un componente reabre el inspector.
+- Paneles laterales plegables: botones ◧ ◨ en la barra superior, Ctrl+J (librería) y Ctrl+B (inspector); doble clic en un componente reabre el inspector.
 - Paneles laterales redimensionables: arrastra la barra entre paneles (mínimo 200 px la librería, 260 px el inspector; doble clic = ancho por defecto).
 - Tipos de campo: texto, texto largo, número, lista desplegable, casilla, URL, fecha, **lista de textos**, **clave → valor** y **JSON** (con validación y formateo).
 - Plantilla **Tipo API** (pestaña Tipos): capa, estado, versión, método HTTP, path, base URL por entorno, autenticación, content-type, cabeceras, parámetros de path y query, request/response body en JSON, códigos de respuesta, contrato de error, timeout, etiquetas, documentación y notas. El chip muestra `MÉTODO /path` bajo el nombre. “+ Campos de contrato API” añade esos campos a un tipo existente.
@@ -44,7 +44,8 @@ npm run build      # genera dist/index.html (un único archivo; necesita un serv
   Estilos **directa / troceada / punteada**, dirección (→, ↔, ninguna), color, grosor y etiqueta.
 - Exportar todo, exportar sólo el diagrama actual (con los componentes/tipos que usa) e importar JSON (fusiona).
 - Deshacer (Ctrl+Z) y rehacer (Ctrl+Shift+Z), Supr borra la instancia o relación seleccionada, Esc deselecciona, impresión sólo del tablero.
-- **Copiar y pegar**: Ctrl+C / Ctrl+X sobre una instancia o un componente de la librería, clic en la celda destino y Ctrl+V. Ctrl+D duplica en la misma celda.
+- **Copiar y pegar**: Ctrl+C / Ctrl+X sobre una instancia o un componente de la librería, clic en la celda destino y Ctrl+V. Ctrl+D duplica en la misma celda, Ctrl+Shift+D desvincula (copia independiente) y Ctrl+Shift+V pega ya desvinculado.
+- **Menú contextual** con clic derecho sobre un componente, una celda, una capa, una etapa, una flecha, un tipo o el título de una librería.
 - **Atajos de teclado** para casi todo; pulsa `?` (o el botón ⌨) para ver la lista completa.
 - **Librerías plegables** en el panel lateral: clic en el título para plegar o desplegar.
 - **Contratos de API**: los campos JSON muestran la estructura reconocida (campo, tipo y ejemplo) y una relación puede conectar un campo concreto del origen con uno del destino.

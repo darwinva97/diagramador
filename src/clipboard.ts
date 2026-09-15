@@ -40,11 +40,19 @@ export function targetCell(): { layerId: string; stageId: string } | null {
 }
 
 /** Pega en la celda destino. Devuelve false si no hay nada que pegar o dónde. */
-export function paste(): boolean {
+export function paste(detach = false): boolean {
   const c = clip; const cell = targetCell(); if (!c || !cell) return false;
   const d = curDiagram(useStore.getState().data); if (!d) return false;
   // si la instancia copiada sigue existiendo se clona con sus subcomponentes; si no, se coloca el componente
   if (c.kind === 'placement' && d.placements.some(p => p.id === c.pid)) actions.clonePlacement(c.pid, cell.layerId, cell.stageId);
   else actions.place(c.componentId, cell.layerId, cell.stageId);
+  // "pegar desvinculado": la instancia recién pegada pasa a una copia independiente del componente
+  if (detach) {
+    const sel = useStore.getState().sel;
+    if (sel?.kind === 'placement') {
+      const p = curDiagram(useStore.getState().data)?.placements.find(x => x.id === sel.id);
+      if (p && actions.canDetach(p.componentId)) actions.detachComponent(p.componentId, p.id);
+    }
+  }
   return true;
 }
