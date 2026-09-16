@@ -5,6 +5,7 @@ import { useAuth, login, register, logout, changePassword, deleteAccount, listKe
 import { exportAll, exportDiagram } from '../lib/io';
 import { abrirArchivo, descargarApp, desvincular, enServidor, guardar, guardarComo, recargar, setAuto, supportsFS, useLocal } from '../local';
 import { Avatar } from './People';
+import { ShareButton } from './Share';
 import { ASSIGN_LABEL } from '../types';
 import { targetDiagram, targetName } from '../lib/model';
 import { Link, NavLink, useNavigate, useParams } from 'react-router';
@@ -167,13 +168,17 @@ function Diagramas() {
     <>
       <div className="row between"><h2>Diagramas ({data.diagrams.length})</h2><button className="btn primary" onClick={() => { actions.newDiagram(); }}>+ Nuevo diagrama</button></div>
       <table className="table">
-        <thead><tr><th>Nombre</th><th>Capas</th><th>Etapas</th><th>Instancias</th><th>Relaciones</th><th /></tr></thead>
+        <thead><tr><th>Nombre</th><th>Capas</th><th>Etapas</th><th>Instancias</th><th>Relaciones</th><th>Enlace</th><th /></tr></thead>
         <tbody>
           {data.diagrams.map(d => (
             <tr key={d.id} className={d.id === data.currentDiagramId ? 'on' : ''}>
               <td><b>{d.name}</b>{d.description && <div className="muted small">{d.description.slice(0, 120)}</div>}</td>
               <td>{d.layers.length}</td><td>{d.stages.length}</td><td>{d.placements.length}</td><td>{d.relations.length}</td>
+              <td>{d.public
+                ? <a href={`/p/${d.id}`} target="_blank" rel="noreferrer" title="Abrir la vista pública">🔗 Público</a>
+                : <span className="muted">Privado</span>}</td>
               <td className="actions-cell">
+                <ShareButton id={d.id} />
                 <button className="btn" onClick={() => open(d.id)}>Abrir</button>
                 <button className="btn" onClick={() => { actions.setCurrent(d.id); actions.duplicateDiagram(); }}>Duplicar</button>
                 <button className="btn" onClick={() => exportDiagram(data, d)}>Exportar</button>

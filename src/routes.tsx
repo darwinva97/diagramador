@@ -16,6 +16,7 @@ import { Account } from './components/Account';
 import { Shortcuts } from './components/Shortcuts';
 import { ContextMenu } from './components/ContextMenu';
 import { AssignDialog } from './components/People';
+import { ShareDialog } from './components/Share';
 import { PublicView } from './components/PublicView';
 import { PANEL_MAX, PANEL_MIN, useStore } from './store';
 import { actions } from './actions';
@@ -45,7 +46,7 @@ export function AppRoutes() {
 function Shell() {
   const zen = useStore(s => s.ui.zen);
   useEffect(() => { document.body.classList.toggle('zen', zen); return () => document.body.classList.remove('zen'); }, [zen]);
-  return <><TopBar /><Outlet /><Shortcuts /><ContextMenu /><AssignDialog /></>;
+  return <><TopBar /><Outlet /><Shortcuts /><ContextMenu /><AssignDialog /><ShareDialog /></>;
 }
 
 /** Tirador vertical entre paneles: arrastra para cambiar el ancho del panel indicado. */

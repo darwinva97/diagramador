@@ -76,6 +76,10 @@ export const actions = {
     select(null);
   },
   setCurrent(id: string) { mutate(d => { d.currentDiagramId = id; }, false); select(null); },
+  /** Publica o despublica un diagrama cualquiera (no hace falta que sea el actual). */
+  setPublic(id: string, value: boolean) {
+    mutate(d => { const g = d.diagrams.find(x => x.id === id); if (g) g.public = value; });
+  },
 
   // ---------- Capas / etapas
   addStage() { mutate(d => { const g = curDiagram(d); if (g) g.stages.push({ id: uid(), name: `Etapa ${g.stages.length + 1}` }); }); },

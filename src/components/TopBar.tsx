@@ -7,6 +7,7 @@ import { useLocation, useNavigate } from 'react-router';
 import { accountPath } from '../routes';
 import { StorageChip } from './Storage';
 import { ExportImageButton } from './ExportImage';
+import { ShareButton } from './Share';
 
 const EXAMPLES: { key: string; name: string; data: unknown }[] = [
   { key: 'pedido', name: 'Ejemplo básico: flujo de pedido', data: pedidoExample() },
@@ -35,6 +36,7 @@ export function TopBar() {
       <button className="btn" onClick={actions.newDiagram}>+ Nuevo</button>
       <button className="btn" onClick={actions.duplicateDiagram} disabled={!current}>Duplicar</button>
       <button className="btn danger" onClick={actions.deleteDiagram} disabled={!current}>Eliminar</button>
+      {current && <ShareButton id={current} />}
       <select className="examples" value="" onChange={e => { const ex = EXAMPLES.find(x => x.key === e.target.value); if (ex) actions.loadExample(ex.data); }} title="Cargar un ejemplo incluido">
         <option value="">Ejemplos…</option>
         {EXAMPLES.map(x => <option key={x.key} value={x.key}>{x.name}</option>)}
