@@ -529,6 +529,28 @@ body.exporting .comp { box-shadow: none; }
 body.exporting .cell.active, body.exporting .comp.selected { outline: none !important; }
 .public-msg { padding: 48px; text-align: center; }
 .public-msg h2 { margin-bottom: 8px; }
+
+/* ---------- Ficha de detalle de la vista pública (sólo enseña) */
+.public-main { flex: 1; display: flex; min-height: 0; }
+#inspector.ro { width: 360px; }
+#inspector.ro h4 { margin-top: 18px; }
+.ro-field { margin-bottom: 10px; }
+.ro-text { font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+.ro-text.multi { background: var(--field); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; margin: 4px 0 10px; }
+.ro-field .code-block { max-height: 240px; }
+.table.kv-view { margin: 2px 0 0; }
+.table.kv-view th, .table.kv-view td { padding: 4px 6px; font-size: 12px; }
+.chip-btn.as-text { cursor: default; }
+.ro-rule { border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; margin-bottom: 6px; }
+.ro-rule.on { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.ro-rule .rule-preview { margin-bottom: 4px; }
+.ro-rel { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; font: inherit; font-size: 12px;
+  background: var(--chip); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; margin-bottom: 4px; cursor: pointer; color: var(--text); }
+.ro-rel:hover { background: var(--hover); }
+.ro-rel small { color: var(--muted); margin-left: auto; }
+.ro-rel-ends { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.ro-rel-ends .arrow { font-size: 16px; color: var(--muted); }
+@media (max-width: 760px) { #inspector.ro { width: 260px; } }
 .share-box { border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-bottom: 10px; }
 .share-box input { font-size: 11.5px; font-family: ui-monospace, Menlo, monospace; }
 /* botón de compartir: se ilumina cuando el diagrama está publicado */

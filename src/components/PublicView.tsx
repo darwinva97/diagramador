@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { Board } from './Board';
+import { PublicPanel } from './PublicPanel';
 import { API_BASE } from '../cloud';
 import { useStore } from '../store';
 import { normalize } from '../lib/model';
@@ -18,6 +19,7 @@ export function PublicView() {
   const [estado, setEstado] = useState<'cargando' | 'listo' | 'error'>('cargando');
   const [error, setError] = useState('');
   const [nombre, setNombre] = useState('');
+  const [panel, setPanel] = useState(true);
 
   useEffect(() => {
     let vivo = true;
@@ -64,9 +66,15 @@ export function PublicView() {
         <span className="pub-name">{nombre}</span>
         <span className="pub-tag">sólo lectura</span>
         <span className="spacer" />
+        <button className="btn" onClick={() => setPanel(!panel)} title="Mostrar u ocultar la ficha de detalle">
+          {panel ? '◨ Ocultar detalle' : '◧ Ver detalle'}
+        </button>
         <a className="btn" href="/" target="_blank" rel="noreferrer">Abrir Drawer</a>
       </header>
-      <Board />
+      <main className="public-main">
+        <Board />
+        {panel && <PublicPanel />}
+      </main>
     </>
   );
 }

@@ -277,12 +277,12 @@ export function Board() {
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0 || space || soloLectura) return; // con espacio se mueve el lienzo
+    if (e.button !== 0 || space) return; // con espacio se mueve el lienzo
     const el = e.target as HTMLElement;
     if (el.closest('.stage-group, .group-gap')) return; // lo gestiona onBandPointerDown
 
     // ----- redimensionar columna (ancho de etapa) o fila (alto de capa)
-    const rs = el.closest<HTMLElement>('.rs-x, .rs-y');
+    const rs = soloLectura ? null : el.closest<HTMLElement>('.rs-x, .rs-y');
     if (rs) {
       e.preventDefault(); e.stopPropagation();
       const isX = rs.classList.contains('rs-x');
@@ -300,7 +300,7 @@ export function Board() {
       return;
     }
 
-    const port = el.closest('.port');
+    const port = soloLectura ? null : el.closest('.port');
     const comp = el.closest<HTMLElement>('.comp');
     if (!comp) return;
     const board = boardRef.current!;
@@ -334,14 +334,25 @@ export function Board() {
     }
 
     // ----- mover instancia (posición libre)
+    const pOrig = d.placements.find(x => x.id === pid);
+    // En la vista pública se puede recolocar dentro de la propia celda, pero nada más: un
+    // subcomponente lo coloca su contenedor, así que ése no se toca.
+    if (soloLectura && (!pOrig || pOrig.parentId)) return;
     const cell = comp.closest<HTMLElement>('.cell')!;
     const cr = cell.getBoundingClientRect(); const r = comp.getBoundingClientRect();
     const offX = e.clientX - r.left, offY = e.clientY - r.top;
     const sx = e.clientX, sy = e.clientY;
+    /** Dentro de la celda de origen, sin asomar por ningún borde. */
+    const dentroDeLaCelda = (cx: number, cy: number) => ({
+      x: Math.min(Math.max(0, (cx - offX - cr.left) / zoom), Math.max(0, (cr.width - r.width) / zoom)),
+      y: Math.min(Math.max(0, (cy - offY - cr.top) / zoom), Math.max(0, (cr.height - r.height) / zoom)),
+    });
     let started = false;
     const move = (ev: PointerEvent) => {
       if (!started) { if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 4) return; started = true; document.body.classList.add('dragging-chip'); }
-      setDrag({ pid, x: (ev.clientX - offX - cr.left) / zoom, y: (ev.clientY - offY - cr.top) / zoom });
+      setDrag(soloLectura
+        ? { pid, ...dentroDeLaCelda(ev.clientX, ev.clientY) }
+        : { pid, x: (ev.clientX - offX - cr.left) / zoom, y: (ev.clientY - offY - cr.top) / zoom });
     };
     const up = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', move);
@@ -349,6 +360,11 @@ export function Board() {
       document.body.classList.remove('dragging-chip');
       suppressClick.current = true;
       setDrag(null);
+      if (soloLectura) {
+        const { x, y } = dentroDeLaCelda(ev.clientX, ev.clientY);
+        actions.movePlacement(pid, pOrig!.layerId, pOrig!.stageId, x, y);
+        return;
+      }
       const underEl = document.elementFromPoint(ev.clientX, ev.clientY);
       if (underEl?.closest('#sidebar')) { actions.removePlacement(pid); return; }
       const overChip = underEl?.closest<HTMLElement>('.comp');
