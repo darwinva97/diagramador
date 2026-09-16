@@ -105,6 +105,66 @@ export function Board() {
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
   }, [measure]);
 
+  /** Ajusta el zoom para que el diagrama quepa de ancho en la ventana. */
+  const ajustar = useCallback(() => {
+    const wrap = wrapRef.current, g = gridRef.current; if (!wrap || !g) return;
+    const anchoReal = g.offsetWidth;          // ancho en px CSS, sin el zoom aplicado
+    const disponible = wrap.clientWidth - 32; // menos el relleno del tablero
+    if (anchoReal <= 0) return;
+    useStore.getState().setUI({ zoom: clampZoom(disponible / anchoReal) });
+    requestAnimationFrame(() => { wrap.scrollLeft = 0; });
+  }, []);
+
+  /**
+   * Cambia el zoom manteniendo bajo el puntero el mismo punto del diagrama.
+   * Sin punto de referencia (botones y atajos) se conserva el centro de la vista.
+   */
+  const zoomA = useCallback((nuevo: number, cx?: number, cy?: number) => {
+    const wrap = wrapRef.current; if (!wrap) return;
+    const z0 = useStore.getState().ui.zoom || 1;
+    const z1 = clampZoom(nuevo);
+    if (z1 === z0) return;
+    const r = wrap.getBoundingClientRect();
+    const px = (cx ?? r.left + r.width / 2) - r.left;
+    const py = (cy ?? r.top + r.height / 2) - r.top;
+    const cl = wrap.scrollLeft, ct = wrap.scrollTop;
+    useStore.getState().setUI({ zoom: z1 });
+    const k = z1 / z0;
+    requestAnimationFrame(() => {
+      wrap.scrollLeft = (cl + px) * k - px;
+      wrap.scrollTop = (ct + py) * k - py;
+    });
+  }, []);
+
+  // Ctrl/⌘ + rueda sobre el tablero: hace zoom sólo del diagrama, no de la página
+  useEffect(() => {
+    const wrap = wrapRef.current; if (!wrap) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      zoomA((useStore.getState().ui.zoom || 1) * (e.deltaY < 0 ? 1.1 : 1 / 1.1), e.clientX, e.clientY);
+    };
+    wrap.addEventListener('wheel', onWheel, { passive: false });
+    return () => wrap.removeEventListener('wheel', onWheel);
+  }, [zoomA]);
+
+  // Ctrl + / Ctrl − / Ctrl 0
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.matches?.('input, textarea, select')) return;
+      const z = useStore.getState().ui.zoom || 1;
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomA(z * 1.25); }
+      else if (e.key === '-') { e.preventDefault(); zoomA(z / 1.25); }
+      else if (e.key === '0') { e.preventDefault(); zoomA(1); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [zoomA]);
+
+  // Ojo: a partir de aquí no puede haber hooks. Sin diagramas (cuenta recién creada,
+  // archivo vacío, se borró el último) el tablero se va por este camino corto.
   if (!d) return <section id="canvasWrap"><div className="empty">No hay diagramas. Crea uno con “+ Nuevo”.</div></section>;
 
   /** Celda bajo un punto de pantalla (geométrico, para ignorar lo que haya encima). */
@@ -430,64 +490,6 @@ export function Board() {
       { label: 'Eliminar flecha', danger: true, onClick: () => actions.deleteRelation(id) },
     ], r.label || 'Relación');
   };
-
-  /** Ajusta el zoom para que el diagrama quepa de ancho en la ventana. */
-  const ajustar = useCallback(() => {
-    const wrap = wrapRef.current, g = gridRef.current; if (!wrap || !g) return;
-    const anchoReal = g.offsetWidth;          // ancho en px CSS, sin el zoom aplicado
-    const disponible = wrap.clientWidth - 32; // menos el relleno del tablero
-    if (anchoReal <= 0) return;
-    useStore.getState().setUI({ zoom: clampZoom(disponible / anchoReal) });
-    requestAnimationFrame(() => { wrap.scrollLeft = 0; });
-  }, []);
-
-  /**
-   * Cambia el zoom manteniendo bajo el puntero el mismo punto del diagrama.
-   * Sin punto de referencia (botones y atajos) se conserva el centro de la vista.
-   */
-  const zoomA = useCallback((nuevo: number, cx?: number, cy?: number) => {
-    const wrap = wrapRef.current; if (!wrap) return;
-    const z0 = useStore.getState().ui.zoom || 1;
-    const z1 = clampZoom(nuevo);
-    if (z1 === z0) return;
-    const r = wrap.getBoundingClientRect();
-    const px = (cx ?? r.left + r.width / 2) - r.left;
-    const py = (cy ?? r.top + r.height / 2) - r.top;
-    const cl = wrap.scrollLeft, ct = wrap.scrollTop;
-    useStore.getState().setUI({ zoom: z1 });
-    const k = z1 / z0;
-    requestAnimationFrame(() => {
-      wrap.scrollLeft = (cl + px) * k - px;
-      wrap.scrollTop = (ct + py) * k - py;
-    });
-  }, []);
-
-  // Ctrl/⌘ + rueda sobre el tablero: hace zoom sólo del diagrama, no de la página
-  useEffect(() => {
-    const wrap = wrapRef.current; if (!wrap) return;
-    const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey && !e.metaKey) return;
-      e.preventDefault();
-      zoomA((useStore.getState().ui.zoom || 1) * (e.deltaY < 0 ? 1.1 : 1 / 1.1), e.clientX, e.clientY);
-    };
-    wrap.addEventListener('wheel', onWheel, { passive: false });
-    return () => wrap.removeEventListener('wheel', onWheel);
-  }, [zoomA]);
-
-  // Ctrl + / Ctrl − / Ctrl 0
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!e.ctrlKey && !e.metaKey) return;
-      const t = e.target as HTMLElement | null;
-      if (t?.matches?.('input, textarea, select')) return;
-      const z = useStore.getState().ui.zoom || 1;
-      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomA(z * 1.25); }
-      else if (e.key === '-') { e.preventDefault(); zoomA(z / 1.25); }
-      else if (e.key === '0') { e.preventDefault(); zoomA(1); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [zoomA]);
 
   /**
    * Mover el lienzo arrastrando, como en Figma: con la barra espaciadora, con el botón

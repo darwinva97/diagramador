@@ -3,6 +3,7 @@ import { useStore } from '../store';
 import { actions } from '../actions';
 import { useAuth, login, register, logout, changePassword, deleteAccount, listKeys, createKey, deleteKey, pullAll, pushAll, platformAvailable, apiUrl, type ApiKeyInfo, type NewApiKey } from '../cloud';
 import { exportAll, exportDiagram } from '../lib/io';
+import { abrirArchivo, descargarApp, desvincular, enServidor, guardar, guardarComo, recargar, setAuto, supportsFS, useLocal } from '../local';
 import { Avatar } from './People';
 import { ASSIGN_LABEL } from '../types';
 import { targetDiagram, targetName } from '../lib/model';
@@ -41,13 +42,17 @@ export function Account() {
 
 function SyncStatus() {
   const a = useAuth();
-  if (a.status !== 'auth') return <div className="sync muted">Los datos se guardan sólo en este navegador. Inicia sesión para sincronizarlos y usar la API.</div>;
+  const l = useLocal();
+  const archivo = l.handle ? <div className="muted">📄 Archivo: {l.name}{l.dirty ? ' · sin guardar' : ''}</div> : null;
+  if (a.status !== 'auth') return <div className="sync muted">Los datos se guardan en este navegador{l.handle ? ' y en el archivo vinculado' : ''}. Inicia sesión para sincronizarlos y usar la API.{archivo}</div>;
   return (
     <div className="sync">
-      {a.error ? <span className="warn">⚠ {a.error}</span>
+      {!a.online ? <span className="warn">⚡ Sin conexión{a.pending > 0 ? ` · ${a.pending} cambio(s) por subir` : ''}</span>
+        : a.error ? <span className="warn">⚠ {a.error}</span>
         : a.syncing ? <span>⟳ Sincronizando…</span>
         : a.pending > 0 ? <span>● {a.pending} cambio(s) pendiente(s)</span>
         : <span className="ok">✓ Sincronizado{a.lastSync ? ` · ${new Date(a.lastSync).toLocaleTimeString()}` : ''}</span>}
+      {archivo}
     </div>
   );
 }
@@ -309,6 +314,7 @@ function Config() {
           <label>Grosor<input type="number" min={1} max={8} value={ui.link.width} onChange={e => setUI({ link: { ...ui.link, width: Number(e.target.value) || 2 } })} /></label>
         </div>
       </div>
+      <ModoLocal />
       <h3>Datos</h3>
       <div className="card row">
         <button className="btn" onClick={() => exportAll(data)}>⤒ Exportar todo (JSON)</button>
@@ -318,8 +324,62 @@ function Config() {
       <h3>Atajos</h3>
       <ul className="help">
         <li>Ctrl+Z deshacer · Supr borrar selección · Esc deseleccionar / salir de zen</li>
-        <li>Ctrl+B librería · Ctrl+J inspector · Ctrl+Shift+F zen · flechas mueven la instancia seleccionada (Shift = 1 px)</li>
+        <li>Ctrl+B inspector · Ctrl+J librería · Ctrl+Shift+F zen · flechas mueven la instancia seleccionada (Shift = 1 px)</li>
+        <li>Ctrl+S guardar en el archivo local · Ctrl+O abrir un archivo · Ctrl+Shift+O importar y fusionar</li>
       </ul>
+    </>
+  );
+}
+
+// ------------------------------------------------------------------ Modo local (archivos del equipo)
+function ModoLocal() {
+  const l = useLocal();
+  const fs = supportsFS();
+  return (
+    <>
+      <h3>Modo local</h3>
+      <div className="card">
+        <p className="muted">
+          Drawer guarda siempre en este navegador y funciona sin conexión, incluso instalado como aplicación.
+          Además puedes trabajar sobre un <b>archivo de tu equipo</b>: lo copias, lo versionas en git o se lo pasas a quien quieras.
+        </p>
+        {!fs && <div className="notice">Este navegador no permite escribir archivos del equipo (sólo Chrome y Edge, y en una página segura). Puedes exportar e importar JSON, que hace lo mismo con un paso más.</div>}
+        {l.handle ? (
+          <>
+            <div><b>Archivo vinculado:</b> 📄 {l.name} {l.saving ? '· guardando…' : l.blocked ? '· falta permiso' : l.dirty ? '· con cambios sin guardar' : '· al día'}</div>
+            {l.lastSaved && <div className="muted">Último guardado: {new Date(l.lastSaved).toLocaleString()}</div>}
+            {l.error && <div className="notice warn">⚠ {l.error}</div>}
+            <label className="chk"><input type="checkbox" checked={l.auto} onChange={e => setAuto(e.target.checked)} /> Autoguardado (escribe el archivo poco después de cada cambio)</label>
+            <div className="row">
+              <button className="btn primary" onClick={() => void guardar(true)}>💾 Guardar ahora (Ctrl+S)</button>
+              <button className="btn" onClick={() => void recargar()}>↻ Recargar desde el archivo</button>
+              <button className="btn" onClick={() => void guardarComo()}>⇲ Guardar copia como…</button>
+              <button className="btn danger" onClick={desvincular}>Desvincular</button>
+            </div>
+          </>
+        ) : (
+          <div className="row">
+            <button className="btn primary" disabled={!fs} onClick={() => void guardarComo()}>📄 Guardar en un archivo…</button>
+            <button className="btn" disabled={!fs} onClick={() => void abrirArchivo()}>📂 Abrir un archivo… (Ctrl+O)</button>
+          </div>
+        )}
+        <p className="muted">
+          Los archivos se guardan con extensión <code>.drawer</code> (JSON por dentro, el mismo de exportar).
+          Con Drawer instalado como aplicación, al hacer doble clic en uno se abre aquí.
+        </p>
+      </div>
+      <h3>Sin servidor</h3>
+      <div className="card">
+        <p className="muted">
+          Drawer cabe en un solo archivo HTML. Descárgalo y ábrelo con doble clic: funciona sin conexión y sin
+          este servidor, como el <code>drawio.html</code> de draw.io. Útil para un portátil sin red, un USB o una
+          máquina donde no puedas instalar nada.
+        </p>
+        <div className="row">
+          <button className="btn" disabled={!enServidor()} onClick={() => void descargarApp()}>⬇ Descargar Drawer como archivo</button>
+        </div>
+        <p className="muted">Esa copia guarda sus datos aparte (el navegador separa <code>file://</code> de la web); para llevar los diagramas de un lado a otro usa un archivo <code>.drawer</code> o exportar e importar.</p>
+      </div>
     </>
   );
 }

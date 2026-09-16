@@ -1,8 +1,8 @@
 # CONTEXT — Drawer
 
 Editor web de diagramas de arquitectura organizados en una cuadrícula de **capas (filas) × etapas (columnas)**,
-con componentes reutilizables, subcomponentes y relaciones. Funciona en modo local (localStorage) y, con cuenta,
-como plataforma con sincronización y API REST.
+con componentes reutilizables, subcomponentes y relaciones. Funciona en modo local (navegador o un archivo del
+equipo) y sin conexión; con cuenta, como plataforma con sincronización y API REST.
 
 ## Dominio
 
@@ -30,7 +30,9 @@ como plataforma con sincronización y API REST.
   - `People.tsx` avatar, chips de participación y el diálogo de asignación (`openAssign`).
   - `clipboard.ts` copiar/cortar/pegar instancias y componentes en la celda activa (`store.cell`); `paste(true)` pega ya desvinculado · `lib/schema.ts` reconocimiento de la estructura de un JSON y campos conectables de un componente.
   - `sync.ts` ventanas separadas (`/ventana/sidebar|inspector|board`) sincronizadas por `storage` + BroadcastChannel.
-  - `cloud.ts` cuenta y sincronización con la API (la cuenta es la fuente de verdad; cambios locales se suben con debounce).
+  - `cloud.ts` cuenta y sincronización con la API (la cuenta es la fuente de verdad; cambios locales se suben con debounce). **Sin conexión**: `esDeRed` distingue un fallo de red de un 401, la sesión conocida se guarda en `drawer.user` y la instantánea de sincronización en IndexedDB (`restored` marca si se sabe qué había); al volver la red se hace `flush()` *antes* de `pullAll()`, para no pisar lo editado sin conexión.
+  - `local.ts` modo local sobre un archivo del equipo (File System Access): vincular, autoguardado con debounce, Ctrl+S, recargar, desvincular y reanudar tras recargar la página (el identificador del archivo vive en IndexedDB vía `lib/idb.ts`). `firma()` compara memoria y archivo sin la fecha de exportación, que cambiaría siempre. `descargarApp()` guarda la app entera en un `.html`; con `file://` el router pasa a hash (`main.tsx`).
+  - `components/Storage.tsx` chip de la barra: dónde se guarda, estado del archivo y aviso de sin conexión; el menú reúne todas las acciones.
 - `worker/` — Cloudflare Worker (Hono): API REST `/api/v1`, cookies de sesión firmadas (HMAC), contraseñas PBKDF2, API keys `dgk_…` (hash SHA-256). Persistencia en un **Durable Object con SQLite** (`Store`): tablas `users`, `api_keys`, `docs` (documentos JSON por usuario: `library` / `diagram`).
 - `public/` — PWA (manifest, iconos, `sw.js`), `agent.md` (guía para agentes), `openapi.json`.
 - Despliegue: Worker con assets estáticos (`wrangler.jsonc`), dominio `draw.bezenti.com`; CI en `.github/workflows/deploy.yml`.
@@ -38,5 +40,6 @@ como plataforma con sincronización y API REST.
 ## Convenciones
 
 - Ids: cadenas cortas aleatorias (`uid()`); la plantilla y ejemplos usan ids fijos legibles para poder reimportar.
-- El formato de exportación `{ app: 'diagramador', version: 1, libraries, diagrams }` es el mismo para la app, `/export` e `/import`.
+- El formato de exportación `{ app: 'diagramador', version: 1, libraries, diagrams }` es el mismo para la app, `/export`, `/import` y los archivos `.drawer` del modo local (que además llevan `currentDiagramId`).
+- En `Board` no puede haber hooks después del `if (!d) return …`: sin diagramas (cuenta nueva, archivo vacío, se borró el último) React se quejaría de que faltan hooks.
 - Textos de interfaz en español.

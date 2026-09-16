@@ -3,10 +3,13 @@
  * - Sesión por cookie. Al iniciar sesión, la cuenta es la fuente de verdad: se descargan
  *   librerías y diagramas y, desde entonces, cada cambio local se sube (con debounce).
  * - Si la cuenta está vacía y hay datos locales, se suben los locales.
+ * - **Sin conexión se sigue trabajando**: la sesión conocida se recuerda, los cambios quedan
+ *   pendientes y, al volver la red, se suben *antes* de descargar nada, para no perderlos.
  */
 import { create } from 'zustand';
 import { useStore } from './store';
 import { normalize } from './lib/model';
+import { idbDel, idbGet, idbSet } from './lib/idb';
 import type { AppData, Diagram, Library, Person, StyleRule } from './types';
 
 export interface CloudUser { id: string; email: string; createdAt: string; settings: Record<string, unknown> }
@@ -16,12 +19,22 @@ export interface NewApiKey extends ApiKeyInfo { key: string }
 interface AuthState {
   user: CloudUser | null;
   status: 'unknown' | 'anon' | 'auth';
+  /** ¿Se llega a la plataforma? Falso mientras se trabaja sin conexión. */
+  online: boolean;
   syncing: boolean;
   pending: number;       // cambios locales aún no subidos
   lastSync: string | null;
   error: string | null;
 }
-export const useAuth = create<AuthState>(() => ({ user: null, status: 'unknown', syncing: false, pending: 0, lastSync: null, error: null }));
+export const useAuth = create<AuthState>(() => ({ user: null, status: 'unknown', online: true, syncing: false, pending: 0, lastSync: null, error: null }));
+
+/** Un fallo de red (sin conexión, servidor inalcanzable) no es lo mismo que un 401. */
+const esDeRed = (e: unknown) => e instanceof TypeError || !navigator.onLine;
+
+const USER_KEY = 'drawer.user'; // último usuario conocido, para poder seguir sin conexión
+const leerUsuario = (): CloudUser | null => {
+  try { const t = localStorage.getItem(USER_KEY); return t ? (JSON.parse(t) as CloudUser) : null; } catch { return null; }
+};
 
 export const API_BASE = '/api/v1';
 export const apiUrl = (path: string) => `${location.origin}${API_BASE}${path}`;
@@ -48,9 +61,20 @@ export async function checkSession(): Promise<CloudUser | null> {
   if (!platformAvailable()) { useAuth.setState({ status: 'anon' }); return null; }
   try {
     const { user } = await api<{ user: CloudUser }>('/auth/me');
-    useAuth.setState({ user, status: 'auth', error: null });
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    useAuth.setState({ user, status: 'auth', online: true, error: null });
     return user;
-  } catch { useAuth.setState({ user: null, status: 'anon' }); return null; }
+  } catch (e) {
+    if (esDeRed(e)) {
+      // sin red: se mantiene la sesión que ya conocíamos para poder seguir editando
+      const user = leerUsuario();
+      useAuth.setState({ user, status: user ? 'auth' : 'anon', online: false });
+      return user;
+    }
+    localStorage.removeItem(USER_KEY);
+    useAuth.setState({ user: null, status: 'anon', online: true });
+    return null;
+  }
 }
 export async function register(email: string, password: string) {
   const { user } = await api<{ user: CloudUser }>('/auth/register', { method: 'POST', json: { email, password } });
@@ -65,10 +89,23 @@ export async function login(email: string, password: string) {
 export async function logout() {
   stopSync();
   try { await api('/auth/logout', { method: 'POST' }); } catch { /* ignorar */ }
+  await olvidarSesion();
   useAuth.setState({ user: null, status: 'anon', lastSync: null, pending: 0 });
 }
 export const changePassword = (current: string, next: string) => api('/auth/password', { method: 'PUT', json: { current, next } });
-export async function deleteAccount() { stopSync(); await api('/auth/account', { method: 'DELETE' }); useAuth.setState({ user: null, status: 'anon' }); }
+export async function deleteAccount() {
+  stopSync();
+  await api('/auth/account', { method: 'DELETE' });
+  await olvidarSesion();
+  useAuth.setState({ user: null, status: 'anon' });
+}
+
+async function olvidarSesion() {
+  localStorage.removeItem(USER_KEY);
+  await idbDel(SNAP_KEY);
+  snapshot = new Map();
+  restored = false;
+}
 
 // ------------------------------------------------------------------ API keys
 export const listKeys = () => api<{ apiKeys: ApiKeyInfo[] }>('/api-keys').then(r => r.apiKeys);
@@ -83,6 +120,23 @@ let snapshot = new Map<string, string>(); // `${kind}:${id}` -> JSON tal como es
 let unsub: (() => void) | null = null;
 let timer: number | null = null;
 
+/**
+ * La instantánea se guarda en IndexedDB: es lo que permite saber, tras trabajar sin conexión
+ * (o sin más, tras cerrar la pestaña), qué cambió de este lado y está aún sin subir.
+ * `restored` distingue "no había nada pendiente" de "no sé qué había": sin instantánea previa
+ * no se sube nada a ciegas, que sería pisar la cuenta con datos viejos.
+ */
+const SNAP_KEY = 'sync';
+let restored = false;
+
+const guardarSnapshot = () => idbSet(SNAP_KEY, { userId: useAuth.getState().user?.id ?? '', entries: [...snapshot] });
+
+async function restoreSnapshot(userId: string) {
+  const s = await idbGet<{ userId: string; entries: [string, string][] }>(SNAP_KEY);
+  if (s && s.userId === userId) { snapshot = new Map(s.entries); restored = true; }
+  else { snapshot = new Map(); restored = false; }
+}
+
 const key = (k: Kind, id: string) => `${k}:${id}`;
 const docsOf = (d: AppData): { k: Kind; doc: Library | Diagram | Person | StyleRule }[] => [
   ...d.libraries.map(l => ({ k: 'library' as Kind, doc: l })),
@@ -94,6 +148,18 @@ const strip = (doc: object) => { const { updatedAt: _u, ...rest } = doc as { upd
 
 function takeSnapshot(d: AppData) {
   snapshot = new Map(docsOf(d).map(({ k, doc }) => [key(k, doc.id), strip(doc)]));
+  restored = true;
+  void guardarSnapshot();
+}
+
+/** Cuántos documentos locales difieren de la instantánea (creados, cambiados o borrados). */
+function contarPendientes(): number {
+  const d = useStore.getState().data;
+  const ahora = new Map(docsOf(d).map(({ k, doc }) => [key(k, doc.id), strip(doc)]));
+  let n = 0;
+  for (const [k, v] of ahora) if (snapshot.get(k) !== v) n++;
+  for (const k of snapshot.keys()) if (!ahora.has(k)) n++;
+  return n;
 }
 
 /** Descarga todo de la cuenta y reemplaza los datos locales. */
@@ -116,6 +182,8 @@ export async function pushAll() {
 async function flush() {
   timer = null;
   if (useAuth.getState().status !== 'auth') return;
+  // sin red no se intenta: los cambios se quedan contados y se suben al volver (evento `online`)
+  if (!navigator.onLine) { useAuth.setState({ online: false, pending: contarPendientes() }); return; }
   const d = useStore.getState().data;
   const now = new Map(docsOf(d).map(({ k, doc }) => [key(k, doc.id), { k, doc, json: strip(doc) }]));
   const ops: Promise<unknown>[] = [];
@@ -131,17 +199,17 @@ async function flush() {
   try {
     await Promise.all(ops);
     snapshot = new Map([...now].map(([k, v]) => [k, v.json]));
-    useAuth.setState({ syncing: false, pending: 0, lastSync: new Date().toISOString(), error: null });
+    restored = true;
+    void guardarSnapshot();
+    useAuth.setState({ syncing: false, online: true, pending: 0, lastSync: new Date().toISOString(), error: null });
   } catch (e) {
-    useAuth.setState({ syncing: false, error: (e as Error).message });
-    timer = window.setTimeout(flush, 5000); // reintentar
+    const red = esDeRed(e);
+    useAuth.setState({ syncing: false, online: !red, error: red ? null : (e as Error).message });
+    if (!red) timer = window.setTimeout(flush, 5000); // reintentar (sin red ya avisa el evento `online`)
   }
 }
 function schedule() {
-  const d = useStore.getState().data;
-  const changed = docsOf(d).filter(({ k, doc }) => snapshot.get(key(k, doc.id)) !== strip(doc)).length
-    + [...snapshot.keys()].filter(k => !docsOf(d).some(({ k: kk, doc }) => key(kk, doc.id) === k)).length;
-  useAuth.setState({ pending: changed });
+  useAuth.setState({ pending: contarPendientes() });
   if (timer) window.clearTimeout(timer);
   timer = window.setTimeout(flush, 1200);
 }
@@ -170,9 +238,29 @@ export async function afterLogin() {
   startSync();
 }
 
+/** Primero se sube lo que quedó pendiente (edición sin conexión) y sólo después se baja la cuenta. */
+async function sincronizar() {
+  if (restored && contarPendientes() > 0) await flush();
+  await pullAll();
+}
+
+async function alVolverLaRed() {
+  useAuth.setState({ online: true });
+  if (useAuth.getState().status !== 'auth') return;
+  if (!await checkSession()) return; // la sesión pudo caducar mientras tanto
+  try { await sincronizar(); } catch (e) { useAuth.setState({ error: (e as Error).message }); }
+}
+const alPerderLaRed = () => useAuth.setState({ online: false });
+
 /** Al arrancar la app: si hay sesión, cargar la cuenta y sincronizar. */
 export async function initCloud() {
+  useAuth.setState({ online: navigator.onLine });
+  window.addEventListener('online', () => void alVolverLaRed());
+  window.addEventListener('offline', alPerderLaRed);
   const user = await checkSession();
   if (!user) return;
-  try { await pullAll(); startSync(); } catch (e) { useAuth.setState({ error: (e as Error).message }); }
+  await restoreSnapshot(user.id);
+  startSync(); // desde ya, para que los cambios cuenten como pendientes aunque no haya red
+  if (!useAuth.getState().online) { useAuth.setState({ pending: contarPendientes() }); return; }
+  try { await sincronizar(); } catch (e) { useAuth.setState({ error: (e as Error).message }); }
 }

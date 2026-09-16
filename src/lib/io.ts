@@ -9,6 +9,8 @@ export interface ExportFile {
   diagrams: Diagram[];
   people?: Person[];
   rules?: StyleRule[];
+  /** Diagrama que estaba abierto. Sólo lo escriben los archivos del modo local. */
+  currentDiagramId?: string | null;
 }
 
 export function download(name: string, obj: unknown) {

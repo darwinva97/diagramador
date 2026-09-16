@@ -1,7 +1,7 @@
 # Drawer
 
 Editor local de diagramas por **capas (filas) × etapas (columnas)**. Sin servidor: todo se guarda en el
-`localStorage` del navegador y se puede exportar/importar como JSON.
+navegador, se puede trabajar **sobre un archivo de tu equipo** y funciona **sin conexión**.
 
 Stack: React 19 + TypeScript + Vite + Zustand (immer/persist) + React Router.
 
@@ -28,7 +28,13 @@ npm run build      # genera dist/index.html (un único archivo; necesita un serv
   - Un tipo define icono, color y **campos específicos** (texto, número, lista, casilla, URL, fecha…).
   - Un componente puede moverse de librería y usar tipos de cualquier librería.
 - Drag & drop: librería → celda, celda → celda, Ctrl+arrastrar = clonar, soltar en la librería = quitar.
-- **PWA**: instalable desde el navegador (icono, `manifest.webmanifest`) y funciona sin conexión gracias a un service worker (`public/sw.js`).
+- **Modo local y sin conexión** (como el modo local de draw.io), con el chip 💾 / 📄 de la barra superior:
+  - **Este navegador** (por defecto): todo en `localStorage`, sin cuenta y sin red.
+  - **Un archivo de tu equipo**: “Guardar en un archivo…” crea un `.drawer` (JSON por dentro, el de exportar) y lo deja vinculado; desde entonces cada cambio se escribe solo (autoguardado, desactivable) o con **Ctrl+S**. **Ctrl+O** abre otro archivo y trabaja sobre él. El vínculo se recuerda entre sesiones (IndexedDB); si el navegador vuelve a pedir permiso, el chip ofrece reconectar. Necesita File System Access (Chrome/Edge); en el resto quedan exportar e importar.
+  - Con Drawer instalado como aplicación, **doble clic en un `.drawer`** lo abre aquí (`file_handlers` del manifiesto).
+  - **Sin servidor**: “Descargar Drawer como archivo” da un único `drawer.html` con la app entera; se abre con doble clic, sin red y sin este servidor (usa rutas en el hash). Guarda sus datos aparte, porque el navegador separa `file://` de la web.
+  - **Con cuenta y sin red**: se recuerda la sesión, se sigue editando y el chip cuenta los cambios pendientes; al volver la conexión **se suben antes de descargar nada**, así que lo hecho sin red no se pierde.
+- **PWA**: instalable desde el navegador (icono, `manifest.webmanifest`) y funciona sin conexión gracias a un service worker (`public/sw.js`), que sirve lo guardado si la red falla o tarda más de 4 s.
 - **Tema** claro / oscuro / sistema (botón ☀ ☾ ◐ de la barra superior).
 - **Modo zen** (botón Zen o Ctrl+Shift+F): sólo el tablero; Esc para salir. Botón ⤢ de pantalla completa.
 - **Ventanas separadas**: botones ⧉ abren la librería, el inspector o el tablero en otra ventana del navegador (`/ventana/sidebar|inspector|board`). Todas las ventanas comparten datos y selección en tiempo real (localStorage + BroadcastChannel) y se puede arrastrar de una ventana a otra.

@@ -5,6 +5,7 @@ import { copySelection, cutSelection, paste, targetCell } from './clipboard';
 import { actions } from './actions';
 import { initSync } from './sync';
 import { initCloud } from './cloud';
+import { abrirArchivo, guardar, guardarComo, initLocal, supportsFS, useLocal } from './local';
 import { AppRoutes } from './routes';
 
 export default function App() {
@@ -14,7 +15,7 @@ export default function App() {
   const inAccount = location.pathname.startsWith('/cuenta');
 
   // sincronización entre ventanas + nube + tema
-  useEffect(() => { initSync(); void initCloud(); }, []);
+  useEffect(() => { initSync(); void initLocal(); void initCloud(); }, []);
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'system') delete root.dataset.theme; else root.dataset.theme = theme;
@@ -35,6 +36,14 @@ export default function App() {
         st.select(null); st.setCell(null); return;
       }
       // atajos que valen también dentro de un campo
+      // Ctrl+S: escribir el archivo local (si no hay ninguno, elegir uno; sin File System Access, descargar)
+      if (mod && k === 's') {
+        e.preventDefault();
+        if (useLocal.getState().handle) void guardar(true);
+        else if (supportsFS()) void guardarComo();
+        else actions.exportAll();
+        return;
+      }
       if (mod && k === 'k') { e.preventDefault(); if (!st.ui.sidebarOpen) st.setUI({ sidebarOpen: true }); setTimeout(() => { const i = document.querySelector<HTMLInputElement>('#lib-search'); i?.focus(); i?.select(); }, 0); return; }
       // Ctrl+B: inspector · Ctrl+J: librería
       if (mod && k === 'b') { e.preventDefault(); st.setUI({ inspectorOpen: !st.ui.inspectorOpen }); return; }
@@ -55,7 +64,8 @@ export default function App() {
       if (mod && k === 'd') { e.preventDefault(); const sel = st.sel; const cell = targetCell(); if (sel?.kind === 'placement' && cell) actions.clonePlacement(sel.id, cell.layerId, cell.stageId); return; }
       if (mod && e.key === 'Enter') { e.preventDefault(); const cell = targetCell(); if (cell) actions.quickAdd(cell.layerId, cell.stageId); else actions.addComponent(); return; }
       if (e.key === 'F2') { e.preventDefault(); if (!st.sel) return; if (!st.ui.inspectorOpen) st.setUI({ inspectorOpen: true }); setTimeout(() => { const i = document.querySelector<HTMLInputElement>('#inspector input'); i?.focus(); i?.select(); }, 0); return; }
-      if (mod && k === 'o') { e.preventDefault(); void actions.importJson(); return; }
+      // Ctrl+O abre un archivo del equipo y trabaja sobre él; con Shift, importa y fusiona
+      if (mod && k === 'o') { e.preventDefault(); if (!e.shiftKey && supportsFS()) void abrirArchivo(); else void actions.importJson(); return; }
       if (mod && k === 'e') { e.preventDefault(); if (e.shiftKey) actions.exportAll(); else actions.exportCurrent(); return; }
       if (e.altKey && !mod && k === 'n') { e.preventDefault(); actions.newDiagram(); return; }
       if (e.altKey && !mod && (e.key === '1' || e.key === '2')) { e.preventDefault(); st.setUI({ tab: e.key === '1' ? 'comps' : 'types', sidebarOpen: true }); return; }

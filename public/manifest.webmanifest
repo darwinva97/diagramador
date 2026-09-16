@@ -16,6 +16,14 @@
     { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" },
     { "src": "./icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": { "application/json": [".drawer"] },
+      "launch_type": "single-client"
+    }
+  ],
+  "launch_handler": { "client_mode": "navigate-existing" },
   "shortcuts": [
     { "name": "Librería en ventana aparte", "url": "/ventana/sidebar", "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }] },
     { "name": "Inspector en ventana aparte", "url": "/ventana/inspector", "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }] }

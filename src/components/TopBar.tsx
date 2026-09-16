@@ -5,6 +5,7 @@ import { pedidoExample } from '../seed';
 import { useAuth } from '../cloud';
 import { useLocation, useNavigate } from 'react-router';
 import { accountPath } from '../routes';
+import { StorageChip } from './Storage';
 
 const EXAMPLES: { key: string; name: string; data: unknown }[] = [
   { key: 'pedido', name: 'Ejemplo básico: flujo de pedido', data: pedidoExample() },
@@ -66,6 +67,7 @@ export function TopBar() {
       <button className="btn icon" onClick={toggleFullscreen} title="Pantalla completa">⤢</button>
       <button className="btn icon" onClick={() => useHelp.setState({ open: true })} title="Atajos de teclado (?)">⌨</button>
       <button className="btn icon" onClick={() => setUI({ theme: themeNext[ui.theme] })} title={themeLabel + ' · clic para cambiar'}>{themeIcon}</button>
+      <StorageChip />
       <button className={'btn account-btn' + (inAccount ? ' on' : '')} onClick={() => navigate(inAccount ? '/' : accountPath())}
         title={auth.status === 'auth' ? `Cuenta: ${auth.user?.email}` : 'Cuenta, API keys, bibliotecas, diagramas y configuración'}>
         👤 {auth.status === 'auth' ? (auth.user?.email.split('@')[0] ?? 'Cuenta') : 'Cuenta'}{auth.status === 'auth' && auth.pending > 0 ? ' ●' : ''}

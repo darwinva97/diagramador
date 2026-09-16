@@ -24,9 +24,14 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
   { title: 'Edición', items: [
     [`${MOD}+Z`, 'Deshacer'],
     [`${MOD}+Shift+Z · ${MOD}+Y`, 'Rehacer'],
-    [`${MOD}+O`, 'Importar JSON'],
-    [`${MOD}+E · ${MOD}+Shift+E`, 'Exportar el diagrama actual · exportar todo'],
     ['Alt+N', 'Nuevo diagrama'],
+  ] },
+  { title: 'Archivos y modo local', items: [
+    [`${MOD}+S`, 'Guardar en el archivo vinculado (o elegir uno la primera vez)'],
+    [`${MOD}+O`, 'Abrir un archivo de tu equipo y trabajar sobre él'],
+    [`${MOD}+Shift+O`, 'Importar un JSON y fusionarlo con lo que ya tienes'],
+    [`${MOD}+E · ${MOD}+Shift+E`, 'Descargar el diagrama actual · descargar todo'],
+    ['Chip 💾 / 📄 de la barra', 'Dónde se guardan los datos: navegador, archivo o cuenta'],
   ] },
   { title: 'Paneles y vista', items: [
     [`${MOD}+B · ${MOD}+J`, 'Mostrar/ocultar inspector · librería'],
