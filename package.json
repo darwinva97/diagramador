@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "hono": "^4.13.7",
+    "html-to-image": "^1.11.13",
     "immer": "^10.1.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

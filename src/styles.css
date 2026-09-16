@@ -116,7 +116,7 @@ textarea.code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
 textarea.invalid { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, var(--field)); }
 .warn { color: var(--danger); font-weight: 500; }
 .fld-hint { display: block; font-size: 11px; margin-top: 2px; }
-.comp .sub { display: block; font-size: 10.5px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comp .sub { display: block; font-size: .81em; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .comp .txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 
 /* ---------- Paneles plegados */
@@ -216,25 +216,28 @@ body.resizing-x { cursor: col-resize; user-select: none; } body.resizing-y { cur
 .cell .quick:hover { opacity: 1; color: var(--accent); border-color: var(--accent); }
 .empty { color: var(--muted); padding: 40px; text-align: center; }
 
-/* ---------- Chips (instancias de componentes) */
+/* ---------- Chips (instancias de componentes)
+   El texto tiene un tamaño mínimo en pantalla: al alejar, `--lf` (lo calcula el tablero)
+   lo hace crecer para compensar el zoom, y el resto del chip va en `em` para acompañarlo. */
 .comp { position: absolute; display: inline-flex; flex-direction: column; max-width: 100%; background: var(--panel);
   border: 1px solid var(--border); border-left: 4px solid var(--c); border-radius: 7px; cursor: grab; user-select: none;
+  font-size: calc(13px * var(--lf, 1));
   box-shadow: 0 1px 2px var(--shadow); transition: box-shadow .15s, transform .15s; }
-.comp-head { display: flex; align-items: center; gap: 6px; padding: 6px 8px; min-width: 0; }
+.comp-head { display: flex; align-items: center; gap: .46em; padding: .46em .62em; min-width: 0; }
 /* contenedor con subcomponentes */
 .comp.group { background: color-mix(in srgb, var(--c) 8%, var(--panel)); }
 .comp.group > .comp-head { border-bottom: 1px dashed color-mix(in srgb, var(--c) 40%, transparent); }
-.comp .children { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px 8px 14px; }
-.comp .children > .comp { position: static; max-width: none; font-size: 12px; box-shadow: none; }
-.comp .children > .comp > .comp-head { padding: 4px 6px; }
+.comp .children { display: flex; flex-direction: column; gap: .3em; padding: .46em .62em .62em 1.08em; }
+.comp .children > .comp { position: static; max-width: none; font-size: .92em; box-shadow: none; }
+.comp .children > .comp > .comp-head { padding: .3em .46em; }
 .comp.drag-src { opacity: .35; }
 .comp:hover { box-shadow: 0 2px 6px var(--shadow-2); }
 .comp:active { cursor: grabbing; }
 .comp.dragging { opacity: .9; z-index: 50; pointer-events: none; box-shadow: 0 8px 20px var(--shadow-2); transform: scale(1.03); transition: none; cursor: grabbing; }
 body.dragging-chip { cursor: grabbing; user-select: none; }
 .comp .label { font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.comp .clone-badge { font-size: 10px; background: var(--c); color: #fff; border-radius: 8px; padding: 0 5px; }
-.comp .port { flex: none; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--c); background: var(--panel); cursor: crosshair; margin-left: 2px; transition: transform .1s; }
+.comp .clone-badge { font-size: .77em; background: var(--c); color: #fff; border-radius: 8px; padding: 0 .38em; }
+.comp .port { flex: none; width: .92em; height: .92em; border-radius: 50%; border: 2px solid var(--c); background: var(--panel); cursor: crosshair; margin-left: .15em; transition: transform .1s; }
 .comp .port:hover { background: var(--c); transform: scale(1.25); }
 .comp.selected { outline: 2px solid var(--accent); outline-offset: 1px; z-index: 2; }
 .comp.link-target { outline: 2px solid var(--accent); outline-offset: 2px; background: var(--soft); }
@@ -402,8 +405,8 @@ kbd { font: inherit; font-size: 11.5px; font-family: ui-monospace, Menlo, monosp
 .comp.r-glow { box-shadow: 0 0 0 2px color-mix(in srgb, var(--r-glow) 45%, transparent), 0 0 14px 2px color-mix(in srgb, var(--r-glow) 60%, transparent); }
 .comp.r-bold .label { font-weight: 700; }
 .comp.r-strike .label { text-decoration: line-through; }
-.comp .r-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 10px; height: 14px; padding: 0 4px;
-  border-radius: 8px; color: #fff; font-size: 9.5px; font-weight: 700; line-height: 1; flex: none; }
+.comp .r-badge { display: inline-flex; align-items: center; justify-content: center; min-width: .77em; height: 1.08em; padding: 0 .3em;
+  border-radius: 8px; color: #fff; font-size: .73em; font-weight: 700; line-height: 1; flex: none; }
 
 /* ---------- Editor de reglas */
 .rule-item { gap: 6px; }
@@ -508,6 +511,22 @@ body.read-only .layer-h .handle, body.read-only .stage-h .handle,
 body.read-only .lcolor, body.read-only .rs-x, body.read-only .rs-y,
 body.read-only .comp .port, body.read-only .sg-edge, body.read-only .gap-hint { display: none !important; }
 body.read-only .name { pointer-events: none; }
+
+/* aviso corto tras exportar una imagen (se cierra solo o al pulsarlo) */
+.export-note { position: fixed; top: 52px; right: 16px; z-index: 60; max-width: 340px; cursor: pointer;
+  font-size: 12px; padding: 8px 12px; border-radius: 8px; background: var(--panel); color: var(--text);
+  border: 1px solid color-mix(in srgb, #16a34a 45%, var(--border)); box-shadow: 0 4px 14px var(--shadow-2); }
+.export-note.warn { border-color: color-mix(in srgb, #d97706 55%, var(--border)); }
+
+/* ---------- Mientras se saca la imagen: fuera todo lo que sólo sirve para editar */
+body.exporting .cell-tools, body.exporting .add-col, body.exporting .add-row,
+body.exporting .layer-h .btn.ghost, body.exporting .stage-h .btn.ghost,
+body.exporting .layer-h .handle, body.exporting .stage-h .handle,
+body.exporting .lcolor, body.exporting .rs-x, body.exporting .rs-y,
+body.exporting .comp .port, body.exporting .sg-edge, body.exporting .gap-hint,
+body.exporting .zoom-bar, body.exporting .cell .quick { display: none !important; }
+body.exporting .comp { box-shadow: none; }
+body.exporting .cell.active, body.exporting .comp.selected { outline: none !important; }
 .public-msg { padding: 48px; text-align: center; }
 .public-msg h2 { margin-bottom: 8px; }
 .share-box { border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-bottom: 10px; }

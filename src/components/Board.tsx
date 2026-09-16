@@ -17,6 +17,8 @@ const LANE_W = 210;
 export const ZOOM_MIN = 0.25, ZOOM_MAX = 2;
 /** Límites del zoom de los títulos, relativo al tamaño normal en pantalla. */
 export const TZ_MIN = 0.5, TZ_MAX = 3;
+/** Texto de los chips: tamaño base, mínimo legible en pantalla y cuánto puede crecer. */
+const COMP_FONT = 13, COMP_MIN = 11, COMP_GROW_MAX = 2.5;
 export const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
 
 /** Arrastre libre de una instancia (posición en vivo, relativa a su celda de origen). */
@@ -46,6 +48,13 @@ export function Board() {
    */
   const tz = ui.titleZoom || 1;
   const tf = tz / zoom;
+  /**
+   * Suelo de legibilidad de los chips: 13 px al 25 % serían 3 px en pantalla, ilegibles.
+   * Por debajo de `COMP_MIN` píxeles en pantalla el texto crece para compensar el zoom.
+   * El crecimiento se limita porque el chip se ensancha con él y acabaría comiéndose la
+   * celda: a partir de ahí el texto vuelve a menguar, pero desde un tamaño mucho mayor.
+   */
+  const lf = Math.min(COMP_GROW_MAX, Math.max(1, COMP_MIN / (COMP_FONT * zoom)));
 
   const d = curDiagram(data);
 
@@ -96,7 +105,8 @@ export function Board() {
     const hh = head ? head.offsetHeight : 0;
     setHeadH(prev => prev === hh ? prev : hh);
   }, []);
-  useLayoutEffect(() => { measure(); }, [data, drag, measure]);
+  // `lf` cambia el tamaño de los chips, así que las flechas hay que volver a medirlas
+  useLayoutEffect(() => { measure(); }, [data, drag, measure, lf]);
   useEffect(() => {
     const g = gridRef.current; if (!g) return;
     const ro = new ResizeObserver(() => measure());
@@ -560,7 +570,7 @@ export function Board() {
       <div id="board" ref={boardRef}>
         <div id="grid" ref={gridRef}
           className={(columnaFija ? 'pin-cols' : '') + (ui.pinStages ? ' pin-rows' : '')}
-          style={{ gridTemplateColumns: cols, zoom, ['--band-h' as string]: `${bandH + 6}px`, ['--head-h' as string]: `${headH + 6}px`, ['--lane-w' as string]: `${Math.round(LANE_W * tf)}px`, ['--tf' as string]: tf }}
+          style={{ gridTemplateColumns: cols, zoom, ['--band-h' as string]: `${bandH + 6}px`, ['--head-h' as string]: `${headH + 6}px`, ['--lane-w' as string]: `${Math.round(LANE_W * tf)}px`, ['--tf' as string]: tf, ['--lf' as string]: lf }}
           onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}
           onPointerDown={e => { onBandPointerDown(e); onPointerDown(e); }} onClick={onGridClick} onDoubleClick={onGridDoubleClick} onContextMenu={onGridContextMenu}>
           {spans.map((sp, k) => sp.group

@@ -41,8 +41,10 @@ export function Links({ rects, size, relations, sel, hoverPid, linking, onSelect
           <g key={r.id} className={'rel' + (isSel ? ' selected' : '') + (hot ? ' hot' : '')}
             onClick={e => { e.stopPropagation(); onSelect(r.id); }}
             onContextMenu={e => onContext?.(r.id, e)}>
-            <path className="hit" d={d} />
-            <path className="line" d={d} stroke={r.color} strokeWidth={r.width}
+            {/* `fill="none"` como atributo, no sólo en el CSS: al exportar la imagen se clona
+                el SVG y una flecha sin relleno explícito saldría como un borrón negro */}
+            <path className="hit" d={d} fill="none" />
+            <path className="line" d={d} fill="none" stroke={r.color} strokeWidth={r.width}
               strokeDasharray={DASH[r.style]}
               markerEnd={r.dir !== 'none' ? `url(#${mid(r.color)})` : undefined}
               markerStart={r.dir === 'both' ? `url(#${mid(r.color)})` : undefined} />
@@ -52,7 +54,7 @@ export function Links({ rects, size, relations, sel, hoverPid, linking, onSelect
         );
       })}
       {linking && (
-        <path className="temp" d={`M${linking.start.x} ${linking.start.y} L${linking.cur.x} ${linking.cur.y}`} />
+        <path className="temp" fill="none" d={`M${linking.start.x} ${linking.start.y} L${linking.cur.x} ${linking.cur.y}`} />
       )}
     </svg>
   );

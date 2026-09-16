@@ -6,6 +6,7 @@ import { useAuth } from '../cloud';
 import { useLocation, useNavigate } from 'react-router';
 import { accountPath } from '../routes';
 import { StorageChip } from './Storage';
+import { ExportImageButton } from './ExportImage';
 
 const EXAMPLES: { key: string; name: string; data: unknown }[] = [
   { key: 'pedido', name: 'Ejemplo básico: flujo de pedido', data: pedidoExample() },
@@ -45,7 +46,7 @@ export function TopBar() {
       <button className="btn" onClick={actions.importJson} title="Importar JSON">⤓ Importar</button>
       <button className="btn" onClick={actions.exportCurrent} disabled={!current} title="Exportar el diagrama actual a JSON">⤒ Diagrama</button>
       <button className="btn" onClick={actions.exportAll} title="Exportar todo (librerías y diagramas) a JSON">⤒ Todo</button>
-      <button className="btn" onClick={() => window.print()} disabled={!current} title="Imprimir el tablero">🖨</button>
+      <ExportImageButton />
       <span className="sep" />
       {/* vista */}
       <span className="btn-group" title="Librería: mostrar/ocultar (Ctrl+J) · abrir en otra ventana">

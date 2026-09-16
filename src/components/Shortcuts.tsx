@@ -32,6 +32,7 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
     [`${MOD}+Shift+O`, 'Importar un JSON y fusionarlo con lo que ya tienes'],
     [`${MOD}+E · ${MOD}+Shift+E`, 'Descargar el diagrama actual · descargar todo'],
     ['Chip 💾 / 📄 de la barra', 'Dónde se guardan los datos: navegador, archivo o cuenta'],
+    ['Botón 🖼 Imagen', 'PNG ×1 / ×2 / ×3, SVG, copiar al portapapeles o imprimir en PDF'],
   ] },
   { title: 'Paneles y vista', items: [
     [`${MOD}+B · ${MOD}+J`, 'Mostrar/ocultar inspector · librería'],
