@@ -8,6 +8,8 @@ import { resolveStyle } from '../lib/rules';
 import { Avatar, PeopleOf } from './People';
 import { RulePanel, RulesOf } from './Rules';
 import { ShareButton } from './Share';
+import { ApiInstancePanel, ApiPanel } from './ApiPanel';
+import { apiOfComp, findApi, userLibs } from '../lib/api';
 import { ASSIGN_LABEL, ROLES, type Person } from '../types';
 
 export function Inspector() {
@@ -18,10 +20,18 @@ export function Inspector() {
 
   let body: React.ReactElement;
   if (!sel) body = <DiagramPanel d={d} />;
+  else if (sel.kind === 'api') body = <ApiPanel api={findApi(data, sel.id)!} />;
   else if (sel.kind === 'placement') {
     const p = d.placements.find(x => x.id === sel.id)!;
-    body = <ComponentPanel comp={findComp(data, p.componentId)!} placement={p} d={d} />;
-  } else if (sel.kind === 'component') body = <ComponentPanel comp={findComp(data, sel.id)!} placement={null} d={d} />;
+    const comp = findComp(data, p.componentId)!;
+    const api = apiOfComp(data, comp);
+    // instancia de una API: aquí sólo se elige operación y se escribe su nota
+    body = api ? <ApiInstancePanel api={api} placement={p} /> : <ComponentPanel comp={comp} placement={p} d={d} />;
+  } else if (sel.kind === 'component') {
+    const comp = findComp(data, sel.id)!;
+    const api = apiOfComp(data, comp);
+    body = api ? <ApiPanel api={api} /> : <ComponentPanel comp={comp} placement={null} d={d} />;
+  }
   else if (sel.kind === 'person') body = <PersonPanel p={findPerson(data, sel.id)!} />;
   else if (sel.kind === 'rule') body = <RulePanel r={data.rules.find(r => r.id === sel.id)!} />;
   else if (sel.kind === 'relation') body = <RelationPanel r={d.relations.find(x => x.id === sel.id)!} d={d} />;
@@ -235,7 +245,7 @@ function ComponentPanel({ comp, placement, d }: { comp: Component; placement: Pl
         <>
           <label>Librería
             <select value={lib?.id ?? ''} onChange={e => actions.moveComponentToLib(comp.id, e.target.value)}>
-              {data.libraries.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              {userLibs(data).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
           </label>
           <h4>Uso en diagramas ({usedIn.length})</h4>

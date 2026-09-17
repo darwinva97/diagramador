@@ -1,4 +1,5 @@
 import type { AppData, AssignKind, Assignment, Component, ComponentType, Diagram, Library, Person, Placement, StageGroup, StyleRule } from '../types';
+import { API_LIB_ID, emptyApi, syncApiComponent } from './api';
 
 export const uid = () =>
   Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
@@ -87,8 +88,42 @@ export function normalize(raw: Partial<AppData> | null | undefined): AppData {
     diagrams: Array.isArray(raw?.diagrams) ? raw!.diagrams : [],
     people: Array.isArray(raw?.people) ? raw!.people : [],
     rules: Array.isArray(raw?.rules) ? raw!.rules : [],
+    apis: Array.isArray(raw?.apis) ? raw!.apis : [],
     currentDiagramId: raw?.currentDiagramId ?? null,
   };
+  // catálogo de APIs: operaciones con lo mínimo y componente espejo al día
+  for (const a of d.apis) {
+    a.id ||= uid(); a.name ||= 'API'; a.description ??= ''; a.repoUrl ??= ''; a.docsUrl ??= '';
+    a.version ||= 'v1'; a.auth ??= ''; a.color ||= '#2563eb'; a.icon ||= '🔌'; a.tags ??= '';
+    a.baseUrls = Array.isArray(a.baseUrls) ? a.baseUrls : [];
+    a.operations = (Array.isArray(a.operations) ? a.operations : []).map(o => ({
+      ...o, id: o.id || uid(), name: o.name ?? '', method: o.method || 'GET', path: o.path ?? '',
+      summary: o.summary ?? '', notes: o.notes ?? '', requestBody: o.requestBody ?? '', responseBody: o.responseBody ?? '',
+      headers: Array.isArray(o.headers) ? o.headers : [],
+      pathParams: Array.isArray(o.pathParams) ? o.pathParams : [],
+      queryParams: Array.isArray(o.queryParams) ? o.queryParams : [],
+      codes: Array.isArray(o.codes) ? o.codes : [],
+    }));
+    syncApiComponent(d, a);
+  }
+  /*
+   * Espejo sin su API: pasa al importar un diagrama suelto, que lleva los componentes pero
+   * no el catálogo. En vez de borrar las instancias (perdiendo el trabajo de quien importa),
+   * se reconstruye una API mínima con lo que el espejo guarda: se recupera dónde se usaba y
+   * queda a la vista para completarla.
+   */
+  const espejos = d.libraries.find(l => l.id === API_LIB_ID);
+  for (const c of espejos?.components ?? []) {
+    const apiId = c.apiId || c.id.replace(/^api-/, '');
+    if (!apiId || d.apis.some(a => a.id === apiId)) continue;
+    const f = c.fields ?? {};
+    d.apis.push({
+      ...emptyApi(c.name || 'API'), id: apiId, description: c.description ?? '',
+      repoUrl: String(f.repo ?? ''), docsUrl: String(f.docs ?? ''), version: String(f.version || 'v1'),
+      auth: String(f.auth ?? ''), tags: String(f.tags ?? ''), operations: [],
+    });
+  }
+
   for (const l of d.libraries) {
     l.id ||= uid(); l.name ||= 'Librería'; l.types ||= []; l.components ||= [];
     for (const t of l.types) { t.id ||= uid(); t.fields ||= []; t.color ||= '#64748b'; t.icon ||= '▫️'; }

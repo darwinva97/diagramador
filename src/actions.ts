@@ -1,8 +1,10 @@
 import { useStore } from './store';
 import { API_CONTRACT_FIELDS, type AppData, type AssignKind, type Assignment, type Component, type ComponentType, type Condition, type Diagram, type FieldDef, type Person, type Placement, type Relation, type RuleStyle, type StageGroup, type StyleRule } from './types';
 import type { Library } from './types';
-import { LAYER_COLORS, PALETTE, cloneDiagram, curDiagram, descendantIds, findComp, findLib, findPerson, findType, instanceCount, libOfComp, libOfType, nextStackPos, setCell, snap, tidyCell, uid } from './lib/model';
-import { exportAll, exportDiagram, mergeImport, pickFile } from './lib/io';
+import type { Api, ApiOperation } from './types';
+import { LAYER_COLORS, PALETTE, cloneDiagram, curDiagram, descendantIds, findComp, findLib, findPerson, findType, instanceCount, libOfComp, libOfType, nextStackPos, setCell, slugify, snap, stamp, tidyCell, uid } from './lib/model';
+import { apiUsage, emptyApi, emptyOperation, findApi, findOp, fromOpenApi, removeApi, syncApiComponent, toOpenApi } from './lib/api';
+import { download, exportAll, exportDiagram, mergeImport, pickFile } from './lib/io';
 import { DEFAULT_LAYERS, DEFAULT_STAGES } from './seed';
 
 const S = () => useStore.getState();
@@ -595,6 +597,139 @@ export const actions = {
   /** Papeles ya usados, para sugerirlos junto a los de la lista por defecto. */
   usedRoles(): string[] {
     return [...new Set(S().data.people.flatMap(p => p.assignments.map(a => a.role)))].filter(Boolean).sort();
+  },
+
+  // ---------- Catálogo de APIs
+  /** Crea una API en el catálogo (con su componente espejo) y la selecciona. */
+  addApi(patch: Partial<Api> = {}): string {
+    const api = { ...emptyApi(patch.name ?? `API ${(S().data.apis?.length ?? 0) + 1}`), ...patch };
+    mutate(d => { d.apis.push(api); syncApiComponent(d, api); });
+    select({ kind: 'api', id: api.id });
+    return api.id;
+  },
+  /** Edita la API: cambia para todos los sitios donde se esté usando. */
+  updateApi(id: string, patch: Partial<Api>, snap = false) {
+    mutate(d => {
+      const a = findApi(d, id); if (!a) return;
+      Object.assign(a, patch);
+      syncApiComponent(d, a);
+    }, snap);
+  },
+  duplicateApi(id: string): string | null {
+    const src = findApi(S().data, id); if (!src) return null;
+    const copia: Api = {
+      ...JSON.parse(JSON.stringify(src)) as Api, id: uid(), name: src.name + ' (copia)',
+      operations: src.operations.map(o => ({ ...o, id: uid() })),
+    };
+    mutate(d => { d.apis.push(copia); syncApiComponent(d, copia); });
+    select({ kind: 'api', id: copia.id });
+    return copia.id;
+  },
+  deleteApi(id: string) {
+    const d0 = S().data;
+    const api = findApi(d0, id); if (!api) return;
+    const usos = apiUsage(d0, id).reduce((n, x) => n + x.placements.length, 0);
+    const aviso = usos > 0
+      ? `“${api.name}” se está usando en ${usos} sitio(s). Si la eliminas, esas instancias desaparecen de sus diagramas.\n\n¿Eliminarla igualmente?`
+      : `¿Eliminar la API “${api.name}”?`;
+    if (!confirm(aviso)) return;
+    mutate(d => removeApi(d, id));
+    select(null);
+  },
+
+  addOperation(apiId: string): string | null {
+    let oid: string | null = null;
+    mutate(d => {
+      const a = findApi(d, apiId); if (!a) return;
+      const op = emptyOperation(a.operations.length + 1);
+      oid = op.id;
+      a.operations.push(op);
+      syncApiComponent(d, a);
+    });
+    return oid;
+  },
+  updateOperation(apiId: string, opId: string, patch: Partial<ApiOperation>, snap = false) {
+    mutate(d => {
+      const o = findOp(findApi(d, apiId), opId); if (o) Object.assign(o, patch);
+    }, snap);
+  },
+  duplicateOperation(apiId: string, opId: string) {
+    mutate(d => {
+      const a = findApi(d, apiId); const o = findOp(a, opId); if (!a || !o) return;
+      const i = a.operations.findIndex(x => x.id === opId);
+      a.operations.splice(i + 1, 0, { ...JSON.parse(JSON.stringify(o)) as ApiOperation, id: uid(), name: o.name + ' (copia)' });
+      syncApiComponent(d, a);
+    });
+  },
+  /** Quita una operación. Las instancias que la usaban se quedan sin operación elegida. */
+  deleteOperation(apiId: string, opId: string) {
+    const d0 = S().data;
+    const enUso = d0.diagrams.reduce((n, g) => n + g.placements.filter(p => p.operationId === opId).length, 0);
+    if (enUso > 0 && !confirm(`Esa operación está elegida en ${enUso} instancia(s). Si la eliminas, se quedarán sin operación.\n\n¿Continuar?`)) return;
+    mutate(d => {
+      const a = findApi(d, apiId); if (!a) return;
+      a.operations = a.operations.filter(o => o.id !== opId);
+      syncApiComponent(d, a);
+      for (const g of d.diagrams) for (const p of g.placements) if (p.operationId === opId) p.operationId = null;
+    });
+  },
+  moveOperation(apiId: string, opId: string, dir: -1 | 1) {
+    mutate(d => {
+      const a = findApi(d, apiId); if (!a) return;
+      const i = a.operations.findIndex(o => o.id === opId); const j = i + dir;
+      if (i < 0 || j < 0 || j >= a.operations.length) return;
+      [a.operations[i], a.operations[j]] = [a.operations[j], a.operations[i]];
+    });
+  },
+
+  /** Coloca una API en una celda. Si sólo tiene una operación, ya queda elegida. */
+  placeApi(apiId: string, layerId: string, stageId: string, pos?: { x: number; y: number }) {
+    const id = uid();
+    mutate(d => {
+      const g = curDiagram(d); const a = findApi(d, apiId); if (!g || !a) return;
+      const c = syncApiComponent(d, a);
+      const { x, y } = pos ? { x: Math.max(0, snap(pos.x)), y: Math.max(0, snap(pos.y)) } : nextStackPos(g, layerId, stageId);
+      g.placements.push({
+        id, componentId: c.id, layerId, stageId, x, y, parentId: null,
+        operationId: a.operations.length === 1 ? a.operations[0].id : null, note: '',
+      });
+    });
+    select({ kind: 'placement', id });
+  },
+  /** Qué operación usa esta instancia (sólo afecta a esta instancia). */
+  setPlacementOperation(pid: string, opId: string | null) {
+    mutate(d => {
+      const g = curDiagram(d); const p = g?.placements.find(x => x.id === pid);
+      if (p) p.operationId = opId;
+    });
+  },
+  /** Nota de esta instancia: lo único propio de cada uso de una API. */
+  setPlacementNote(pid: string, note: string) {
+    mutate(d => {
+      const g = curDiagram(d); const p = g?.placements.find(x => x.id === pid);
+      if (p) p.note = note;
+    }, false);
+  },
+
+  /** Importa un OpenAPI como una API del catálogo (o dentro de una que ya existe). */
+  async importOpenApi(apiId?: string) {
+    try {
+      const raw = await pickFile();
+      const leida = fromOpenApi(raw);
+      if (!apiId) { actions.addApi(leida); return; }
+      mutate(d => {
+        const a = findApi(d, apiId); if (!a) return;
+        // se añaden las operaciones que no estén ya (mismo método y ruta)
+        const tengo = new Set(a.operations.map(o => `${o.method} ${o.path}`));
+        a.operations.push(...leida.operations.filter(o => !tengo.has(`${o.method} ${o.path}`)));
+        if (!a.baseUrls.some(b => b.value)) a.baseUrls = leida.baseUrls;
+        syncApiComponent(d, a);
+      });
+    } catch (e) { alert('No se pudo importar el OpenAPI: ' + (e as Error).message); }
+  },
+  exportOpenApi(apiId: string) {
+    const a = findApi(S().data, apiId); if (!a) return;
+    download(`openapi-${slugify(a.name)}-${stamp()}.json`, toOpenApi(a));
   },
 
   // ---------- Import / export

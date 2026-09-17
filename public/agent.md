@@ -83,7 +83,10 @@ Las relaciones pueden unir cualquier par de instancias, aunque estén en capas o
 | Recurso | Métodos |
 |---|---|
 | `/auth/me` | GET |
-| `/public/diagrams/{id}` | GET **sin autenticación**: sólo responde si el diagrama tiene `"public": true`. Devuelve `{ diagram, libraries, people, rules }` con lo justo para dibujarlo. |
+| `/public/diagrams/{id}` | GET **sin autenticación**: sólo responde si el diagrama tiene `"public": true`. Devuelve `{ diagram, libraries, people, rules, apis }` con lo justo para dibujarlo. |
+| `/apis` | GET (catálogo completo), POST `{ name, repoUrl?, baseUrls?, operations? }` |
+| `/apis/{id}` | GET, PUT (reemplazo), PATCH (parcial), DELETE |
+| `/apis/{id}/operations` · `/apis/{id}/operations/{opId}` | GET, POST `{ name, method, path, ... }` · PUT (merge), DELETE |
 | `/rules` | GET (lista completa), POST `{ name, conditions, style, priority? }` |
 | `/rules/{id}` | GET, PUT, PATCH, DELETE |
 | `/people` | GET (lista completa), POST `{ name, email?, title?, team?, color? }` |
@@ -101,8 +104,8 @@ Las relaciones pueden unir cualquier par de instancias, aunque estén en capas o
 | `/diagrams/{id}/placements` · `/diagrams/{id}/placements/{placementId}` | POST · PUT (mover: layerId/stageId/x/y/parentId), DELETE (borra subcomponentes y relaciones) |
 | `/diagrams/{id}/relations` · `/diagrams/{id}/relations/{relationId}` | POST · PUT, DELETE |
 | `/diagrams/{id}/export` | GET → `{ libraries (sólo lo usado), diagrams: [diagrama] }` |
-| `/export` | GET → todo (bibliotecas, diagramas, personas y reglas) |
-| `/import` | POST `{ libraries?, diagrams?, people?, rules? }` → upsert por id (formato de exportación de la app) |
+| `/export` | GET → todo (bibliotecas, diagramas, personas, reglas y APIs) |
+| `/import` | POST `{ libraries?, diagrams?, people?, rules?, apis? }` → upsert por id (formato de exportación de la app) |
 | `/api-keys` · `/api-keys/{id}` | GET, POST `{ name }` · DELETE |
 
 Todas las rutas son absolutas tal cual aparecen aquí: un sub-recurso **siempre** lleva el prefijo de su padre
@@ -117,6 +120,17 @@ PUT sobre `/diagrams/{id}` o `/libraries/{id}` reemplaza el documento entero: ú
 - Lee `GET /diagrams/{id}` antes de modificar: obtén ids reales de capas, etapas e instancias.
 - Para "el mismo componente en dos etapas" crea dos placements con el mismo `componentId`; la app los resalta como clones.
 - **Publicar un diagrama:** `PATCH /diagrams/{id}` `{ "public": true }`. A partir de ahí cualquiera puede leerlo en `/p/{id}` (web) o en `GET /api/v1/public/diagrams/{id}` (JSON), sin clave. Ponlo a `false` para dejar de publicarlo.
+- **Catálogo de APIs (vínculo especial).** Una API se define **una vez** y se usa en muchas celdas; cada uso
+  elige qué **operación** usa allí, y lo demás es común: editar la API cambia todos sus usos.
+  1. `POST /apis` `{ "name": "API Perfil del Cliente", "repoUrl": "https://github.com/…",
+     "baseUrls": [{ "key": "dev", "value": "https://dev…" }, { "key": "prod", "value": "https://…" }] }` → `apiId`.
+  2. `POST /apis/{apiId}/operations` `{ "name": "Consultar perfil", "method": "GET", "path": "/v1/clientes/{id}",
+     "responseBody": "{\"documento\":\"…\"}", "codes": [{ "key": "200", "value": "OK" }] }` → `operationId`.
+  3. Colócala en una celda con el **componente espejo**, cuyo id es siempre `api-{apiId}`:
+     `POST /diagrams/{diagId}/placements` `{ "componentId": "api-{apiId}", "layerId": "…", "stageId": "…",
+     "operationId": "<operationId>", "note": "Qué pinta aquí" }`.
+  - `operationId` y `note` son **de cada instancia**; el nombre, el repositorio, las base URL y los contratos son de la API.
+  - No edites el componente espejo por `/libraries/...`: lo mantiene la app a partir de la API. Toca la API.
 - **Reglas de estilo:** para "si el campo estado vale CONFIRMADO, píntalo verde" basta
   `POST /rules` `{ "name": "Estado: CONFIRMADO", "priority": 10,
   "conditions": [{ "source": "field", "key": "estado", "op": "eq", "value": "CONFIRMADO" }],

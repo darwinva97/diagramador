@@ -8,6 +8,7 @@ import { Links, type LinkingState } from './Links';
 import { openMenu, type MenuItem } from './ContextMenu';
 import { Avatar, openAssign } from './People';
 import { resolveStyle, styleToCss } from '../lib/rules';
+import { apiOfComp, findOp, opLabel, opName } from '../lib/api';
 import { copySelection, cutSelection, hasClip, paste } from '../clipboard';
 import type { Diagram, Layer, Placement, Stage, StageGroup } from '../types';
 
@@ -188,6 +189,7 @@ export function Board() {
   const clearOver = () => { overRef.current?.classList.remove('over'); overRef.current = null; };
   const dropTarget = (el: HTMLElement, kind: string | null): HTMLElement | null => {
     if (kind === 'comp') return el.closest<HTMLElement>('.comp') ?? el.closest<HTMLElement>('.cell');
+    if (kind === 'api') return el.closest<HTMLElement>('.cell');
     if (kind === 'stage') return el.closest<HTMLElement>('.stage-h');
     if (kind === 'layer') return el.closest<HTMLElement>('.layer-h');
     return null;
@@ -202,7 +204,7 @@ export function Board() {
     const kind = dragKind(e);
     const tgt = dropTarget(e.target as HTMLElement, kind); if (!tgt) { clearOver(); return; }
     e.preventDefault();
-    e.dataTransfer.dropEffect = kind === 'comp' ? 'copy' : 'move';
+    e.dataTransfer.dropEffect = kind === 'comp' || kind === 'api' ? 'copy' : 'move';
     if (overRef.current !== tgt) { clearOver(); tgt.classList.add('over'); overRef.current = tgt; }
   };
   const onDrop = (e: React.DragEvent) => {
@@ -215,6 +217,12 @@ export function Board() {
       if (tgt.classList.contains('comp')) { actions.placeInto(dd.id, tgt.dataset.pid!); return; }
       const r = tgt.getBoundingClientRect();
       actions.place(dd.id, tgt.dataset.lid!, tgt.dataset.sid!, { x: (e.clientX - r.left) / zoom - 24, y: (e.clientY - r.top) / zoom - 16 });
+    } else if (dd.t === 'api') {
+      // una API se coloca sólo en una celda: no tiene sentido anidarla dentro de otro chip
+      const cell = tgt.classList.contains('cell') ? tgt : tgt.closest<HTMLElement>('.cell');
+      if (!cell) return;
+      const r = cell.getBoundingClientRect();
+      actions.placeApi(dd.id, cell.dataset.lid!, cell.dataset.sid!, { x: (e.clientX - r.left) / zoom - 24, y: (e.clientY - r.top) / zoom - 16 });
     } else if (dd.t === 'stage') actions.reorder('stages', dd.id, tgt.dataset.sid!);
     else if (dd.t === 'layer') actions.reorder('layers', dd.id, tgt.dataset.lid!);
   };
@@ -404,6 +412,28 @@ export function Board() {
       const c = findComp(data, p.componentId);
       select({ kind: 'placement', id: pid });
       setCell({ layerId: p.layerId, stageId: p.stageId });
+      // una instancia de API no se edita desde aquí: sólo se elige su operación
+      const apiC = apiOfComp(data, c);
+      if (apiC) {
+        openMenu(e, [
+          ...apiC.operations.map(o => ({
+            label: `${p.operationId === o.id ? '✓ ' : '　'}${opName(o)}`,
+            hint: opLabel(o) || undefined,
+            onClick: () => actions.setPlacementOperation(pid, o.id),
+          })),
+          ...(apiC.operations.length === 0 ? [{ label: 'Esta API aún no tiene operaciones', disabled: true, onClick: () => undefined }] : []),
+          { sep: true },
+          { label: 'Ver y editar la API…', title: 'Los cambios valen para todos los sitios donde se use', onClick: () => { select({ kind: 'api', id: apiC.id }); st.setUI({ inspectorOpen: true }); } },
+          { label: 'Nota de esta instancia…', hint: 'F2', onClick: () => { st.setUI({ inspectorOpen: true }); setTimeout(() => document.querySelector<HTMLTextAreaElement>('#inspector .api-note')?.focus(), 0); } },
+          { sep: true },
+          { label: 'Copiar', hint: 'Ctrl+C', onClick: () => copySelection() },
+          { label: 'Duplicar aquí', hint: 'Ctrl+D', onClick: () => actions.clonePlacement(pid, p.layerId, p.stageId) },
+          { label: 'Ordenar celda', onClick: () => actions.tidyCell(p.layerId, p.stageId) },
+          { sep: true },
+          { label: 'Quitar de la celda', hint: 'Supr', danger: true, onClick: () => actions.removePlacement(pid) },
+        ], `${apiC.name} · API`);
+        return;
+      }
       const items: MenuItem[] = [
         { label: 'Copiar', hint: 'Ctrl+C', onClick: () => copySelection() },
         { label: 'Cortar', hint: 'Ctrl+X', onClick: () => cutSelection() },
@@ -715,6 +745,10 @@ function Chip(props: ChipProps) {
   const { p, d, data, sel, linkTarget, hoverCid, dragPid, onHover, ghost } = props;
   const c = findComp(data, p.componentId); if (!c) return null;
   const t = findType(data, c.typeId);
+  // instancia de una API: manda lo que dice el catálogo, y debajo la operación de ESTA celda
+  const api = apiOfComp(data, c);
+  const op = findOp(api, p.operationId);
+  const sub = api ? (op ? opLabel(op) : 'sin operación') : [c.fields.method, c.fields.path].filter(Boolean).join(' ');
   const clones = d.placements.filter(x => x.componentId === c.id).length;
   const kids = childrenOf(d, p.id);
   const gente = participants(data, 'component', c.id);
@@ -732,12 +766,12 @@ function Chip(props: ChipProps) {
     <div className={cls} data-pid={ghost ? undefined : p.id} data-cid={c.id} style={style}
       onMouseEnter={ghost ? undefined : e => { e.stopPropagation(); onHover(c.id, p.id); }}
       onMouseLeave={ghost ? undefined : () => onHover(null)}
-      title={c.description || c.name}>
+      title={[api ? `API · ${api.name}` : '', op ? opName(op) : '', p.note, c.description].filter(Boolean).join('\n') || c.name}>
       <div className="comp-head">
-        <span className="icon">{rstyle.icon || t?.icon || '▫️'}</span>
+        <span className="icon">{rstyle.icon || (api ? api.icon : t?.icon) || '▫️'}</span>
         <span className="txt">
           <span className="label">{c.name}</span>
-          {(c.fields.method || c.fields.path) ? <span className="sub">{[c.fields.method, c.fields.path].filter(Boolean).join(' ')}</span> : null}
+          {sub ? <span className={'sub' + (api && !op ? ' warn' : '')}>{sub}</span> : null}
         </span>
         {rstyle.badge && <span className="r-badge" style={{ background: rstyle.badge }} title={rstyle.badgeText || undefined}>{rstyle.badgeText ?? ''}</span>}
         {gente.length > 0 && (

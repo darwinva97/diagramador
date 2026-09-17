@@ -10,9 +10,9 @@ import { PublicPanel } from './PublicPanel';
 import { API_BASE } from '../cloud';
 import { useStore } from '../store';
 import { normalize } from '../lib/model';
-import type { AppData, Diagram, Library, Person, StyleRule } from '../types';
+import type { Api, AppData, Diagram, Library, Person, StyleRule } from '../types';
 
-interface Respuesta { diagram: Diagram; libraries: Library[]; people: Person[]; rules: StyleRule[] }
+interface Respuesta { diagram: Diagram; libraries: Library[]; people: Person[]; rules: StyleRule[]; apis: Api[] }
 
 export function PublicView() {
   const { id } = useParams<{ id: string }>();
@@ -33,7 +33,7 @@ export function PublicView() {
         if (!vivo) return;
         const app: AppData = normalize({
           libraries: data.libraries ?? [], diagrams: [data.diagram],
-          people: data.people ?? [], rules: data.rules ?? [], currentDiagramId: data.diagram.id,
+          people: data.people ?? [], rules: data.rules ?? [], apis: data.apis ?? [], currentDiagramId: data.diagram.id,
         });
         // el visitante puede tener sus propios diagramas en este navegador: la vista
         // pública persiste en otra clave para no pisarlos

@@ -10,7 +10,7 @@ import { create } from 'zustand';
 import { useStore } from './store';
 import { normalize } from './lib/model';
 import { idbDel, idbGet, idbSet } from './lib/idb';
-import type { AppData, Diagram, Library, Person, StyleRule } from './types';
+import type { Api, AppData, Diagram, Library, Person, StyleRule } from './types';
 
 export interface CloudUser { id: string; email: string; createdAt: string; settings: Record<string, unknown> }
 export interface ApiKeyInfo { id: string; name: string; prefix: string; createdAt: string; lastUsedAt: string | null }
@@ -113,9 +113,9 @@ export const createKey = (name: string) => api<NewApiKey>('/api-keys', { method:
 export const deleteKey = (id: string) => api('/api-keys/' + id, { method: 'DELETE' });
 
 // ------------------------------------------------------------------ sincronización
-type Kind = 'library' | 'diagram' | 'person' | 'rule';
+type Kind = 'library' | 'diagram' | 'person' | 'rule' | 'api';
 /** Ruta REST de cada tipo de documento. */
-const PATH: Record<Kind, string> = { library: 'libraries', diagram: 'diagrams', person: 'people', rule: 'rules' };
+const PATH: Record<Kind, string> = { library: 'libraries', diagram: 'diagrams', person: 'people', rule: 'rules', api: 'apis' };
 let snapshot = new Map<string, string>(); // `${kind}:${id}` -> JSON tal como está en la nube
 let unsub: (() => void) | null = null;
 let timer: number | null = null;
@@ -138,11 +138,12 @@ async function restoreSnapshot(userId: string) {
 }
 
 const key = (k: Kind, id: string) => `${k}:${id}`;
-const docsOf = (d: AppData): { k: Kind; doc: Library | Diagram | Person | StyleRule }[] => [
+const docsOf = (d: AppData): { k: Kind; doc: Library | Diagram | Person | StyleRule | Api }[] => [
   ...d.libraries.map(l => ({ k: 'library' as Kind, doc: l })),
   ...d.diagrams.map(g => ({ k: 'diagram' as Kind, doc: g })),
   ...d.people.map(p => ({ k: 'person' as Kind, doc: p })),
   ...d.rules.map(r => ({ k: 'rule' as Kind, doc: r })),
+  ...(d.apis ?? []).map(a => ({ k: 'api' as Kind, doc: a })),
 ];
 const strip = (doc: object) => { const { updatedAt: _u, ...rest } = doc as { updatedAt?: string }; return JSON.stringify(rest); };
 
@@ -164,9 +165,9 @@ function contarPendientes(): number {
 
 /** Descarga todo de la cuenta y reemplaza los datos locales. */
 export async function pullAll() {
-  const r = await api<{ libraries: Library[]; diagrams: Diagram[]; people?: Person[]; rules?: StyleRule[] }>('/export');
+  const r = await api<{ libraries: Library[]; diagrams: Diagram[]; people?: Person[]; rules?: StyleRule[]; apis?: Api[] }>('/export');
   const cur = useStore.getState().data;
-  const data = normalize({ libraries: r.libraries, diagrams: r.diagrams, people: r.people ?? [], rules: r.rules ?? [], currentDiagramId: r.diagrams.some(g => g.id === cur.currentDiagramId) ? cur.currentDiagramId : r.diagrams[0]?.id ?? null });
+  const data = normalize({ libraries: r.libraries, diagrams: r.diagrams, people: r.people ?? [], rules: r.rules ?? [], apis: r.apis ?? [], currentDiagramId: r.diagrams.some(g => g.id === cur.currentDiagramId) ? cur.currentDiagramId : r.diagrams[0]?.id ?? null });
   takeSnapshot(data);
   useStore.setState({ data, sel: null });
   useAuth.setState({ lastSync: new Date().toISOString(), pending: 0 });
@@ -174,7 +175,7 @@ export async function pullAll() {
 /** Sube todos los datos locales a la cuenta (upsert por id). */
 export async function pushAll() {
   const d = useStore.getState().data;
-  await api('/import', { method: 'POST', json: { libraries: d.libraries, diagrams: d.diagrams, people: d.people, rules: d.rules } });
+  await api('/import', { method: 'POST', json: { libraries: d.libraries, diagrams: d.diagrams, people: d.people, rules: d.rules, apis: d.apis } });
   takeSnapshot(d);
   useAuth.setState({ lastSync: new Date().toISOString(), pending: 0 });
 }
@@ -227,10 +228,10 @@ function beforeUnload(e: BeforeUnloadEvent) { if (useAuth.getState().pending > 0
 
 /** Tras iniciar sesión: decide entre subir lo local o bajar lo de la cuenta. */
 export async function afterLogin() {
-  const cloud = await api<{ libraries: Library[]; diagrams: Diagram[]; people?: Person[]; rules?: StyleRule[] }>('/export');
+  const cloud = await api<{ libraries: Library[]; diagrams: Diagram[]; people?: Person[]; rules?: StyleRule[]; apis?: Api[] }>('/export');
   const local = useStore.getState().data;
-  const cloudEmpty = cloud.libraries.length === 0 && cloud.diagrams.length === 0 && (cloud.people?.length ?? 0) === 0 && (cloud.rules?.length ?? 0) === 0;
-  if (cloudEmpty && (local.libraries.length || local.diagrams.length || local.people.length || local.rules.length)) {
+  const cloudEmpty = cloud.libraries.length === 0 && cloud.diagrams.length === 0 && (cloud.people?.length ?? 0) === 0 && (cloud.rules?.length ?? 0) === 0 && (cloud.apis?.length ?? 0) === 0;
+  if (cloudEmpty && (local.libraries.length || local.diagrams.length || local.people.length || local.rules.length || local.apis.length)) {
     await pushAll(); // primera vez: los datos locales pasan a la cuenta
   } else {
     await pullAll();

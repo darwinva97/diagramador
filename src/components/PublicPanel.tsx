@@ -11,12 +11,13 @@
 import { useStore, useValidSel } from '../store';
 import { curDiagram, findComp, findPerson, findType, libOfComp, participants } from '../lib/model';
 import { matchingRules, resolveStyle, styleToCss } from '../lib/rules';
+import { apiOfComp, findOp, opName } from '../lib/api';
 import { parseJsonFields } from '../lib/schema';
 import { Avatar } from './People';
 import { RulePreview } from './Rules';
 import {
   OPS_SIN_VALOR, RULE_OPS, RULE_SOURCES,
-  type Component, type Condition, type Diagram, type FieldDef, type KeyValue, type Placement, type Relation, type StyleRule,
+  type ApiOperation, type Component, type Condition, type Diagram, type FieldDef, type KeyValue, type Placement, type Relation, type StyleRule,
 } from '../types';
 
 // ---------------------------------------------------------------- valores de campo
@@ -67,6 +68,28 @@ function FieldView({ def, value }: { def: FieldDef; value: unknown }) {
   return <div className="ro-field"><span className="fld-label">{def.label}</span>{cuerpo()}</div>;
 }
 
+/** Contrato de una operación de API, en modo lectura. */
+function ApiOperationView({ op }: { op: ApiOperation }) {
+  const kv = (label: string, items: KeyValue[]) => items.filter(x => x.key).length === 0 ? null : (
+    <div className="ro-field"><span className="fld-label">{label}</span>
+      <table className="table kv-view"><tbody>
+        {items.filter(x => x.key).map((x, i) => <tr key={i}><td><code>{x.key}</code></td><td>{x.value}</td></tr>)}
+      </tbody></table>
+    </div>
+  );
+  return (
+    <>
+      {kv('Parámetros de ruta', op.pathParams)}
+      {kv('Parámetros de consulta', op.queryParams)}
+      {kv('Cabeceras', op.headers)}
+      {op.requestBody.trim() && <FieldView def={{ key: 'req', label: 'Request body', kind: 'json' }} value={op.requestBody} />}
+      {op.responseBody.trim() && <FieldView def={{ key: 'res', label: 'Response body', kind: 'json' }} value={op.responseBody} />}
+      {kv('Códigos de respuesta', op.codes)}
+      {op.notes && <div className="ro-field"><span className="fld-label">Notas</span><div className="ro-text multi">{op.notes}</div></div>}
+    </>
+  );
+}
+
 /** Una condición en palabras: «estado es CONFIRMADO». */
 function condText(c: Condition): string {
   const donde = c.source === 'field' ? (c.key || 'campo') : RULE_SOURCES[c.source].toLowerCase();
@@ -103,6 +126,8 @@ function ComponentCard({ comp, placement, d }: { comp: Component; placement: Pla
   const css = styleToCss(style);
 
   // campos con valor: primero los del tipo, en su orden
+  const api = apiOfComp(data, comp);
+  const op = findOp(api, placement?.operationId);
   const defs: FieldDef[] = t?.fields ?? [];
   const conValor = defs.filter(f => !vacio(comp.fields[f.key]));
   const extra = Object.keys(comp.fields).filter(k => !defs.some(f => f.key === k) && !vacio(comp.fields[k]));
@@ -121,8 +146,38 @@ function ComponentCard({ comp, placement, d }: { comp: Component; placement: Pla
         <span className="icon big">{style.icon || t?.icon || '▫️'}</span>
         <h3>{comp.name}</h3>
       </div>
-      <div className="muted small">{[t?.name, lib?.name].filter(Boolean).join(' · ') || 'Sin tipo'}</div>
+      <div className="muted small">{api ? `API · ${api.version}` : ([t?.name, lib?.name].filter(Boolean).join(' · ') || 'Sin tipo')}</div>
       {comp.description && <div className="ro-text multi">{comp.description}</div>}
+      {placement?.note && <><h4>Nota de este uso</h4><div className="ro-text multi">{placement.note}</div></>}
+
+      {api && (
+        <>
+          <h4>Operación que usa aquí</h4>
+          {op ? (
+            <div className="op-summary">
+              <div><span className={'method m-' + op.method.toLowerCase()}>{op.method}</span> <code>{op.path}</code></div>
+              {op.name && <div><b>{op.name}</b></div>}
+              {op.summary && <div className="muted small">{op.summary}</div>}
+            </div>
+          ) : <div className="muted small">Sin operación elegida.</div>}
+          {op && <ApiOperationView op={op} />}
+          <h4>La API</h4>
+          {api.description && <div className="ro-text multi">{api.description}</div>}
+          {api.repoUrl && <div className="ro-field"><span className="fld-label">Repositorio</span><a href={api.repoUrl} target="_blank" rel="noreferrer">{api.repoUrl}</a></div>}
+          {api.docsUrl && <div className="ro-field"><span className="fld-label">Documentación</span><a href={api.docsUrl} target="_blank" rel="noreferrer">{api.docsUrl}</a></div>}
+          {api.auth && <div className="ro-field"><span className="fld-label">Autenticación</span><div className="ro-text">{api.auth}</div></div>}
+          {api.baseUrls.filter(b => b.value).length > 0 && (
+            <div className="ro-field"><span className="fld-label">Base URL por entorno</span>
+              <table className="table kv-view"><tbody>
+                {api.baseUrls.filter(b => b.value).map((b, i) => <tr key={i}><td><code>{b.key}</code></td><td>{b.value}</td></tr>)}
+              </tbody></table>
+            </div>
+          )}
+          {api.operations.length > 1 && (
+            <div className="muted small">La API tiene {api.operations.length} operaciones; aquí se usa {op ? `«${opName(op)}»` : 'ninguna'}.</div>
+          )}
+        </>
+      )}
 
       {placement && (
         <>

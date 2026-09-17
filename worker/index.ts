@@ -152,7 +152,7 @@ app.delete('/api-keys/:id', async c => {
 });
 
 // ------------------------------------------------------------------ documentos (librerías y diagramas)
-type Kind = 'library' | 'diagram' | 'person' | 'rule';
+type Kind = 'library' | 'diagram' | 'person' | 'rule' | 'api';
 type DocRow = { id: string; name: string; data: string; updated_at: string };
 interface Library { id: string; name: string; types: Record<string, unknown>[]; components: Record<string, unknown>[] }
 interface Person { id: string; name: string; email?: string; title?: string; team?: string; color?: string; notes?: string; assignments: Record<string, unknown>[] }
@@ -177,6 +177,32 @@ const normPerson = (p: Partial<Person>, id?: string): Person => ({
     .filter(a => ASSIGN_KINDS.includes(a.kind as string) && typeof a.targetId === 'string')
     .map(a => ({ ...a, id: (a.id as string) ?? uid(), role: String(a.role ?? 'Participante') })),
 });
+/** API del catálogo: se define una vez y se usa en muchas celdas, cada una con su operación. */
+interface ApiDoc {
+  id: string; name: string; description: string; repoUrl: string; docsUrl: string; version: string;
+  auth: string; baseUrls: Record<string, unknown>[]; operations: Record<string, unknown>[];
+  color: string; icon: string; tags: string;
+}
+const normApi = (a: Partial<ApiDoc>, id?: string): ApiDoc => ({
+  ...a,
+  id: id ?? a.id ?? uid(),
+  name: String(a.name ?? 'API'),
+  description: String(a.description ?? ''),
+  repoUrl: String(a.repoUrl ?? ''),
+  docsUrl: String(a.docsUrl ?? ''),
+  version: String(a.version ?? 'v1'),
+  auth: String(a.auth ?? ''),
+  color: String(a.color ?? '#2563eb'),
+  icon: String(a.icon ?? '🔌'),
+  tags: String(a.tags ?? ''),
+  baseUrls: (a.baseUrls ?? []).filter(b => typeof b?.key === 'string'),
+  operations: (a.operations ?? []).map(o => ({
+    method: 'GET', path: '', name: '', summary: '', notes: '', requestBody: '', responseBody: '',
+    headers: [], pathParams: [], queryParams: [], codes: [],
+    ...o, id: (o.id as string) ?? uid(),
+  })),
+});
+
 interface Diagram { id: string; name: string; description: string; public?: boolean; layers: Record<string, unknown>[]; stages: Record<string, unknown>[]; stageGroups: Record<string, unknown>[]; placements: Record<string, unknown>[]; relations: Record<string, unknown>[]; stageWidths?: unknown }
 
 const DEFAULT_LAYERS = [
@@ -254,6 +280,70 @@ app.patch('/rules/:id', async c => {
 });
 app.delete('/rules/:id', async c => (await delDoc(c.get('store'), c.get('user').id, 'rule', c.req.param('id')))
   ? c.json({ ok: true }) : c.json({ error: 'Regla no encontrada' }, 404));
+
+// ---- catálogo de APIs
+app.get('/apis', async c => c.json({ apis: await listDocs<ApiDoc>(c.get('store'), c.get('user').id, 'api') }));
+app.post('/apis', async c => {
+  const body = await c.req.json<Partial<ApiDoc>>().catch(() => ({}) as never);
+  const a = normApi(body);
+  await putDoc(c.get('store'), c.get('user').id, 'api', a);
+  return c.json(a, 201);
+});
+app.get('/apis/:id', async c => {
+  const a = await getDoc<ApiDoc>(c.get('store'), c.get('user').id, 'api', c.req.param('id'));
+  return a ? c.json(a) : c.json({ error: 'API no encontrada' }, 404);
+});
+app.put('/apis/:id', async c => {
+  const body = await c.req.json<Partial<ApiDoc>>().catch(() => ({}) as never);
+  const a = normApi(body, c.req.param('id'));
+  await putDoc(c.get('store'), c.get('user').id, 'api', a);
+  return c.json(a);
+});
+app.patch('/apis/:id', async c => {
+  const cur = await getDoc<ApiDoc>(c.get('store'), c.get('user').id, 'api', c.req.param('id'));
+  if (!cur) return c.json({ error: 'API no encontrada' }, 404);
+  const body = await c.req.json<Partial<ApiDoc>>();
+  const a = normApi({ ...cur, ...body }, cur.id);
+  await putDoc(c.get('store'), c.get('user').id, 'api', a);
+  return c.json(a);
+});
+app.delete('/apis/:id', async c => (await delDoc(c.get('store'), c.get('user').id, 'api', c.req.param('id')))
+  ? c.json({ ok: true }) : c.json({ error: 'API no encontrada' }, 404));
+
+// ---- operaciones de una API
+app.get('/apis/:id/operations', async c => {
+  const a = await getDoc<ApiDoc>(c.get('store'), c.get('user').id, 'api', c.req.param('id'));
+  return a ? c.json({ operations: a.operations }) : c.json({ error: 'API no encontrada' }, 404);
+});
+app.post('/apis/:id/operations', async c => {
+  const store = c.get('store'); const u = c.get('user').id;
+  const a = await getDoc<ApiDoc>(store, u, 'api', c.req.param('id'));
+  if (!a) return c.json({ error: 'API no encontrada' }, 404);
+  const body = await c.req.json<Record<string, unknown>>().catch(() => ({}) as never);
+  const next = normApi({ ...a, operations: [...a.operations, body] }, a.id);
+  await putDoc(store, u, 'api', next);
+  return c.json(next.operations[next.operations.length - 1], 201);
+});
+app.put('/apis/:id/operations/:opId', async c => {
+  const store = c.get('store'); const u = c.get('user').id;
+  const a = await getDoc<ApiDoc>(store, u, 'api', c.req.param('id'));
+  if (!a) return c.json({ error: 'API no encontrada' }, 404);
+  const opId = c.req.param('opId');
+  if (!a.operations.some(o => o.id === opId)) return c.json({ error: 'Operación no encontrada' }, 404);
+  const body = await c.req.json<Record<string, unknown>>().catch(() => ({}) as never);
+  const next = normApi({ ...a, operations: a.operations.map(o => (o.id === opId ? { ...o, ...body, id: opId } : o)) }, a.id);
+  await putDoc(store, u, 'api', next);
+  return c.json(next.operations.find(o => o.id === opId));
+});
+app.delete('/apis/:id/operations/:opId', async c => {
+  const store = c.get('store'); const u = c.get('user').id;
+  const a = await getDoc<ApiDoc>(store, u, 'api', c.req.param('id'));
+  if (!a) return c.json({ error: 'API no encontrada' }, 404);
+  const opId = c.req.param('opId');
+  if (!a.operations.some(o => o.id === opId)) return c.json({ error: 'Operación no encontrada' }, 404);
+  await putDoc(store, u, 'api', normApi({ ...a, operations: a.operations.filter(o => o.id !== opId) }, a.id));
+  return c.json({ ok: true });
+});
 
 // ---- personas
 app.get('/people', async c => c.json({ people: await listDocs<Person>(c.get('store'), c.get('user').id, 'person') }));
@@ -471,7 +561,7 @@ for (const [path, { key, required }] of Object.entries(SUBS)) {
 // ---- exportar / importar / plantillas
 app.get('/export', async c => {
   const store = c.get('store'); const u = c.get('user').id;
-  return c.json({ app: 'diagramador', version: 1, exportedAt: nowIso(), libraries: await listDocs<Library>(store, u, 'library'), diagrams: await listDocs<Diagram>(store, u, 'diagram'), people: await listDocs<Person>(store, u, 'person'), rules: await listDocs<StyleRule>(store, u, 'rule') });
+  return c.json({ app: 'diagramador', version: 1, exportedAt: nowIso(), libraries: await listDocs<Library>(store, u, 'library'), diagrams: await listDocs<Diagram>(store, u, 'diagram'), people: await listDocs<Person>(store, u, 'person'), rules: await listDocs<StyleRule>(store, u, 'rule'), apis: await listDocs<ApiDoc>(store, u, 'api') });
 });
 app.get('/diagrams/:id/export', async c => {
   const store = c.get('store'); const u = c.get('user').id;
@@ -485,7 +575,7 @@ app.get('/diagrams/:id/export', async c => {
   return c.json({ app: 'diagramador', version: 1, exportedAt: nowIso(), libraries: libs, diagrams: [d] });
 });
 app.post('/import', async c => {
-  const body = await c.req.json<{ libraries?: Partial<Library>[]; diagrams?: Partial<Diagram>[]; people?: Partial<Person>[]; rules?: Partial<StyleRule>[] }>().catch(() => ({}) as never);
+  const body = await c.req.json<{ libraries?: Partial<Library>[]; diagrams?: Partial<Diagram>[]; people?: Partial<Person>[]; rules?: Partial<StyleRule>[]; apis?: Partial<ApiDoc>[] }>().catch(() => ({}) as never);
   const store = c.get('store'); const u = c.get('user').id;
   const libs: Library[] = []; const diags: Diagram[] = []; const ppl: Person[] = [];
   for (const l of body.libraries ?? []) { const lib = normLib(l); await putDoc(store, u, 'library', lib); libs.push(lib); }
@@ -493,7 +583,9 @@ app.post('/import', async c => {
   for (const p of body.people ?? []) { const per = normPerson(p); await putDoc(store, u, 'person', per); ppl.push(per); }
   const rls: StyleRule[] = [];
   for (const r of body.rules ?? []) { const rr = normRule(r); await putDoc(store, u, 'rule', rr); rls.push(rr); }
-  return c.json({ imported: { libraries: libs.map(l => l.id), diagrams: diags.map(d => d.id), people: ppl.map(p => p.id), rules: rls.map(r => r.id) } }, 201);
+  const aps: ApiDoc[] = [];
+  for (const a of body.apis ?? []) { const ap = normApi(a); await putDoc(store, u, 'api', ap); aps.push(ap); }
+  return c.json({ imported: { libraries: libs.map(l => l.id), diagrams: diags.map(d => d.id), people: ppl.map(p => p.id), rules: rls.map(r => r.id), apis: aps.map(a => a.id) } }, 201);
 });
 /**
  * Vista pública de un diagrama, sin sesión: sólo responde si su autor lo marcó como
@@ -520,7 +612,10 @@ app.get('/public/diagrams/:id', async c => {
     .map(p => ({ ...p, email: undefined, assignments: p.assignments.filter(a => ids.has(a.targetId as string)) }))
     .filter(p => p.assignments.length);
   const rules = (await listDocs<StyleRule>(store, u, 'rule')).filter(r => !r.diagramId || r.diagramId === d.id);
-  return c.json({ app: 'diagramador', version: 1, diagram: d, libraries, people, rules });
+  // sólo las APIs que el diagrama usa de verdad, y sin el resto del catálogo
+  const apiIds = new Set(libraries.flatMap(l => l.components).map(x => x.apiId as string).filter(Boolean));
+  const apis = (await listDocs<ApiDoc>(store, u, 'api')).filter(a => apiIds.has(a.id));
+  return c.json({ app: 'diagramador', version: 1, diagram: d, libraries, people, rules, apis });
 });
 
 export default app;

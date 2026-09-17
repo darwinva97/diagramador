@@ -6,6 +6,7 @@ import { exportAll, exportDiagram } from '../lib/io';
 import { abrirArchivo, descargarApp, desvincular, enServidor, guardar, guardarComo, recargar, setAuto, supportsFS, useLocal } from '../local';
 import { Avatar } from './People';
 import { ShareButton } from './Share';
+import { userLibs } from '../lib/api';
 import { ASSIGN_LABEL } from '../types';
 import { targetDiagram, targetName } from '../lib/model';
 import { Link, NavLink, useNavigate, useParams } from 'react-router';
@@ -253,14 +254,15 @@ function Personas() {
 // ------------------------------------------------------------------ Bibliotecas
 function Bibliotecas() {
   const data = useStore(s => s.data); const setUI = useStore(s => s.setUI); const navigate = useNavigate();
+  const libs = userLibs(data);
   const uses = (libId: string) => { const lib = data.libraries.find(l => l.id === libId)!; const ids = new Set(lib.components.map(c => c.id)); return data.diagrams.filter(d => d.placements.some(p => ids.has(p.componentId))).length; };
   return (
     <>
-      <div className="row between"><h2>Bibliotecas de componentes ({data.libraries.length})</h2><button className="btn primary" onClick={actions.newLibrary}>+ Nueva biblioteca</button></div>
+      <div className="row between"><h2>Bibliotecas de componentes ({libs.length})</h2><button className="btn primary" onClick={actions.newLibrary}>+ Nueva biblioteca</button></div>
       <table className="table">
         <thead><tr><th>Nombre</th><th>Tipos</th><th>Componentes</th><th>Usada en diagramas</th><th /></tr></thead>
         <tbody>
-          {data.libraries.map(l => (
+          {libs.map(l => (
             <tr key={l.id}><td><b>{l.name}</b></td><td>{l.types.length}</td><td>{l.components.length}</td><td>{uses(l.id)}</td>
               <td className="actions-cell">
                 <button className="btn" onClick={() => { setUI({ libFilter: l.id, tab: 'comps', sidebarOpen: true }); navigate('/'); }}>Ver en el tablero</button>
@@ -278,7 +280,7 @@ function Bibliotecas() {
 // ------------------------------------------------------------------ Tipos
 function Tipos() {
   const data = useStore(s => s.data); const setUI = useStore(s => s.setUI); const navigate = useNavigate(); const select = useStore(s => s.select);
-  const types = data.libraries.flatMap(l => l.types.map(t => ({ t, lib: l })));
+  const types = userLibs(data).flatMap(l => l.types.map(t => ({ t, lib: l })));
   const used = (tid: string) => data.libraries.flatMap(l => l.components).filter(c => c.typeId === tid).length;
   return (
     <>

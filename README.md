@@ -28,6 +28,11 @@ npm run build      # genera dist/index.html (un único archivo; necesita un serv
   - Un tipo define icono, color y **campos específicos** (texto, número, lista, casilla, URL, fecha…).
   - Un componente puede moverse de librería y usar tipos de cualquier librería.
 - Drag & drop: librería → celda, celda → celda, Ctrl+arrastrar = clonar, soltar en la librería = quitar.
+- **Catálogo de APIs** (pestaña *APIs* de la librería): una API se define **una vez** —nombre, repositorio, base URL por entorno, autenticación y sus **operaciones**, cada una con su contrato (método, ruta, parámetros, cabeceras, request/response en JSON, códigos)— y se usa en tantas celdas como haga falta.
+  - Arrástrala a una celda y **elige allí qué operación** usa. Cada instancia enseña `MÉTODO /ruta` bajo el nombre.
+  - Desde la celda **no se edita la API**: sólo se elige operación y se escribe una **nota propia de esa instancia**. Editar la API (nombre, contratos, URLs…) cambia en **todos** sus usos a la vez; el panel dice en cuántos.
+  - **OpenAPI**: importa un archivo OpenAPI/Swagger para crear la API con sus operaciones, o exporta la tuya como OpenAPI 3.1.
+  - Es un vínculo distinto al de los componentes normales, que siguen funcionando igual que siempre.
 - **Imagen del diagrama** (botón 🖼 de la barra): PNG a ×1, ×2 o ×3 la resolución de pantalla, SVG escalable, copiar al portapapeles o imprimir/PDF. Se captura el tablero entero (aunque no quepa en la ventana) siempre al 100 %, así que la imagen no depende del zoom con el que estés mirando; salen fuera los mandos de edición (tiradores, puntos de enlace, botones de añadir). En diagramas muy grandes la escala se baja sola a lo que el navegador aguanta y se avisa.
 - **Texto legible al alejar**: por debajo de 11 px en pantalla los nombres de los componentes dejan de encoger y crecen para compensar el zoom (hasta ×2,5). Los chips ocupan más sitio en la celda y los nombres largos se cortan con «…», pero no se vuelven ilegibles. Las cabeceras de capas y etapas tienen además su propio zoom.
 - **Modo local y sin conexión** (como el modo local de draw.io), con el chip 💾 / 📄 de la barra superior:

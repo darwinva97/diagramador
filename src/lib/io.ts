@@ -1,4 +1,4 @@
-import type { AppData, Diagram, Library, Person, StyleRule } from '../types';
+import type { Api, AppData, Diagram, Library, Person, StyleRule } from '../types';
 import { cloneDiagram, findLib, normalize, slugify, stamp } from './model';
 
 export interface ExportFile {
@@ -9,6 +9,8 @@ export interface ExportFile {
   diagrams: Diagram[];
   people?: Person[];
   rules?: StyleRule[];
+  /** Catálogo de APIs (las que use lo exportado, o todas en la exportación completa). */
+  apis?: Api[];
   /** Diagrama que estaba abierto. Sólo lo escriben los archivos del modo local. */
   currentDiagramId?: string | null;
 }
@@ -23,7 +25,7 @@ export function download(name: string, obj: unknown) {
 }
 
 export function exportAll(data: AppData) {
-  const f: ExportFile = { app: 'diagramador', version: 1, exportedAt: new Date().toISOString(), libraries: data.libraries, diagrams: data.diagrams, people: data.people, rules: data.rules };
+  const f: ExportFile = { app: 'diagramador', version: 1, exportedAt: new Date().toISOString(), libraries: data.libraries, diagrams: data.diagrams, people: data.people, rules: data.rules, apis: data.apis };
   download(`drawer-todo-${stamp()}.json`, f);
 }
 
@@ -35,7 +37,10 @@ export function exportDiagram(data: AppData, d: Diagram) {
   const libraries = data.libraries
     .map(l => ({ ...l, components: l.components.filter(c => usedComp.has(c.id)), types: l.types.filter(t => usedType.has(t.id)) }))
     .filter(l => l.components.length || l.types.length);
-  const f: ExportFile = { app: 'diagramador', version: 1, exportedAt: new Date().toISOString(), libraries, diagrams: [d] };
+  // las APIs que usa el diagrama van enteras: si no, al importarlo se perderían sus operaciones
+  const apiIds = new Set(libraries.flatMap(l => l.components).map(c => c.apiId).filter(Boolean));
+  const apis = (data.apis ?? []).filter(a => apiIds.has(a.id));
+  const f: ExportFile = { app: 'diagramador', version: 1, exportedAt: new Date().toISOString(), libraries, diagrams: [d], apis };
   download(`diagrama-${slugify(d.name)}-${stamp()}.json`, f);
 }
 
@@ -56,7 +61,13 @@ export function mergeImport(data: AppData, raw: unknown): string | null {
   const obj = raw as Partial<ExportFile> & { diagram?: Diagram };
   if (!obj || typeof obj !== 'object' || (!Array.isArray(obj.libraries) && !Array.isArray(obj.diagrams) && !obj.diagram))
     throw new Error('Formato no reconocido: se esperaba un JSON exportado por Drawer.');
-  const inc = normalize({ libraries: obj.libraries ?? [], diagrams: obj.diagrams ?? (obj.diagram ? [obj.diagram] : []), people: obj.people ?? [], rules: obj.rules ?? [] });
+  const inc = normalize({ libraries: obj.libraries ?? [], diagrams: obj.diagrams ?? (obj.diagram ? [obj.diagram] : []), people: obj.people ?? [], rules: obj.rules ?? [], apis: obj.apis ?? [] });
+
+  // el catálogo de APIs se fusiona por id; una API que ya existe se respeta tal cual está
+  for (const a of inc.apis) {
+    const i = data.apis.findIndex(x => x.id === a.id);
+    if (i < 0) data.apis.push(a);
+  }
 
   for (const l of inc.libraries) {
     const ex = findLib(data, l.id);

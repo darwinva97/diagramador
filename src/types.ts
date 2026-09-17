@@ -26,6 +26,11 @@ export interface Component {
   typeId: string | null;
   description: string;
   fields: Record<string, unknown>;
+  /**
+   * Componente que representa a una API del catálogo. No se edita como los demás: lo que
+   * se toca es la API (y eso cambia en todos los sitios donde esté). Ver `lib/api.ts`.
+   */
+  apiId?: string | null;
 }
 
 export interface Library {
@@ -53,6 +58,54 @@ export interface Placement {
   y: number;
   /** Instancia contenedora (misma celda). null = nivel superior. */
   parentId?: string | null;
+  /** Sólo para instancias de una API: qué operación usa aquí. */
+  operationId?: string | null;
+  /** Nota de esta instancia: lo único editable cuando el componente es una API. */
+  note?: string;
+}
+
+// ---------------------------------------------------------------- Catálogo de APIs
+export const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+
+/** Una operación de una API, con su contrato. Equivale a un `path` + método de OpenAPI. */
+export interface ApiOperation {
+  id: string;
+  name: string;
+  method: string;
+  path: string;
+  summary: string;
+  deprecated?: boolean;
+  headers: KeyValue[];
+  pathParams: KeyValue[];
+  queryParams: KeyValue[];
+  /** Cuerpos de ejemplo o esquema, en JSON. */
+  requestBody: string;
+  responseBody: string;
+  /** Código de respuesta → qué significa. */
+  codes: KeyValue[];
+  notes: string;
+}
+
+/**
+ * API del catálogo: se define una vez, con su repositorio, sus base URL por entorno y sus
+ * operaciones, y se usa en tantas celdas como haga falta. Cada instancia elige operación y
+ * pone su propia nota; todo lo demás es común, así que editarla afecta a todos los usos.
+ */
+export interface Api {
+  id: string;
+  name: string;
+  description: string;
+  /** Repositorio donde vive su código. */
+  repoUrl: string;
+  docsUrl: string;
+  version: string;
+  auth: string;
+  /** Entorno → base URL. */
+  baseUrls: KeyValue[];
+  operations: ApiOperation[];
+  color: string;
+  icon: string;
+  tags: string;
 }
 
 export type LineStyle = 'solid' | 'dashed' | 'dotted';
@@ -94,6 +147,8 @@ export interface AppData {
   people: Person[];
   /** Reglas de estilo condicional para los componentes. */
   rules: StyleRule[];
+  /** Catálogo de APIs, con sus operaciones. Compartido por todos los diagramas. */
+  apis: Api[];
   currentDiagramId: string | null;
 }
 
@@ -217,6 +272,7 @@ export type Selection =
   | { kind: 'placement'; id: string }
   | { kind: 'component'; id: string }
   | { kind: 'relation'; id: string }
+  | { kind: 'api'; id: string }
   | { kind: 'type'; id: string };
 
 export interface LinkDefaults { style: LineStyle; dir: Dir; color: string; width: number }

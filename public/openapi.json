@@ -143,6 +143,11 @@
             "type": "object",
             "additionalProperties": true,
             "description": "Valores por key del tipo. list→string[]; keyvalue→[{key,value}]; json→string"
+          },
+          "apiId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Si viene, el componente representa a esa API del catálogo y no se edita por aquí: se edita la API."
           }
         },
         "required": [
@@ -247,6 +252,15 @@
               "null"
             ],
             "description": "Instancia contenedora (subcomponente)"
+          },
+          "operationId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Sólo para instancias de una API: qué operación usa en esta celda."
+          },
+          "note": {
+            "type": "string",
+            "description": "Nota de esta instancia. Lo único propio de cada uso de una API."
           }
         },
         "required": [
@@ -419,6 +433,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Diagram"
+            }
+          },
+          "apis": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Api"
             }
           }
         }
@@ -686,6 +706,140 @@
         "required": [
           "name"
         ]
+      },
+      "KeyValue": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiOperation": {
+        "type": "object",
+        "description": "Operación de una API: su contrato. Equivale a un método + path de OpenAPI.",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "example": "Consultar perfil"
+          },
+          "method": {
+            "type": "string",
+            "example": "GET"
+          },
+          "path": {
+            "type": "string",
+            "example": "/v1/clientes/{id}"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "deprecated": {
+            "type": "boolean"
+          },
+          "headers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KeyValue"
+            }
+          },
+          "pathParams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KeyValue"
+            }
+          },
+          "queryParams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KeyValue"
+            }
+          },
+          "requestBody": {
+            "type": "string",
+            "description": "JSON de ejemplo o esquema"
+          },
+          "responseBody": {
+            "type": "string",
+            "description": "JSON de ejemplo o esquema"
+          },
+          "codes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KeyValue"
+            },
+            "description": "Código → significado"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "Api": {
+        "type": "object",
+        "description": "API del catálogo. Se define una vez y se usa en muchas celdas; cada instancia elige su operación (`placement.operationId`) y pone su nota (`placement.note`). Su componente espejo tiene siempre el id `api-{apiId}`.",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "example": "API Perfil del Cliente"
+          },
+          "description": {
+            "type": "string"
+          },
+          "repoUrl": {
+            "type": "string",
+            "example": "https://github.com/banco/perfil-cliente"
+          },
+          "docsUrl": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string",
+            "example": "v1"
+          },
+          "auth": {
+            "type": "string",
+            "example": "OAuth2 client_credentials"
+          },
+          "baseUrls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KeyValue"
+            },
+            "description": "Entorno → base URL"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiOperation"
+            }
+          },
+          "color": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "string"
+          }
+        }
       }
     }
   },
@@ -3709,6 +3863,439 @@
           },
           "404": {
             "description": "No existe o no está publicado"
+          }
+        }
+      }
+    },
+    "/apis": {
+      "get": {
+        "summary": "Catálogo de APIs",
+        "tags": [
+          "apis"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "apis": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Api"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear una API",
+        "tags": [
+          "apis"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Api"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Api"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        }
+      }
+    },
+    "/apis/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Leer una API",
+        "tags": [
+          "apis"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Api"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        }
+      },
+      "put": {
+        "summary": "Reemplazar una API",
+        "tags": [
+          "apis"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Api"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Api"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Editar una API",
+        "tags": [
+          "apis"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Api"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Api"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar una API (y sus instancias)",
+        "tags": [
+          "apis"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        }
+      }
+    },
+    "/apis/{id}/operations": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Operaciones de una API",
+        "tags": [
+          "apis"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "operations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApiOperation"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        }
+      },
+      "post": {
+        "summary": "Añadir una operación",
+        "tags": [
+          "apis"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiOperation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOperation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        }
+      }
+    },
+    "/apis/{id}/operations/{opId}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "opId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "put": {
+        "summary": "Editar una operación (merge)",
+        "tags": [
+          "apis"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiOperation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOperation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar una operación",
+        "tags": [
+          "apis"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No encontrado"
           }
         }
       }

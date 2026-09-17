@@ -3,11 +3,11 @@
  * `dataTransfer` con un MIME propio por tipo, para poder soltar entre ventanas distintas
  * (p. ej. desde la librería abierta en otra ventana hasta el tablero).
  */
-export type DragKind = 'comp' | 'stage' | 'layer';
+export type DragKind = 'comp' | 'stage' | 'layer' | 'api';
 export type DragData = { t: DragKind; id: string };
 
 export const MIME = (t: DragKind) => `application/x-diagramador-${t}`;
-const KINDS: DragKind[] = ['comp', 'stage', 'layer'];
+const KINDS: DragKind[] = ['comp', 'stage', 'layer', 'api'];
 
 export const dragData: { current: DragData | null } = { current: null };
 export const setDragData = (d: DragData | null) => { dragData.current = d; };

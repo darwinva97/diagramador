@@ -408,6 +408,30 @@ kbd { font: inherit; font-size: 11.5px; font-family: ui-monospace, Menlo, monosp
 .comp .r-badge { display: inline-flex; align-items: center; justify-content: center; min-width: .77em; height: 1.08em; padding: 0 .3em;
   border-radius: 8px; color: #fff; font-size: .73em; font-weight: 700; line-height: 1; flex: none; }
 
+/* ---------- Catálogo de APIs */
+.item.api-item .icon { font-size: 15px; }
+.comp .sub.warn { color: #b45309; }
+.method { font-family: ui-monospace, Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: .02em;
+  border-radius: 4px; padding: 1px 5px; background: var(--chip); color: var(--text-2); flex: none; }
+.m-get { background: #dbeafe; color: #1d4ed8; }
+.m-post { background: #dcfce7; color: #15803d; }
+.m-put { background: #fef3c7; color: #b45309; }
+.m-patch { background: #ede9fe; color: #6d28d9; }
+.m-delete { background: #fee2e2; color: #b91c1c; }
+.op-item { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; overflow: hidden; }
+.op-item.open { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.op-head { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; font: inherit;
+  background: var(--panel); border: 0; padding: 7px 9px; cursor: pointer; color: var(--text); }
+.op-head:hover { background: var(--hover); }
+.op-head .txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.op-head .txt b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.op-head .txt small { color: var(--muted); font-family: ui-monospace, Menlo, monospace; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.op-head .caret { color: var(--muted); font-size: 11px; }
+.op-edit { padding: 8px 9px 10px; border-top: 1px solid var(--border); background: var(--field); }
+.op-summary { border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; margin: 6px 0 4px; background: var(--field); }
+.op-summary code { background: none; padding: 0; }
+textarea.api-note { width: 100%; }
+
 /* ---------- Editor de reglas */
 .rule-item { gap: 6px; }
 .rule-item.off { opacity: .5; }
